@@ -10,6 +10,11 @@ Quick unit test and export document APIs base on scenario file (yaml)
 6. Load external library () and create tags by yourself
 7. Support run benchmark via wrk
 
+# External modules
+1. [Redis](https://github.com/doanthuanthanh88/testapi6-redis): _Execute redis commands_
+2. [Sql](https://github.com/doanthuanthanh88/testapi6-sql): _Execute mysql, postgres... query_
+3. [MockApi](https://github.com/doanthuanthanh88/testapi6-mockapi) _Create mocking api and serve static files_
+
 # Practice
 - See [examples](./test)
 - Read [document details](https://doanthuanthanh88.github.io/testapi6/)
