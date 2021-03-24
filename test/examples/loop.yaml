@@ -1,0 +1,7 @@
+- Group:
+    loop: ${[1,409,629]}
+    steps:
+      - Vars:
+          userID: ${$$.loopValue}
+
+      - Echo: ${userID}

@@ -1,0 +1,20 @@
+- Get:
+    title: Do something
+    url: http://test.onapis.com
+    validate:
+      - Status: 200
+    ignoreError: true
+
+# Call external commamd after run test failed
+- Exec:
+    title: Push notification when test something wrong
+    disabled: ${Result.failed}
+    args:
+      - echo
+      - Loi
+    
+# Call api after run test failed
+- Get:
+    title: Push notification when test something wrong
+    url: http://tele.../
+    disabled: ${!Result.failed}

@@ -1,0 +1,97 @@
+- Group:
+    title: Benchmark via external command
+    steps:
+      - Exec:
+          title: Execute wrk from external command
+          args:
+            - wrk
+            - -c1
+            - -d5s
+            - -t1
+            - -H
+            - "x-app-user-id: 1"
+            - -H
+            - "x-app-role: user"
+            - http://abc.com
+- Group:
+    title: Benchmark in an API
+    vars: 
+      url: http://localhost:5000
+    steps:
+      - OutputFile:
+          content: |
+            1
+            2
+            3
+            4
+            5
+          saveTo: /tmp/data.json
+      - Get:
+          title: Benchmark test page
+          baseURL: ${url}
+          url: /healthz
+          headers:
+            authorization: Bearer alsdkjflk
+          benchmark:
+            wrk:
+              saveTo: /tmp/text.txt
+              connections: 5
+              threads: 5
+              duration: 5s
+              timeout: 1s
+              latency: true
+              script: |
+                local ids = readLine('/tmp/data.json')
+                local i = 0
+                local len = table.getn(ids)
+                request = function()
+                  if i >= len then
+                    i = 0
+                  end
+                  i = i + 1
+                  path = "${url}" .. "?id=" .. ids[i]
+                  return wrk.format("GET", path)
+                end
+- Group:
+    title: Benchmark from dynamic id
+    steps:
+      - OutputFile:
+          async: true
+          title: Prepare script file to load dynamic data in wrk
+          content: |
+            function lines_from(file)
+              lines = {}
+              for line in io.lines(file) do 
+                lines[#lines + 1] = line
+              end
+              return lines
+            end
+            local ids = lines_from('/tmp/requests.csv')
+            local len = table.getn(ids)
+            local i = 0
+
+            request = function()
+              if i >= len then
+                i = 0
+              end
+              wrk.headers["user-id"] = ids[i]
+              i = i + 1
+              return wrk.format("GET", path)
+            end
+          saveTo: /tmp/wrk_request.lua
+      - Get:
+          title: Run benchmark
+          baseURL: ${url}
+          url: /test
+          benchmark:
+            wrk:
+              saveTo: benchmark.result.md
+              info:
+                env: ${env}
+                number of pods: ${numberOfPods}
+              script: /tmp/wrk_request.lua
+              connections: ${connections}
+              threads: ${threads}
+              duration: ${duration}
+              timeout: ${timeout}
+              latency: true

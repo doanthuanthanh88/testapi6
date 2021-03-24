@@ -1,0 +1,95 @@
+openapi: 3.0.1
+info:
+  title: Demo service
+  description: Example
+  version: 1.0.0
+  contact:
+    name: email-developer
+    email: email-developer@email.com
+externalDocs:
+  description: 'Last updated: Fri Mar 19 2021 09:56:41 GMT+0700 (Indochina Time)'
+  url: 'https://'
+servers:
+  - url: 'https://api.production.com'
+    description: production
+  - url: 'https://api.staging.com'
+    description: staging
+paths:
+  /~jburkardt/data/csv/addresses.csv:
+    get:
+      summary: Get test data
+      description: ''
+      parameters:
+        - in: path
+          name: name
+          required: false
+          example: addresses.csv
+          schema:
+            type: string
+        - in: path
+          name: type
+          required: true
+          example: csv
+          schema:
+            type: string
+        - in: query
+          name: optional
+          required: false
+          example: test
+          schema:
+            type: string
+        - in: query
+          name: must-have
+          required: true
+          example: abc
+          schema:
+            type: string
+      security:
+        - bypassAuth: []
+          bypassAuthHeader: []
+        - bearerAuth: []
+      tags:
+        - TEST
+      responses:
+        '200':
+          description: Success
+          content:
+            text/csv:
+              example: >
+                John,Doe,120 jefferson st.,Riverside, NJ, 08075
+
+                Jack,McGinnis,220 hobo Av.,Phila, PA,09119
+
+                "John ""Da Man""",Repici,120 Jefferson St.,Riverside, NJ,08075
+
+                Stephen,Tyler,"7452 Terrace ""At the Plaza"" road",SomeTown,SD,
+                91234
+
+                ,Blankman,,SomeTown, SD, 00298
+
+                "Joan ""the bone"", Anne",Jet,"9th, at Terrace plc",Desert
+                City,CO,00123
+              schema:
+                type: string
+          headers:
+            content-type:
+              description: text/csv
+              schema:
+                type: string
+components:
+  schemas: {}
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    bypassAuth:
+      type: apiKey
+      name: keyHere
+      description: ...
+      in: header
+    bypassAuthHeader:
+      type: apiKey
+      name: valueHere
+      description: ...
+      in: header

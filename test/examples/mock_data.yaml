@@ -1,0 +1,74 @@
+# Run docker with external library
+# docker run --rm -it -e MODULES="testapi6-mockapi testapi6-sql" -v $PWD/test/examples/mock_data.yaml:/test/index.yaml doanthuanthanh88/testapi6
+
+- PreExec:
+    args:
+      - yarn
+      - global
+      - add
+      - testapi6-mockapi
+      - --prefer-offline
+- PreExec:
+    # title: null
+    # slient: true
+    args:
+      - yarn
+      - global
+      - dir
+    var:
+      libPath: ${($.log[1] || $.log[0]).trim()}/node_modules/
+
+- Require:
+    root: ${libPath}
+    modules:
+      - testapi6-mockapi/dist/index.js
+
+- Group:
+    title: Build mock server with HTTP scheme
+    steps:
+      - Exec:
+          disabled: true
+          title: Change DNS to server
+          args:
+            - sudo
+            - --
+            - sh
+            - -c
+            - "echo '127.0.0.1 fakedns.com' >> /etc/hosts"
+      - MockApi:
+          title: Test service
+          routers:
+            - root: assets
+            - method: GET
+              path: /test/:name
+              data:
+                - name: 1
+                - name: 1
+                - name: 1
+                - name: 1
+                - name: 1
+                - name: 1
+                - name: 1
+                - name: 1
+                - name: 1
+                - name: 1
+                - name: 1
+                - name: 1
+                - name: 1
+                - name: 1
+                - name: 1
+                - name: 1
+                - name: 1
+                - name: 1
+                - name: 1
+                - name: 1
+      - Exec:
+          disabled: true
+          title: Clear DNS to server
+          args:
+            - sudo
+            - --
+            - sh
+            - -c
+            - sed -i '' '/fakedns.com/d' '/etc/hosts'
+

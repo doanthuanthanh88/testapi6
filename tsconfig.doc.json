@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "declaration": false,
+    "removeComments": false,
+    "sourceMap": false
+  },
+  "typedocOptions": {
+    "entryPoints": ["src/components/Testcase.ts", "src/components/index.ts", "src/Context.ts"],
+    "out": "docs",
+    "excludeNotDocumented": true,
+    "disableSources": true,
+    "hideGenerator": true
+  }
+}

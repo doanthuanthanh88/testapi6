@@ -1,0 +1,22 @@
+- Group:
+    title: Print to screen
+    vars: 
+      IDs: [1,2,3]
+      myObject: {
+        name: "name 1",
+        age: 123
+      }
+    steps:
+      - Echo: suggest ${IDs}
+      
+      - Echo: ${Utils.schema(IDs)}
+
+      - Echo: Base64 > ${Utils.base64('thanh')}
+
+      - Echo: MD5 > ${Utils.md5('thanh')}
+
+      - Schema: ${IDs}
+
+      - Echo: JSON Format \n${Utils.json(myObject)}
+
+      - Echo: YAML Format \n${Utils.yaml(myObject)}

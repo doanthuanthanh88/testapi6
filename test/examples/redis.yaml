@@ -1,0 +1,18 @@
+# - Exec:
+#     args:
+#       - yarn global add testapi6-redis
+- Require:
+    root: /Users/doanthuanthanh/.config/yarn/global/node_modules
+    modules:
+      - testapi6-redis/dist/index.js
+# Find more: https://github.com/doanthuanthanh88/testapi6-modules/tree/redis
+- Redis:
+    connection: redis://localhost
+    commands: 
+      - set user 1
+      - title: Get users
+        command: Get
+        args: 
+          - user
+        var: rs
+- Echo: ${rs}

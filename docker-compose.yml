@@ -1,0 +1,9 @@
+version: "3.7"
+services:
+  testapi6:
+    image: doanthuanthanh88/testapi6
+    container_name: testapi6
+    build: .
+    tty: true
+    volumes:
+      - ./test/examples/print.yaml:/test/index.yaml

@@ -1,0 +1,8 @@
+title: Test encrypt scenario to share
+encryptPassword: 123 # After run, the program will be generated a encrypt_scenario_files.yaml.encrypt file
+steps:
+  - Echo: Test something
+  - Import: print.yaml # After run, the program will be generated a print.yaml.encrypt file and auto import in the decryption
+
+# To run file encrypt please run and pass password in the secondary aggrument
+# Example: testapi6 test/examples/encrypt_scenario_files.yaml.encrypt 123

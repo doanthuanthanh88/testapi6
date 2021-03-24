@@ -1,0 +1,1470 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "anyOf": [
+    {
+      "$ref": "#/definitions/Testcase"
+    },
+    {
+      "$ref": "#/definitions/Group"
+    },
+    {
+      "$ref": "#/definitions/allOfSteps"
+    }
+  ],
+  "definitions": {
+    "allOfSteps": {
+      "type": "array",
+      "description": "Steps",
+      "items": {
+        "anyOf": [
+          {
+            "$ref": "#/definitions/Require"
+          },
+          {
+            "$ref": "#/definitions/Upload"
+          },
+          {
+            "$ref": "#/definitions/DocSwagger"
+          },
+          {
+            "$ref": "#/definitions/DocMarkdown"
+          },
+          {
+            "$ref": "#/definitions/OutputFile"
+          },
+          {
+            "$ref": "#/definitions/Import"
+          },
+          {
+            "$ref": "#/definitions/Pause"
+          },
+          {
+            "$ref": "#/definitions/Script"
+          },
+          {
+            "$ref": "#/definitions/Echo"
+          },
+          {
+            "$ref": "#/definitions/Schema"
+          },
+          {
+            "$ref": "#/definitions/Vars"
+          },
+          {
+            "$ref": "#/definitions/Validate"
+          },
+          {
+            "$ref": "#/definitions/Utils"
+          },
+          {
+            "$ref": "#/definitions/Regex"
+          },
+          {
+            "$ref": "#/definitions/Exec"
+          },
+          {
+            "$ref": "#/definitions/PreExec"
+          },
+          {
+            "$ref": "#/definitions/Input"
+          },
+          {
+            "$ref": "#/definitions/Api"
+          },
+          {
+            "$ref": "#/definitions/Get"
+          },
+          {
+            "$ref": "#/definitions/Post"
+          },
+          {
+            "$ref": "#/definitions/Put"
+          },
+          {
+            "$ref": "#/definitions/Patch"
+          },
+          {
+            "$ref": "#/definitions/Head"
+          },
+          {
+            "$ref": "#/definitions/Delete"
+          },
+          {
+            "$ref": "#/definitions/Group"
+          },
+          {
+            "$ref": "#/definitions/Define"
+          },
+          {
+            "$ref": "#/definitions/Load"
+          }
+        ]
+      }
+    },
+    "Import": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Import": {
+          "anyOf": [
+            {
+              "description": "Path to scenarios .yaml file",
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "src": {
+                  "type": "string",
+                  "description": "Path to scenarios .yaml file"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "Load": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Load": {
+          "description": "Import data file(.json, .yaml, .csv(separate by , and \n))",
+          "type": "object",
+          "required": [
+            "file"
+          ],
+          "properties": {
+            "testIt": {
+              "type": "boolean"
+            },
+            "disabled": {
+              "type": [
+                "boolean",
+                "string"
+              ]
+            },
+            "file": {
+              "type": "string"
+            },
+            "var": {
+              "description": "Set data to a variable after handle",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "description": "Set data to this"
+                },
+                {
+                  "type": "object",
+                  "description": "Set a part of data to this"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "Script": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Script": {
+          "description": "Embed script in scenario",
+          "type": "string"
+        }
+      }
+    },
+    "Echo": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Echo": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "testIt": {
+                  "type": "boolean"
+                },
+                "disabled": {
+                  "type": [
+                    "boolean",
+                    "string"
+                  ]
+                },
+                "title": {
+                  "type": "string",
+                  "description": "Description"
+                },
+                "msg": {
+                  "type": "string",
+                  "description": "Content which your want to print out"
+                }
+              }
+            },
+            {
+              "description": "Print log or data object",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    "Schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Schema": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "testIt": {
+                  "type": "boolean"
+                },
+                "disabled": {
+                  "type": [
+                    "boolean",
+                    "string"
+                  ]
+                },
+                "title": {
+                  "type": "string",
+                  "description": "Description"
+                },
+                "msg": {
+                  "type": "string",
+                  "description": "Content which your want to print schema out"
+                }
+              }
+            },
+            {
+              "description": "Print schema data object",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    "Regex": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Regex": {
+          "type": "object",
+          "description": "Handle regex content",
+          "additionalProperties": false,
+          "properties": {
+            "ignoreError": {
+              "description": "Keep running the next when got error",
+              "type": [
+                "boolean",
+                "string"
+              ]
+            },
+            "testIt": {
+              "type": "boolean"
+            },
+            "disabled": {
+              "type": [
+                "boolean",
+                "string"
+              ]
+            },
+            "title": {
+              "type": "string",
+              "description": "Description"
+            },
+            "action": {
+              "type": "string",
+              "description": "Regex action",
+              "enum": [
+                "match",
+                "exec",
+                "test"
+              ],
+              "default": "match"
+            },
+            "input": {
+              "type": "string",
+              "description": "Regex pattern",
+              "examples": [
+                "${new String(${cnt})}"
+              ]
+            },
+            "var": {
+              "description": "Set result to a variable after handle",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "description": "Set result to this"
+                },
+                {
+                  "type": "object",
+                  "description": "Set a part of result to this"
+                }
+              ]
+            },
+            "pattern": {
+              "type": "string",
+              "description": "Regex pattern"
+            }
+          }
+        }
+      }
+    },
+    "Upload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Upload": {
+          "type": "object",
+          "description": "Pause or delay",
+          "additionalProperties": false,
+          "required": [
+            "file"
+          ],
+          "properties": {
+            "testIt": {
+              "type": "boolean"
+            },
+            "disabled": {
+              "type": [
+                "boolean",
+                "string"
+              ]
+            },
+            "title": {
+              "type": "string",
+              "description": "Description"
+            },
+            "file": {
+              "type": "string",
+              "description": "Path to upload file"
+            },
+            "var": {
+              "description": "Get download link",
+              "type": "string"
+            },
+            "tmpfiles.org": {
+              "type": "object",
+              "description": "File will be uploaded to https://tmpfiles.org/",
+              "properties": {
+                "maxViews": {
+                  "description": "Number of view time",
+                  "type": [
+                    "number",
+                    "string"
+                  ]
+                },
+                "maxMinutes": {
+                  "description": "Max time which file will be stored on server",
+                  "type": [
+                    "number",
+                    "string"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Require": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Require": {
+          "type": "object",
+          "description": "Dynamic load custom tags",
+          "additionalProperties": false,
+          "properties": {
+            "root": {
+              "type": "string",
+              "description": "Root path where modules are installed",
+              "examples": [
+                "yarn global add $MODULE_NAME",
+                "/Users/$USER/.config/yarn/global/node_modules"
+              ]
+            },
+            "code": {
+              "type": "string",
+              "description": "Write code init here. Some global vars (Vars, Validate, ExternalLibraries, Utils, context)",
+              "examples": [
+                "context.log('here')"
+              ]
+            },
+            "modules": {
+              "type": "array",
+              "description": "Load modules in app",
+              "examples": [
+                "/home/user/my-modules/dist/index.js"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "Pause": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Pause": {
+          "anyOf": [
+            {
+              "type": "object",
+              "description": "Pause or delay",
+              "additionalProperties": false,
+              "properties": {
+                "testIt": {
+                  "type": "boolean"
+                },
+                "disabled": {
+                  "type": [
+                    "boolean",
+                    "string"
+                  ]
+                },
+                "title": {
+                  "type": "string",
+                  "description": "Description"
+                },
+                "time": {
+                  "type": "integer",
+                  "description": "Miliseconds"
+                }
+              }
+            },
+            {
+              "type": "integer",
+              "description": "Sleep in miliseconds"
+            },
+            {
+              "type": "null",
+              "description": "Pause"
+            }
+          ]
+        }
+      }
+    },
+    "Input": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Input": {
+          "type": "object",
+          "description": "Get data from input keyboard",
+          "required": [
+            "var"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "testIt": {
+              "type": "boolean"
+            },
+            "disabled": {
+              "type": [
+                "boolean",
+                "string"
+              ]
+            },
+            "title": {
+              "type": "string"
+            },
+            "var": {
+              "description": "Assign user input value to",
+              "type": "string"
+            },
+            "required": {
+              "description": "User input must be required",
+              "type": "boolean"
+            },
+            "pattern": {
+              "description": "Pattern to validate",
+              "type": "string"
+            },
+            "type": {
+              "description": "Input type",
+              "enum": [
+                "text",
+                "password",
+                "invisible",
+                "number",
+                "confirm",
+                "list",
+                "toggle",
+                "select",
+                "multiselect",
+                "autocompleteMultiselect",
+                "autocomplete",
+                "date"
+              ]
+            },
+            "initial": {
+              "description": "Init value",
+              "type": [
+                "number",
+                "string",
+                "boolean",
+                "null"
+              ]
+            },
+            "instructions": {
+              "description": "Instructions",
+              "type": "string"
+            },
+            "choices": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "title",
+                  "value"
+                ],
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": [
+                      "string",
+                      "number",
+                      "boolean",
+                      "null",
+                      "array",
+                      "object"
+                    ]
+                  },
+                  "testIt": {
+                    "type": "boolean"
+                  },
+                  "disabled": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Exec": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Exec": {
+          "type": "object",
+          "description": "Execute external command",
+          "required": [
+            "args"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "ignoreError": {
+              "description": "Keep running the next when got error",
+              "type": [
+                "boolean",
+                "string"
+              ]
+            },
+            "testIt": {
+              "type": "boolean"
+            },
+            "disabled": {
+              "type": [
+                "boolean",
+                "string"
+              ]
+            },
+            "async": {
+              "description": "Run asynchronized",
+              "type": [
+                "boolean",
+                "string"
+              ]
+            },
+            "title": {
+              "type": "string"
+            },
+            "var": {
+              "description": "Set result after execution",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "description": "Result code",
+                  "examples": [
+                    0,
+                    1
+                  ]
+                },
+                {
+                  "type": "object",
+                  "description": "Set result to this properties",
+                  "examples": [
+                    "${$.log}",
+                    "${$.code}"
+                  ]
+                }
+              ]
+            },
+            "args": {
+              "type": "array",
+              "description": "The first is command name, then are agrs",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "PreExec": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "PreExec": {
+          "type": "object",
+          "description": "Pre-execute external command when startup",
+          "required": [
+            "args"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "ignoreError": {
+              "description": "Keep running the next when got error",
+              "type": [
+                "boolean",
+                "string"
+              ]
+            },
+            "testIt": {
+              "type": "boolean"
+            },
+            "disabled": {
+              "type": [
+                "boolean",
+                "string"
+              ]
+            },
+            "async": {
+              "description": "Run asynchronized",
+              "type": [
+                "boolean",
+                "string"
+              ]
+            },
+            "title": {
+              "type": "string"
+            },
+            "var": {
+              "description": "Set result after execution",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "description": "Result code",
+                  "examples": [
+                    0,
+                    1
+                  ]
+                },
+                {
+                  "type": "object",
+                  "description": "Set result to this properties",
+                  "examples": [
+                    "${$.log}",
+                    "${$.code}"
+                  ]
+                }
+              ]
+            },
+            "args": {
+              "type": "array",
+              "description": "The first is command name, then are agrs",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "Validate": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Validate": {
+          "type": "object",
+          "description": "Use an existed validation or method from https://www.chaijs.com/",
+          "examples": [
+            "length",
+            "schema",
+            "match",
+            "in"
+          ],
+          "required": [
+            "func"
+          ],
+          "properties": {
+            "ignoreError": {
+              "description": "Keep running the next when got error",
+              "type": [
+                "boolean",
+                "string"
+              ]
+            },
+            "testIt": {
+              "type": "boolean"
+            },
+            "disabled": {
+              "type": [
+                "boolean",
+                "string"
+              ]
+            },
+            "title": {
+              "type": "string",
+              "description": "Validation details"
+            },
+            "slient": {
+              "type": "boolean"
+            },
+            "func": {
+              "description": "Function name",
+              "type": "string",
+              "examples": [
+                "matchIgnoreCase"
+              ]
+            },
+            "args": {
+              "description": "Arguments function",
+              "type": "array",
+              "items": {
+                "type": [
+                  "object",
+                  "string",
+                  "array",
+                  "boolean",
+                  "number",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "Utils": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Utils": {
+          "type": "object",
+          "description": "Declare new utils function. ${Utils.toLower}",
+          "examples": [
+            "toLower: (txt) => { return txt?.toLowerCase() }"
+          ]
+        }
+      }
+    },
+    "Validator": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Validator": {
+          "type": "object",
+          "description": "Declare new utils function. ${Utils.toLower}",
+          "examples": [
+            "toLower: (txt) => { return txt?.toLowerCase() }"
+          ]
+        }
+      }
+    },
+    "Define": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Define": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Declare new Utils/Validate/Vars",
+              "examples": [
+                "Utils.toLower = (txt) => { return txt?.toLowerCase() }",
+                "Validate.matchIgnoreCase = (a, b) => { return a?.toLowerCase() === b?.toLowerCase() }",
+                "Vars.myGlobalVar = 'thanh'"
+              ]
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "description": "Declare new Utils/Validate/Vars",
+                "examples": [
+                  "Utils.toLower = (txt) => { return txt?.toLowerCase() }",
+                  "Validate.matchIgnoreCase = (a, b) => { return a?.toLowerCase() === b?.toLowerCase() }",
+                  "Vars.myGlobalVar = 'thanh'"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    "Testcase": {
+      "type": "object",
+      "description": "Includes all of scenarios",
+      "required": [
+        "steps",
+        "title"
+      ],
+      "properties": {
+        "ignoreError": {
+          "description": "Keep running the next when got error",
+          "type": [
+            "boolean",
+            "string"
+          ]
+        },
+        "encryptPassword": {
+          "description": "Password to encrypt scenario file to share to someone",
+          "type": "string"
+        },
+        "title": {
+          "type": "string",
+          "description": "Document title"
+        },
+        "description": {
+          "type": "string",
+          "description": "Document description"
+        },
+        "version": {
+          "type": "string",
+          "description": "Document version"
+        },
+        "servers": {
+          "type": "object",
+          "description": "Servers which is published to client implements"
+        },
+        "curl": {
+          "type": "string",
+          "description": "Run from curl command"
+        },
+        "debug": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "curl",
+                "detail (Only request)",
+                "details (Both request and response)"
+              ]
+            }
+          ],
+          "description": "Show curl command OR Details request AND Debug link"
+        },
+        "developer": {
+          "type": "string",
+          "description": "Developer email"
+        },
+        "vars": {
+          "type": "object",
+          "description": "Declare global variables"
+        },
+        "templates": {
+          "$ref": "#/definitions/allOfSteps",
+          "description": "Declare steps which not used to run, just extends"
+        },
+        "steps": {
+          "$ref": "#/definitions/allOfSteps"
+        }
+      }
+    },
+    "Vars": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Vars": {
+          "description": "Declare local variables which is used in this (In !api ...) and these childs steps (In !group)",
+          "type": "object",
+          "examples": [
+            "$ = this, $$ = this.parent"
+          ]
+        }
+      }
+    },
+    "DocSwagger": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "DocSwagger": {
+          "type": "object",
+          "required": [
+            "saveTo"
+          ],
+          "description": "Document this to swagger file",
+          "properties": {
+            "responseHeaders": {
+              "description": "Only doc these response headers",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "headers": {
+              "description": "Only doc these request headers",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "raw": {
+              "description": "Raw data of swagger Open API",
+              "required": [],
+              "$ref": "https://raw.githubusercontent.com/OAI/OpenAPI-Specification/master/schemas/v3.0/schema.json#"
+            },
+            "saveTo": {
+              "type": "string",
+              "description": "Target file"
+            },
+            "title": {
+              "type": "string",
+              "description": "Description"
+            }
+          }
+        }
+      }
+    },
+    "DocMarkdown": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "DocMarkdown": {
+          "type": "object",
+          "required": [
+            "saveTo"
+          ],
+          "description": "Document this to markdown file",
+          "properties": {
+            "responseHeaders": {
+              "description": "Only doc these response headers",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "headers": {
+              "description": "Only doc these request headers",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "saveTo": {
+              "type": "string",
+              "description": "Target file"
+            },
+            "title": {
+              "type": "string",
+              "description": "Description"
+            }
+          }
+        }
+      }
+    },
+    "OutputFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "OutputFile": {
+          "type": "object",
+          "required": [
+            "saveTo"
+          ],
+          "properties": {
+            "testIt": {
+              "type": "boolean"
+            },
+            "disabled": {
+              "type": [
+                "boolean",
+                "string"
+              ]
+            },
+            "saveTo": {
+              "type": "string",
+              "description": "Target file"
+            },
+            "title": {
+              "type": "string",
+              "description": "Description"
+            },
+            "content": {
+              "type": "string",
+              "description": "File content"
+            }
+          }
+        }
+      }
+    },
+    "RawApi": {
+      "type": "object",
+      "description": "Make a RESTFUL API",
+      "properties": {
+        "ignoreError": {
+          "description": "Keep running the next when got error",
+          "type": [
+            "boolean",
+            "string"
+          ]
+        },
+        "async": {
+          "description": "Run asynchronized",
+          "type": [
+            "boolean",
+            "string"
+          ]
+        },
+        "testIt": {
+          "type": "boolean"
+        },
+        "disabled": {
+          "type": [
+            "boolean",
+            "string"
+          ]
+        },
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "API title"
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "API description"
+        },
+        "->": {
+          "type": "string",
+          "description": "Expose for another extends"
+        },
+        "<-": {
+          "description": "Extends another which expose by '->'",
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Separate by ','"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          ]
+        },
+        "baseURL": {
+          "type": "string",
+          "description": "Base url"
+        },
+        "url": {
+          "type": "string",
+          "description": "Path or full request url"
+        },
+        "timeout": {
+          "type": [
+            "string",
+            "number"
+          ],
+          "description": "Request timeout"
+        },
+        "query": {
+          "type": "object",
+          "description": "Request query string"
+        },
+        "headers": {
+          "type": "object",
+          "description": "Request headers"
+        },
+        "params": {
+          "type": "object",
+          "description": "Request params in url (/user/{ID})",
+          "examples": [
+            "{ID: 123}"
+          ]
+        },
+        "body": {
+          "type": [
+            "array",
+            "integer",
+            "null",
+            "number",
+            "object",
+            "string",
+            "boolean"
+          ],
+          "description": "Request body"
+        },
+        "var": {
+          "description": "Set response data to a variable after call request",
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Set response data ($.response.data) to this"
+            },
+            {
+              "type": "object",
+              "description": "Set response ($.response) to this properties"
+            }
+          ]
+        },
+        "vars": {
+          "type": "object",
+          "description": "Declare global variables. Same Vars"
+        },
+        "validate": {
+          "type": "array",
+          "description": "Validate after call request. Same Validate",
+          "items": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "Status": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "number",
+                          "string"
+                        ]
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": [
+                            "number",
+                            "string"
+                          ]
+                        }
+                      }
+                    ]
+                  },
+                  "StatusText": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean",
+                          "null"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "$ref": "#/definitions/Validate"
+              }
+            ]
+          }
+        },
+        "docs": {
+          "type": "object",
+          "description": "Document information for this api",
+          "properties": {
+            "headers": {
+              "description": "Only doc these request headers",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "responseHeaders": {
+              "description": "Only doc these response headers",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "md": {
+              "tags": {
+                "description": "Tag",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "uniqueItems": true
+              }
+            },
+            "swagger": {
+              "description": "Set swagger properties",
+              "required": [],
+              "$ref": "https://raw.githubusercontent.com/OAI/OpenAPI-Specification/master/schemas/v3.0/schema.json#/definitions/Operation"
+            }
+          }
+        },
+        "benchmark": {
+          "type": "object",
+          "description": "Test benchmark this",
+          "properties": {
+            "wrk": {
+              "description": "Use wrk to test (https://github.com/wg/wrk)",
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "description": "Benchmark title"
+                },
+                "saveTo": {
+                  "type": "string",
+                  "description": "Save benchmark result to"
+                },
+                "info": {
+                  "type": "object",
+                  "description": "Environment information",
+                  "examples": [
+                    {
+                      "env": "production|staging|local",
+                      "number of pods": "30"
+                    }
+                  ]
+                },
+                "connections": {
+                  "type": [
+                    "number",
+                    "string"
+                  ],
+                  "description": "Connections to keep open"
+                },
+                "script": {
+                  "type": "string",
+                  "description": "Load Lua script file"
+                },
+                "duration": {
+                  "type": "string",
+                  "description": "Duration of test",
+                  "examples": [
+                    "30s"
+                  ]
+                },
+                "threads": {
+                  "type": [
+                    "number",
+                    "string"
+                  ],
+                  "description": "Number of threads to use"
+                },
+                "latency": {
+                  "type": "boolean",
+                  "description": "Print latency statistics"
+                },
+                "timeout": {
+                  "type": "string",
+                  "description": "Socket/request timeout",
+                  "examples": [
+                    "2s"
+                  ]
+                },
+                "version": {
+                  "type": "boolean",
+                  "description": "Print version details"
+                },
+                "var": {
+                  "description": "Set result after execution",
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "description": "Result code",
+                      "examples": [
+                        0,
+                        1
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "description": "Set result to this properties",
+                      "examples": [
+                        "${$.log}",
+                        "${$.code}"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Get": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Get": {
+          "type": "object",
+          "description": "Make a Get request",
+          "$ref": "#/definitions/RawApi"
+        }
+      }
+    },
+    "Post": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Post": {
+          "type": "object",
+          "description": "Make a Post request",
+          "$ref": "#/definitions/RawApi"
+        }
+      }
+    },
+    "Put": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Put": {
+          "type": "object",
+          "description": "Make a Put request",
+          "$ref": "#/definitions/RawApi"
+        }
+      }
+    },
+    "Patch": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Patch": {
+          "type": "object",
+          "description": "Make a Patch request",
+          "$ref": "#/definitions/RawApi"
+        }
+      }
+    },
+    "Head": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Head": {
+          "type": "object",
+          "description": "Make a Head request",
+          "$ref": "#/definitions/RawApi"
+        }
+      }
+    },
+    "Delete": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Delete": {
+          "type": "object",
+          "description": "Make a Delete request",
+          "$ref": "#/definitions/RawApi"
+        }
+      }
+    },
+    "Api": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Api": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/RawApi"
+            },
+            {
+              "type": "object",
+              "description": "Make a RESTFUL API",
+              "properties": {
+                "method": {
+                  "type": "string",
+                  "description": "Http method",
+                  "enum": [
+                    "GET",
+                    "POST",
+                    "PUT",
+                    "DELETE",
+                    "PATCH",
+                    "HEAD"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "Group": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Group": {
+          "type": "object",
+          "description": "Group steps",
+          "properties": {
+            "ignoreError": {
+              "description": "Keep running the next when got error",
+              "type": [
+                "boolean",
+                "string"
+              ]
+            },
+            "testIt": {
+              "type": "boolean"
+            },
+            "disabled": {
+              "type": [
+                "boolean",
+                "string"
+              ]
+            },
+            "async": {
+              "description": "Run asynchronized",
+              "type": [
+                "boolean",
+                "string"
+              ]
+            },
+            "title": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Group title"
+            },
+            "description": {
+              "type": "string",
+              "description": "Group description"
+            },
+            "loop": {
+              "type": "string",
+              "description": "Loop in object or array. (Get in group: '$.loopKey', '$.loopValue'), Get in each steps ('$$.loopKey', '$$.loopValue')"
+            },
+            "templates": {
+              "$ref": "#/definitions/allOfSteps",
+              "description": "Declare steps which not used to run, just extends"
+            },
+            "steps": {
+              "$ref": "#/definitions/allOfSteps"
+            }
+          }
+        }
+      }
+    }
+  }
+}

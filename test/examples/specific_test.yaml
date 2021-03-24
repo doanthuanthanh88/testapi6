@@ -1,0 +1,51 @@
+
+- Group:
+    title: Test 01
+    testIt: true
+    steps:
+      - Validate:
+          title: Check 01 in ${$$.title}
+          func: expect.to.equal
+          args:
+            - 1
+            - 1
+      - Validate:
+          title: Check 02 in ${$$.title}
+          func: expect.to.equal
+          args:
+            - 1
+            - 1
+
+
+- Group:
+    title: Test 02
+    steps:
+      - Validate:
+          title: Check 01 in ${$$.title}
+          func: expect.to.equal
+          args:
+            - 1
+            - 1
+      - Validate:
+          testIt: true
+          title: Check 02 in ${$$.title}
+          func: expect.to.equal
+          args:
+            - 1
+            - 1
+      - Group:
+          title: Test 03
+          steps:
+            - Validate:
+                title: Check 01 in ${$$.title}
+                func: expect.to.equal
+                args:
+                  - 1
+                  - 1
+            - Validate:
+                testIt: true
+                title: Check 02 in ${$$.title}
+                func: expect.to.equal
+                args:
+                  - 1
+                  - 1

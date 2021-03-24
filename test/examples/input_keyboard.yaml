@@ -1,0 +1,8 @@
+Group:
+  title: Get input from keyboard
+  steps:
+    - Input: 
+        title: User input
+        var: userInput
+
+    - Echo: ${userInput}

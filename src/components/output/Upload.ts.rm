@@ -1,0 +1,72 @@
+import { Tag } from "../Tag";
+import chalk from "chalk";
+
+import { createReadStream } from "fs";
+import { Testcase } from "../Testcase";
+import axios, { AxiosInstance, CancelTokenSource } from "axios";
+import FormData from "form-data";
+
+export class Upload extends Tag {
+  'tmpfiles.org': {
+    maxViews: number
+    maxMinutes: number
+  }
+  file: string
+  var: string
+
+  _axios: AxiosInstance
+  _controller: CancelTokenSource
+
+  constructor(attrs: any) {
+    super(attrs)
+  }
+
+  stop() {
+    this._controller?.cancel()
+  }
+
+  async exec() {
+    if (!this['tmpfiles.org']) throw new Error('This upload service not supported yet')
+    this._controller = axios.CancelToken.source();
+    this._axios = axios.create({
+      cancelToken: this._controller.token,
+      maxRedirects: 0,
+      withCredentials: true,
+      validateStatus: status => !!status,
+      headers: {
+        'authority': 'tmpfiles.org',
+        'origin': 'https://tmpfiles.org',
+        'referer': 'https://tmpfiles.org/',
+        'sec-fetch-dest': 'document',
+        'sec-fetch-mode': 'navigate',
+        'sec-fetch-site': 'same-origin',
+        'sec-fetch-user': '?1',
+        'upgrade-insecure-requests': 1,
+        'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Safari/537.36',
+      }
+    })
+    const body = new FormData()
+    body.append('max_views', this['tmpfiles.org'].maxViews || 0)
+    body.append('max_minutes', this['tmpfiles.org'].maxMinutes || 120)
+    body.append('upl', 'Upload')
+    body.append('input_file', createReadStream(Testcase.getPathFromRoot(this.file)))
+
+    const context = this.context
+    // Listen to force stop
+    context.once('app:stop', async () => {
+      await this.stop()
+    })
+
+    const { headers } = await axios.post('https://tmpfiles.org/?upload', body, {
+      headers: {
+        'content-type': 'multipart/form-data',
+        ...body.getHeaders()
+      }
+    })
+    const link = 'https://tmpfiles.org' + headers.location?.replace('download', 'dl')
+    context.log(chalk.magentaBright('- %s: %s'), this.title || 'Uploaded at', link)
+    if (this.var) {
+      context.Vars[this.var] = link
+    }
+  }
+}

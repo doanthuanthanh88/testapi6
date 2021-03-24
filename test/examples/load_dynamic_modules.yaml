@@ -1,0 +1,9 @@
+- Require:
+    modules:
+      - ./examples/assets/my-module/my-tag.js
+    code: |
+      Utils.sayHello = (name) => ('hello' + name)
+
+- Echo: ${Utils.sayHello('thanh')}
+- MyTag:
+    title: Hello

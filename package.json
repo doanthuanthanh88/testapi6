@@ -1,0 +1,66 @@
+{
+  "name": "testapi6",
+  "version": "1.1.0",
+  "description": "Test and auto export document to .md or .swagger file. Support many others tasks",
+  "keywords": [
+    "tool",
+    "api",
+    "scenario",
+    "test",
+    "benchmark",
+    "serve",
+    "debug",
+    "development",
+    "dev"
+  ],
+  "main": "dist/index.js",
+  "bin": {
+    "testapi6": "./bin/index.js"
+  },
+  "scripts": {
+    "pub": "npm publish",
+    "doc": "typedoc --tsconfig tsconfig.doc.json --watch",
+    "build:doc": "rm -rf docs && typedoc --tsconfig tsconfig.doc.json",
+    "test": "node .",
+    "start": "npx nodemon --watch src --watch modules --ext .ts --exec 'node -r ts-node/register -r ./bin/tsconfig-paths-bootstrap.js --expose-gc --harmony src/index.ts test/examples/crawler.yaml'",
+    "dev": "npx nodemon --watch src --watch modules --ext .ts --exec 'node -r ts-node/register -r ./bin/tsconfig-paths-bootstrap.js --expose-gc --harmony --inspect src/index.ts test/examples/mock_data.yaml'",
+    "preview": "npx nodemon --watch src --watch modules --ext .ts --exec 'node -r ts-node/register -r ./bin/tsconfig-paths-bootstrap.js --expose-gc --harmony --inspect src/preview.ts test'",
+    "serve": "npx nodemon --watch src --watch modules --ext .ts --exec 'node -r ts-node/register -r ./bin/tsconfig-paths-bootstrap.js --expose-gc --harmony --inspect src/index.ts test/examples/mock_data.yaml'",
+    "watch": "npx nodemon --watch src --watch modules --ext .ts --exec 'yarn build:only && yarn doc'",
+    "build": "yarn clean && yarn build:only",
+    "build:only": "tsc && yarn build:resolve-module",
+    "build:resolve-module": "node bin/tsconfig",
+    "clean": "rm -rf dist",
+    "docker:build": "docker build -t doanthuanthanh88/testapi6 .",
+    "docker:pub": "docker buildx build --platform linux/arm64,linux/amd64 -t doanthuanthanh88/testapi6 . --push && docker pull doanthuanthanh88/testapi6"
+  },
+  "dependencies": {
+    "axios": "^0.21.0",
+    "chai": "^4.3.3",
+    "chalk": "^2.4.2",
+    "curl-generator": "^0.1.0",
+    "form-data": "^3.0.0",
+    "js-yaml": "^3.12.2",
+    "jsonschema": "^1.2.10",
+    "lodash": "^4.17.11",
+    "pako": "^1.0.11",
+    "parse-curl-js": "^1.0.3",
+    "prompts": "^2.4.0",
+    "to-json-schema": "^0.2.5"
+  },
+  "readme": "./docs/README.md",
+  "homepage": "https://github.com/doanthuanthanh88",
+  "author": "doanthuanthanh88@gmail.com",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/chai": "^4.2.15",
+    "@types/js-yaml": "^3.12.1",
+    "@types/lodash": "^4.14.122",
+    "@types/node": "^14.14.6",
+    "@types/pako": "^1.0.1",
+    "@types/to-json-schema": "^0.2.0",
+    "ts-node": "^9.1.1",
+    "typedoc": "^0.20.33",
+    "typescript": "^3.8.3"
+  }
+}

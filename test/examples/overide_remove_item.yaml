@@ -1,0 +1,16 @@
+- Get:
+    ->: base
+    disabled: true
+    url: https://google.com.vn
+    validate:
+      - Status: 301
+      - StatusText: Moved Permanently 123
+      - StatusText: Moved Permanently Error
+
+- Api:
+    <-: base
+    disabled: false
+    validate:
+      - !keep 
+      - !remove
+      - StatusText: Moved Permanently

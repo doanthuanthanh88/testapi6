@@ -1,0 +1,72 @@
+- Group:
+    ignoreError: true
+    templates:
+      # Custom validation functional
+      - Validator:
+          lowerCheck: |
+            (actual, expected) => {
+              if(actual?.toLowerCase() !== expected?.toLowerCase()) assert.fail(actual, expected, 'String lower not match', 'toLowerCheck')
+            }
+          chaiTest: |
+            utils.addChainableMethod(chai.Assertion.prototype, 'chaiTest', function (str) {
+              var obj = utils.flag(this, 'object');
+              new chai.Assertion(obj).to.be.equal(str);
+            });
+      - Define:
+          - |
+            Validate.upperCheck = (a, b) => {
+              if(a?.toLowerCase() !== b?.toLowerCase()) throw {
+                message: 'String lower not match',
+                actual: a,
+                expect: b
+              } 
+            }
+    steps:
+      - Vars:
+          obj: { name: Name 1 }
+
+      - Validate:
+          title: Validate object schema which use builtin system
+          func: schema
+          args: 
+            - ${obj}
+            - { "type": "array" }
+
+      - Echo: Test custom validation
+      - Validate:
+          title: check name ignore case lower
+          func: lowerCheck
+          args:
+            - ${obj.name}
+            - name 12
+      - Validate:
+          title: check name ignore case upper
+          func: upperCheck
+          args:
+            - ${obj.name}
+            - name 1
+      
+      - Echo: Use chaijs (assert, expect) to validate (https://www.chaijs.com/api/bdd/)
+
+      - Validate:
+          title: Check name
+          func: expect.to.equal
+          args:
+            - ${obj.name}
+            - Name 1
+      - Validate:
+          title: check 2 objects equals
+          func: expect.to.deep.equal
+          args:
+            - ${obj}
+            - {name: 'Name 1'}
+      - Validate:
+          title: Check object got value
+          func: assert.isOk
+          args:
+            - ~
+      - Validate:
+          title: Check chaiTest
+          func: expect.to.be.chaiTest
+          args:
+            - Test

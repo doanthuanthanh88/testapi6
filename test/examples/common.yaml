@@ -1,0 +1,34 @@
+# Declare global variables
+- Vars: 
+    obj: {
+      name: Name 1
+    }
+
+# Pause
+- Pause:
+
+# Print data "obj"
+- Echo: ${obj}
+
+# Sleep 500ms
+- Pause:
+    title: Delay 500ms
+    time: 500
+
+# Print "obj" schema
+- Schema: ${obj}
+
+# Test validation
+- Validate:
+    title: check name
+    func: match # schema, match, in, length
+    args:
+      - ${obj.name}
+      - Name 1
+      
+- Validate:
+    title: check name
+    func: match # schema, match, in, length
+    args:
+      - ${obj.name}
+      - Name 1

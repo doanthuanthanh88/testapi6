@@ -1,0 +1,31 @@
+openapi: 3.0.1
+info:
+  title: Demo service
+  description: Example
+  version: 1.0.0
+  contact:
+    name: email-developer
+    email: email-developer@email.com
+externalDocs:
+  description: 'Last updated: Wed Nov 25 2020'
+  url: 'https://'
+servers:
+  - url: 'https://api.production.com'
+    description: production
+  - url: 'https://api.staging.com'
+    description: staging
+  - url: 'http://localhost:3001'
+    description: development
+paths: {}
+components:
+  schemas: {}
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+tags:
+  - name: UPDATE
+    description: Handle business logic
+  - name: GET_DATA
+    description: Only get data

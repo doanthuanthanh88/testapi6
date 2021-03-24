@@ -1,0 +1,104 @@
+{
+  "post": {
+    "prefix": "call.post",
+    "body": [
+      "- ${1:API title} | ${2:ADMIN|MEMBER|GUEST?}:",
+      "   POST: ${3:\\${url\\}?fields={\"*\":1\\}}",
+      "   headers: *adminToken",
+      "   body: ${4}",
+      "   var: ${5:newvar}",
+      "   validate:",
+      "     status: ${6:204}",
+      "   note: ${7}",
+      ""
+    ],
+    "description": "Request POST method in API Testing Doc"
+  },
+  "put": {
+    "prefix": "call.put",
+    "body": [
+      "- ${1:API title} | ${2:ADMIN|MEMBER|GUEST?}:",
+      "   PUT: ${3:\\${url\\}?fields={\"*\":1\\}}",
+      "   headers: *adminToken",
+      "   body: ${4}",
+      "   validate:",
+      "     status: ${6:204}",
+      "   note: ${7}",
+      ""
+    ],
+    "description": "Request PUT method in API Testing Doc"
+  },
+  "get": {
+    "prefix": "call.get",
+    "body": [
+      "- ${1:API title} | ${2:ADMIN|MEMBER|GUEST?}:",
+      "   GET: ${3:\\${url\\}?fields={\"*\":1\\}}",
+      "   headers: *adminToken",
+      "   var: ${5:newvar}",
+      "   validate:",
+      "     status: ${6:200}",
+      "   note: ${7}",
+      ""
+    ],
+    "description": "Request GET method in API Testing Doc"
+  },
+  "delete": {
+    "prefix": "call.delete",
+    "body": [
+      "- ${1:API title} | ${2:ADMIN|MEMBER|GUEST?}:",
+      "   DELETE: ${3:\\${url\\}?fields={\"*\":1\\}}",
+      "   headers: *adminToken",
+      "   validate:",
+      "     status: ${6:204}",
+      ""
+    ],
+    "description": "Request DELETE method in API Testing Doc"
+  },
+  "head": {
+    "prefix": "call.head",
+    "body": [
+      "- ${1:API title} | ${2:ADMIN|MEMBER|GUEST?}:",
+      "   HEAD: ${3:\\${url\\}?fields={\"*\":1\\}}",
+      "   headers: *adminToken",
+      "   validate:",
+      "     status: ${6:204}",
+      ""
+    ],
+    "description": "Request HEAD method in API Testing Doc"
+  },
+  "validate-status": {
+    "prefix": "validate.status",
+    "body": [
+      "status: ${0}"
+    ],
+    "description": "Response status must be equals this"
+  },
+  "validate-response-size": {
+    "prefix": "validate.size",
+    "body": [
+      "- size: ${0}"
+    ],
+    "description": "Response data must be array or string and its length must be equals this"
+  },
+  "validate-response-match": {
+    "prefix": "validate.match",
+    "body": [
+      "- match: ${0}"
+    ],
+    "description": "Response data must match this"
+  },
+  "validate-response-some": {
+    "prefix": "validate.some",
+    "body": [
+      "- some: ${0}"
+    ],
+    "description": "Response data must includes this value or atleast is 1 of them. This value can be object or array"
+  },
+  "validate-response-every": {
+    "prefix": "validate.every",
+    "body": [
+      "- every: ${0}"
+    ],
+    "description": "Response data must contains this value (all of them). This value can be object or array"
+  }
+}

@@ -1,0 +1,7 @@
+- Group: 
+    title: Write to file
+    steps:
+      - OutputFile:
+          title: Save content to file
+          content: Hello world
+          saveTo: examples/assets/hello.txt

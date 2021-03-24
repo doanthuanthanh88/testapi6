@@ -1,0 +1,59 @@
+- Group:
+    title: Simple request
+    description: Example to make a request
+    steps:
+      # Download file
+      - Get:
+          url: https://people.sc.fsu.edu/~jburkardt/data/csv/addresses.csv
+          saveTo: /tmp/data.txt
+      # Make get request
+      - Get:
+          <-: base # Extends from "base" template which is declared in main scenario (../index.testapi6.yaml)
+          url: /path/{ID}
+          debug: true # Show link to debug the request and response
+          params:
+            ID: 123
+          query:
+            name: abc
+          var: result # Set response result into "result" var
+          validate:
+            - Status: 200
+            - StatusText: OK
+            - title: Check data length must be 20
+              func: length
+              args:
+                - ${$.response.data}
+                - 20
+      - Echo: ${result} # Show response result
+
+      # Make post request
+      - Post:
+          <-: base
+          debug: curl # Show curl command to share to others
+          url: /path
+          body: { name: Name 1 }
+          validate:
+            - Status: 204
+
+      # Upload file
+      - Post:
+          <-: base
+          debug: details # Show full request to debug
+          url: /upload
+          headers:
+            content-type: multipart/form-data
+          body:
+            name: img.jpg
+            file: !upload examples/assets/text.txt
+
+      # Post form
+      - Put:
+          <-: base
+          url: /update/{ID}
+          params:
+            ID: 123
+          headers:
+            content-type: application/x-www-form-urlencoded
+          body:
+            name: img.jpg
+            age: 123

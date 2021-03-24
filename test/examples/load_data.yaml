@@ -1,0 +1,30 @@
+- Group:
+    title: Load json data
+    steps:
+      - Load:
+          file: examples/assets/data.json
+          var: rs
+      - Group:
+          loop: ${rs}
+          steps:
+            - Echo: ${$$.loopValue.name}
+- Group:
+    title: Load csv data
+    steps:
+      - Load:
+          file: examples/assets/data.csv
+          var: rs
+      - Group:
+          loop: ${rs}
+          steps:
+            - Echo: ${$$.loopValue}
+- Group:
+    title: Load yaml data
+    steps:
+      - Load:
+          file: examples/assets/data.yaml
+          var: rs
+      - Group:
+          loop: ${rs}
+          steps:
+            - Echo: ${$$.loopValue.name}

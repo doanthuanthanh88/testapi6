@@ -1,0 +1,17 @@
+# - Exec:
+#     args:
+#       - yarn global add testapi6-sql
+- Require:
+    root: /Users/doanthuanthanh/.config/yarn/global/node_modules
+    modules:
+      - testapi6-sql/dist/index.js
+      # - /testapi6-sql/dist/index.js
+# Find more: https://github.com/doanthuanthanh88/testapi6-modules/tree/sql
+- Sql:
+    connection: mysql://root:root@localhost/mydb
+    queries: 
+      - title: Get users
+        sql: select * from users
+        prms: []
+        var: rs
+- Echo: ${rs}
