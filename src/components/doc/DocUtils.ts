@@ -29,7 +29,7 @@ export function isGotData(obj, isCheckEmptyObject = true) {
   return true
 }
 
-export function toJsonSchema(data, opts = {
+export function toJsonSchema(data = null, opts = {
   objects: { additionalProperties: false },
   arrays: { mode: 'first' },
   strings: { detectFormat: false },

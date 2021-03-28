@@ -858,22 +858,6 @@
           "type": "string",
           "description": "Run from curl command"
         },
-        "debug": {
-          "anyOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "enum": [
-                "curl",
-                "detail (Only request)",
-                "details (Both request and response)"
-              ]
-            }
-          ],
-          "description": "Show curl command OR Details request AND Debug link"
-        },
         "developer": {
           "type": "string",
           "description": "Developer email"
@@ -1035,6 +1019,23 @@
             "boolean",
             "string"
           ]
+        },
+        "debug": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "curl",
+                "request",
+                "response",
+                "all"
+              ]
+            }
+          ],
+          "description": "Show debug log"
         },
         "testIt": {
           "type": "boolean"

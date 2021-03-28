@@ -19,56 +19,36 @@ import { parse } from 'querystring'
 
 context
   .on('log:api:begin', (api: Api) => {
-    if (!api.isBackground) {
-      context.log('%s. %s - %s %s', chalk.gray(api.index.toString()), api.title, chalk.gray(api.method.toString()), chalk.gray(api._axiosData.fullUrlQuery))
+    if (!api.slient) {
+      context.log(`${chalk.gray('%s')}. %s\t${chalk.gray.underline('%s %s')}`, api.index.toString(), api.title, api.method.toString(), api._axiosData.fullUrlQuery)
     }
   })
-  .on('log:api:validate:done', (api: Api) => {
-    if (api.error) {
-      if (api.debug === 'curl') {
-        context.log('> %s', chalk.yellow(`${api.toCUrl()}`))
-      } else if (api.debug === 'details' || api.debug === 'request') {
-        api.toDetails().forEach((line) => {
-          context.log('%s', chalk.yellow(`${line}`))
-        })
-      }
-      if (api.debug) {
-        context.log('%s %s', chalk.red('⬤'), chalk.underline.gray(`${api.toTestLink()}`))
-      }
-    }
+  .on('log:api:validate:done', (_api: Api) => {
+    // Validate done
   })
   .on('log:api:done', (api: Api) => {
-    if (!api.isBackground || api.error) {
-      context.log('- %s %s %s', chalk[api.response?.ok ? 'green' : 'red'].bold(`${api.response?.status.toString()}`), chalk.gray(api.response?.statusText), chalk.gray(`- ${api.time.toString()}ms`))
+    if (!api.slient) {
+      context.log(`${chalk.gray('<=')} ${chalk[api.response?.ok ? 'green' : 'red'].bold('%s')} ${chalk.gray('%s')} ${chalk.gray.italic('%s')}`, api.response?.status.toString(), api.response?.statusText, ` (${api.time.toString()}ms)`)
     }
-    if (api.error || (!api.isBackground && api.debug)) {
-      if (api.debug === 'curl') {
-        context.log('> %s', chalk.yellow(`${api.toCUrl()}`))
-      } else if (api.debug === 'details' || api.debug === 'request') {
-        api.toDetails().forEach((line) => {
-          context.log('%s', chalk.yellow(`${line}`))
-        })
-      }
-      if (api.debug) {
-        context.log('%s %s', chalk.red('⬤'), chalk.underline.gray(`${api.toTestLink()}`))
-      }
+  })
+  .on('log:api:end', (api: Api) => {
+    if (api.debug === 'curl') {
+      context.log('')
+      context.log(`${chalk.green('⬤')} ${chalk.gray.underline('%s')}`, api.toCUrl())
+    } else if (['details', 'response', 'request'].includes(api.debug as string)) {
+      const [req, res] = api.toDetails()
+      context.log('')
+      req.forEach(line => context.log('%s', chalk.magenta(`${line}`)))
+      res.forEach(line => context.log('%s', chalk.green(`${line}`)))
+    }
+    if (api.debug === true || api.error) {
+      context.log('')
+      context.log(`${chalk.red('⬤')} ${chalk.underline.gray('%s')}`, api.toTestLink())
     }
     if (api.error) {
       api.tc.result.failed++
       context.log(chalk.red(api.error.message))
     }
-    // else {
-    //   if (api.response.ok) {
-    //     api.tc.result.passed++
-    //   } else if (!api.response.ok) {
-    //     api.tc.result.failed++
-    //   }
-    // }
-  })
-  .on('log:api:end', (_api: Api) => {
-    // if (api.title !== null || !api.validate?.length) {
-    //   context.groupEnd()
-    // }
   })
 
 /**
@@ -110,7 +90,8 @@ export class URL {
   }
 
   async prepare() {
-    this.url = this.$.replaceVars(this.url, { ...context.Vars, _params: this.toParams(), Vars: context.Vars, $: this.$, $$: this.$.$$, Utils: context.Utils, Result: context.Result }, undefined)
+    this.url = this.$.replaceVars(this.url, { _params: this.toParams() }, undefined)
+    this.url = this.$.replaceVars(this.url, { ...context.Vars, Vars: context.Vars, $: this.$, $$: this.$.$$, Utils: context.Utils, Result: context.Result }, undefined)
 
     const [_url, queries = ''] = this.url.split('?')
     this.url = _url
@@ -175,7 +156,7 @@ export class Api extends Tag {
   /** Request base URL */
   baseURL: string
   /** How to log for debugging */
-  debug: boolean | 'curl' | 'details' | 'request'
+  debug: boolean | 'curl' | 'details' | 'request' | 'response'
   /** Request url */
   url: string
   /** Http method */
@@ -261,10 +242,6 @@ export class Api extends Tag {
   _benchmark?: Wrk
   isRunBenchmark: boolean
 
-  get isBackground() {
-    return this.title === null
-  }
-
   constructor(attrs: Api) {
     super(undefined)
     const ext = ((attrs['<-'] && !Array.isArray(attrs['<-'])) ? (attrs['<-'] as string).split(',').map(e => e.trim()) : attrs['<-']) as string[]
@@ -303,7 +280,7 @@ export class Api extends Tag {
     super.prepare(undefined, ['validate', 'var', '_benchmark', 'docs', '_controller', '_axios'])
     const self = this
     await this.$url.prepare()
-    this.url = this.$url.url
+    // this.url = this.$url.url
     this.query = this.$url.toQuery()
     this.params = this.$url.toParams()
     if (this.validate) {
@@ -453,7 +430,6 @@ export class Api extends Tag {
         headers: res.headers,
         data,
       }
-      if (this.var) this.setVar(this.var, this.response.data)
       if (this.docs) {
         this.docs = this.replaceVars(this.docs, { ...context.Vars, Vars: context.Vars, $: this, $$: this.$$, Utils: context.Utils, Result: context.Result })
       }
@@ -476,10 +452,9 @@ export class Api extends Tag {
       this.error = err
     } finally {
       this.time = Date.now() - begin
-      if (this.error) {
-        context.emit('log:api:done', this)
-      } else {
-        context.emit('log:api:done', this)
+      context.emit('log:api:done', this)
+      if (this.var) this.setVar(this.var, this.response.data)
+      if (!this.error) {
         if (this.validate) {
           await this.validates()
           context.emit('log:api:validate:done', this)
@@ -545,42 +520,58 @@ export class Api extends Tag {
   toCUrl() {
     return CurlGenerator({
       method: this.method as any,
-      headers: this.headers,
+      headers: Object.keys(this.headers || {}).reduce((sum, e) => {
+        sum[e] = (this.headers[e] || '').toString()
+        return sum
+      }, {}),
       body: this.body,
-      url: this.baseURL + this._axiosData.fullUrlQuery
+      url: this._axiosData.fullUrlQuery
     })
   }
 
   toDetails() {
     const obj = this._axiosData
-    const msg = [chalk.bold.underline(`${obj.method} ${obj.fullUrlQuery}`)]
-    // Request header
-    msg.push('')
-    Object.keys(obj.headers).forEach(k => msg.push(chalk.italic(`• ${k}: ${obj.headers[k]}`)))
-    // Request body
-    if (obj.data) {
-      msg.push('')
-      msg.push(...JSON.stringify(obj.data, null, '  ').split('\n'))
+    const msgReq = []
+    const space = chalk.gray('---------------------------------------')
+    if (['details', 'request'].includes(this.debug as string)) {
+      msgReq.push(`${chalk.bold(obj.method + ' ' + obj.fullUrlQuery)}`)
+      // Request header
+      const reqHeaders = Object.keys(obj.headers)
+      if (reqHeaders.length) {
+        msgReq.push(space)
+        reqHeaders.forEach(k => msgReq.push(chalk.italic(`• ${k}: ${obj.headers[k]}`)))
+      }
+      // Request body
+      if (obj.data) {
+        msgReq.push(space)
+        msgReq.push(...JSON.stringify(obj.data, null, '  ').split('\n'))
+      }
+      msgReq.push('')
     }
-    // Response
-    if (this.debug === 'details' && this.response) {
+    const msgRes = []
+    if (['details', 'response'].includes(this.debug as string) && this.response) {
       const res = this.response
-      msg.push('')
-      msg.push(`Response: ${res.status} ${res.statusText}`)
-      msg.push('')
-      Object.keys(res.headers).forEach(k => msg.push(chalk.italic(`• ${k}: ${res.headers[k]}`)))
+      msgRes.push(chalk.bold(`${res.status} ${res.statusText}`))
+      // Response headers
+      const resHeaders = Object.keys(res.headers)
+      if (resHeaders.length > 0) {
+        msgRes.push(space)
+        resHeaders.forEach(k => msgRes.push(chalk.italic(`• ${k}: ${res.headers[k]}`)))
+      }
+      // Response data
       if (res.data) {
-        msg.push('')
+        msgRes.push(space)
         if (typeof res.data === 'object') {
-          msg.push(...JSON.stringify(res.data, null, '  ').split('\n'))
+          msgRes.push(...JSON.stringify(res.data, null, '  ').split('\n'))
         } else if (typeof res.data === 'string') {
-          msg.push(...res.data.split('\n'))
+          msgRes.push(...res.data.split('\n'))
         } else {
-          msg.push(res.data)
+          msgRes.push(res.data)
         }
       }
+      msgRes.push('')
     }
-    return msg
+    return [msgReq, msgRes]
   }
 
   toTestLink(link?: string) {
