@@ -4,7 +4,6 @@ import { Testcase } from '@/components/Testcase'
 import { toJsonSchema } from "./components/doc/DocUtils";
 import crypto from 'crypto'
 import { Validator } from 'jsonschema';
-import { isEqual } from 'lodash';
 import { safeDump } from 'js-yaml';
 import * as lodash from 'lodash'
 
@@ -116,7 +115,7 @@ export class Context {
     },
     /** Match 2 objects */
     match(a, b) {
-      if (!isEqual(a, b)) throw {
+      if (!lodash.isEqual(a, b)) throw {
         message: 'Data not match',
         actual: a,
         expected: b
