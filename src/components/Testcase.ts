@@ -98,7 +98,7 @@ export class Testcase {
     const t = pick(root, ['title', 'version', 'servers', 'developer', 'debug', 'description', 'vars', 'group', 'encryptPassword'])
     const g = omit(root, ['title', 'version', 'servers', 'developer', 'debug', 'description', 'vars', 'group', 'encryptPassword'])
     merge(this, { title: '', version: '', description: '', servers: {}, endpoints: {} }, t)
-    context.Vars = merge({}, context.Vars, replaceVars(root.vars))
+    merge(context.Vars, replaceVars(root.vars))
     this.group = new Group(g)
     this.group.tagName = 'Root'
     this.group.tc = this

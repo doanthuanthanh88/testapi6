@@ -95,7 +95,7 @@ export class URL {
     const [_url, queries = ''] = this.url.split('?')
     this.url = _url
 
-    const q = merge({}, parse(queries), this.query)
+    const q = merge(parse(queries), this.query)
     for (const _k in q) {
       const vl = q[_k]
       const required = _k.includes('*')
@@ -327,7 +327,7 @@ export class Api extends Tag {
           for (let k in this.body) {
             this._axiosData.data.append(k, this.body[k])
           }
-          this._axiosData.headers = merge({}, this._axiosData.headers, this._axiosData.data.getHeaders())
+          merge(this._axiosData.headers, this._axiosData.data.getHeaders())
         } else {
           this._axiosData.data = this.body
         }

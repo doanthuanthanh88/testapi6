@@ -2,7 +2,6 @@ import { mergeWith, merge, flatten, cloneDeep, omit } from 'lodash'
 import { Testcase } from '@/components/Testcase'
 import { context } from '../Context'
 import { Replacement } from '@/Replacement'
-import { Templates } from '@/components'
 
 export const REMOVE_CHARACTER = null
 
@@ -77,7 +76,7 @@ export abstract class Tag {
       attrs = typeof attrs !== 'string' ? attrs : { [attrName]: attrs }
     }
     if (attrs) {
-      if (attrs.title === 'Get post details') debugger
+      const { Templates } = require('.')
       const ext = ((attrs['<-'] && !Array.isArray(attrs['<-'])) ? (attrs['<-'] as string).split(',').map(e => e.trim()) : attrs['<-']) as string[]
       ext?.forEach(key => {
         merge(base, cloneDeep(Templates.Templates.get(key) || {}))
