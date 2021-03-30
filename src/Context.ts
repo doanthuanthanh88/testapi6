@@ -139,6 +139,9 @@ export class Context {
       if (isError) console.log(msg)
       else console.error(msg)
     })
+    this._event.on('clear', () => {
+      console.clear()
+    })
   }
   /** Listen event */
   on(event: string, listener: any) {
@@ -158,6 +161,10 @@ export class Context {
   /** Print without any spaces */
   print(fm = '', ...args: any[]) {
     this._event.emit('log', format(fm, ...args))
+  }
+  /** Clear screen */
+  clear() {
+    this._event.emit('clear')
   }
   /** Print log with space in group */
   log(fm = '', ...args: any[]) {

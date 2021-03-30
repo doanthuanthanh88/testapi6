@@ -1,6 +1,6 @@
 import { Tag } from "../Tag"
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, CancelTokenSource } from 'axios'
-import { cloneDeep, merge, omit, pick } from 'lodash'
+import { merge, pick } from 'lodash'
 import { stringify } from 'querystring'
 import { Testcase } from "../Testcase"
 import chalk from 'chalk'
@@ -10,7 +10,6 @@ import { URLSearchParams } from "url"
 import pako from 'pako'
 import { context } from '../../Context'
 import { Wrk, IWrk } from "../benchmark/Wrk"
-import { Templates } from "../Templates"
 import { Operation } from "../doc/OpenAPI3"
 import { createWriteStream } from "fs"
 import { CURLParser } from 'parse-curl-js'
@@ -243,42 +242,32 @@ export class Api extends Tag {
   isRunBenchmark: boolean
 
   constructor(attrs: Api) {
-    super(undefined)
-    const ext = ((attrs['<-'] && !Array.isArray(attrs['<-'])) ? (attrs['<-'] as string).split(',').map(e => e.trim()) : attrs['<-']) as string[]
-    let base = {}
-    ext?.forEach(key => {
-      merge(base, cloneDeep(Templates.Templates.get(key) || {}))
-    })
-    attrs = merge({ headers: {} }, base, attrs)
-    if (attrs.curl) {
-      const meta = new CURLParser(attrs.curl).parse()
+    super(attrs)
+    if (this.curl) {
+      const meta = new CURLParser(this.curl).parse()
       const { method, url, headers, query, body } = meta
-      attrs = merge({
+      merge({
         method: method.toUpperCase(),
         url: url.replace(/["']/g, ''),
         headers: headers,
         body: body?.data,
         query: query
-      }, attrs)
+      }, this)
     }
-    merge(this, omit(attrs, ['<-', '->']))
-    if (attrs.benchmark?.wrk) {
-      this._benchmark = new Wrk(attrs.benchmark?.wrk)
+    merge(this, merge({ headers: {} }, this))
+    if (this.benchmark?.wrk) {
+      this._benchmark = new Wrk(this.benchmark?.wrk)
     }
-    const exp = ((attrs['->'] && !Array.isArray(attrs['->'])) ? attrs['->'].split(',').map(e => e.trim()) : attrs['->']) as string[]
-    exp?.forEach(key => {
-      Templates.Templates.set(key, cloneDeep(this))
-    })
     if (!this.baseURL) this.baseURL = ''
     if (!this.url) this.url = ''
     if (!this.debug) this.debug = this.tc?.debug
     if (!this.method) this.method = Method.GET
-    this.$url = new URL(this, this.url, this.params, this.query)
   }
 
   async prepare() {
     super.prepare(undefined, ['validate', 'var', '_benchmark', 'docs', '_controller', '_axios'])
     const self = this
+    this.$url = new URL(this, this.url, this.params, this.query)
     await this.$url.prepare()
     // this.url = this.$url.url
     this.query = this.$url.toQuery()

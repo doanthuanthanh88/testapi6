@@ -31,7 +31,9 @@ export class Utils extends Tag {
 
   setup(_, attrs = {}) {
     // @ts-ignore
-    const { Utils } = context
+    const { Vars, Validate, Utils } = context
+    // @ts-ignore
+    const Context = context
     for (const funcName in attrs) {
       eval(`Utils["${funcName}"] = ${attrs[`${funcName}`]}`)
     }

@@ -1,7 +1,6 @@
-import { cloneDeep, merge, omit } from "lodash"
+import { cloneDeep } from "lodash"
 import { Import, Tag } from "./Tag"
 import { Testcase } from "./Testcase"
-import { Templates } from "./Templates"
 import { context } from "../Context"
 
 context
@@ -49,19 +48,7 @@ export class Group extends Tag {
   _isStop: boolean
 
   constructor(attrs) {
-    super(undefined)
-
-    const ext = (attrs['<-'] && !Array.isArray(attrs['<-'])) ? attrs['<-'].split(',').map(e => e.trim()) : attrs['<-']
-    let base = {}
-    ext?.forEach(key => {
-      merge(base, cloneDeep(Templates.Templates.get(key) || {}))
-    })
-    attrs = merge({}, base, attrs)
-    merge(this, omit(attrs, ['<-', '->']))
-    const exp = attrs['->']
-    if (exp) {
-      Templates.Templates.set(exp, cloneDeep(this))
-    }
+    super(attrs)
   }
 
   stop() {

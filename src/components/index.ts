@@ -113,6 +113,7 @@ export * from './input/Load'
 /**
  * Output
  */
+export * from './output/Clear'
 export * from './output/Echo'
 export * from './output/Schema'
 export * from './output/OutputFile'

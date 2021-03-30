@@ -1,7 +1,8 @@
-import { mergeWith, merge, flatten } from 'lodash'
+import { mergeWith, merge, flatten, cloneDeep, omit } from 'lodash'
 import { Testcase } from '@/components/Testcase'
 import { context } from '../Context'
 import { Replacement } from '@/Replacement'
+import { Templates } from '@/components'
 
 export const REMOVE_CHARACTER = null
 
@@ -71,10 +72,25 @@ export abstract class Tag {
   title: string
 
   constructor(attrs: any, attrName?: string) {
+    const base = {}
     if (attrName) {
-      attrs = attrs && attrs[attrName] ? attrs : { [attrName]: attrs }
+      attrs = typeof attrs !== 'string' ? attrs : { [attrName]: attrs }
     }
-    merge(this, attrs)
+    if (attrs) {
+      if (attrs.title === 'Get post details') debugger
+      const ext = ((attrs['<-'] && !Array.isArray(attrs['<-'])) ? (attrs['<-'] as string).split(',').map(e => e.trim()) : attrs['<-']) as string[]
+      ext?.forEach(key => {
+        merge(base, cloneDeep(Templates.Templates.get(key) || {}))
+      })
+
+      merge(base, omit(attrs, ['<-', '->']))
+
+      const exp = ((attrs['->'] && !Array.isArray(attrs['->'])) ? attrs['->'].split(',').map(e => e.trim()) : attrs['->']) as string[]
+      exp?.forEach(key => {
+        Templates.Templates.set(key, cloneDeep(base) as any)
+      })
+    }
+    merge(this, base)
   }
 
   get context() {

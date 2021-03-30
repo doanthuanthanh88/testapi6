@@ -8,6 +8,8 @@
       }
     steps:
       - Echo: suggest ${IDs}
+
+      - Clear:
       
       - Echo: ${Utils.schema(IDs)}
 
