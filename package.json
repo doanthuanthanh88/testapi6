@@ -1,6 +1,6 @@
 {
   "name": "testapi6",
-  "version": "1.1.9",
+  "version": "1.1.14",
   "description": "Test and auto export document to .md or .swagger file. Support many others tasks",
   "keywords": [
     "tool",
@@ -51,14 +51,14 @@
   "readme": "./docs/README.md",
   "homepage": "https://github.com/doanthuanthanh88",
   "author": {
-		"name": "Đoàn Thuận Thành",
-		"email": "doanthuanthanh88@gmail.com"
-	},
+    "name": "Đoàn Thuận Thành",
+    "email": "doanthuanthanh88@gmail.com"
+  },
   "license": "MIT",
-	"repository": {
-		"type": "git",
-		"url": "git@github.com:doanthuanthanh88/testapi6.git"
-	},
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:doanthuanthanh88/testapi6.git"
+  },
   "devDependencies": {
     "@types/chai": "^4.2.15",
     "@types/js-yaml": "^3.12.1",

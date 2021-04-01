@@ -115,10 +115,14 @@ export class Testcase {
     });
   }
 
-  async exec() {
+  async setup() {
     context.Vars = loadConfig(context.Vars, Testcase.getPathFromRoot('.env'))
     this.state = 'init'
     await this.group.setup(this)
+  }
+
+  async exec() {
+    await this.setup()
     try {
       context.emit('log:testcase:begin', this)
       const begin = Date.now()

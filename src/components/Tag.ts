@@ -19,7 +19,6 @@ export async function Import(arrs: any[], tc: Testcase) {
           }
         }
         let tag = new TagClass(t[tagName]) as Tag
-        tag.tagName = tagName
         let _tag = await tag.setup(tc, t[tagName])
         if (_tag) tag = _tag
         if (tag.preload) {
@@ -71,7 +70,7 @@ export abstract class Tag {
   title: string
 
   constructor(attrs: any, attrName?: string) {
-    const base = {}
+    const base = { '<--': [], '-->': [], tagName: this.constructor.name }
     if (attrName) {
       attrs = typeof attrs !== 'string' ? attrs : { [attrName]: attrs }
     }
@@ -80,6 +79,7 @@ export abstract class Tag {
       const ext = ((attrs['<-'] && !Array.isArray(attrs['<-'])) ? (attrs['<-'] as string).split(',').map(e => e.trim()) : attrs['<-']) as string[]
       ext?.forEach(key => {
         merge(base, cloneDeep(Templates.Templates.get(key) || {}))
+        base['<--'].push(key)
       })
 
       merge(base, omit(attrs, ['<-', '->']))
@@ -87,6 +87,7 @@ export abstract class Tag {
       const exp = ((attrs['->'] && !Array.isArray(attrs['->'])) ? attrs['->'].split(',').map(e => e.trim()) : attrs['->']) as string[]
       exp?.forEach(key => {
         Templates.Templates.set(key, cloneDeep(base) as any)
+        base['-->'].push(key)
       })
     }
     merge(this, base)
