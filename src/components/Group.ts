@@ -2,10 +2,11 @@ import { cloneDeep } from "lodash"
 import { Import, Tag } from "./Tag"
 import { Testcase } from "./Testcase"
 import { context } from "../Context"
+import chalk from "chalk"
 
 context
   .on('log:group:begin', (e: Group) => {
-    if (e.title) context.group(e.title, ':', e.description)
+    if (e.title) context.group(chalk.blue(e.title), ':', e.description)
   })
   .on('log:group:end', (e: Group) => {
     if (e.title) context.groupEnd()

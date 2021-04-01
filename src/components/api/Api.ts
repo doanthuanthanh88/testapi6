@@ -18,31 +18,32 @@ import { parse } from 'querystring'
 
 context
   .on('log:api:begin', (api: Api) => {
-    if (!api.slient) {
-      context.log(`${chalk.gray('%s')}. %s\t${chalk.gray.underline('%s %s')}`, api.index.toString(), api.title, api.method.toString(), api._axiosData.fullUrlQuery)
+    if (!api.slient && api.title !== null) {
+      context.log(`${chalk.gray('%s')}.\t${chalk.green('%s')}\t${chalk.gray.underline('%s %s')}`, api.index.toString(), api.title, api.method.toString(), api._axiosData.fullUrlQuery)
     }
   })
   .on('log:api:validate:done', (_api: Api) => {
     // Validate done
   })
   .on('log:api:done', (api: Api) => {
-    if (!api.slient) {
-      context.log(`${chalk.gray('<=')} ${chalk[api.response?.ok ? 'green' : 'red'].bold('%s')} ${chalk.gray('%s')} ${chalk.gray.italic('%s')}`, api.response?.status.toString(), api.response?.statusText, ` (${api.time.toString()}ms)`)
+    if (!api.slient && api.title !== null) {
+      context.log(`\t${chalk[api.response?.ok ? 'green' : 'red']('↳ %s')} ${chalk.gray('%s')} ${chalk.gray.italic('%s')}`, api.response?.status.toString(), api.response?.statusText, ` (${api.time.toString()}ms)`)
     }
   })
   .on('log:api:end', (api: Api) => {
     if (api.debug === 'curl') {
-      context.log('')
+      context.group('')
       context.log(`${chalk.green('⬤')} ${chalk.gray.underline('%s')}`, api.toCUrl())
+      context.groupEnd()
     } else if (['details', 'response', 'request'].includes(api.debug as string)) {
-      const [req, res] = api.toDetails()
-      context.log('')
-      req.forEach(line => context.log('%s', chalk.magenta(`${line}`)))
-      res.forEach(line => context.log('%s', chalk.green(`${line}`)))
+      context.group('')
+      api.logDetails()
+      context.groupEnd()
     }
     if (api.debug === true || api.error) {
-      context.log('')
+      context.group('')
       context.log(`${chalk.red('⬤')} ${chalk.underline.gray('%s')}`, api.toTestLink())
+      context.groupEnd()
     }
     if (api.error) {
       api.tc.result.failed++
@@ -518,49 +519,40 @@ export class Api extends Tag {
     })
   }
 
-  toDetails() {
+  logDetails() {
     const obj = this._axiosData
-    const msgReq = []
-    const space = chalk.gray('---------------------------------------')
+    const space = '--------------------------------------'
     if (['details', 'request'].includes(this.debug as string)) {
-      msgReq.push(`${chalk.bold(obj.method + ' ' + obj.fullUrlQuery)}`)
+      context.log(`${chalk.red('%s')}`, obj.method + ' ' + obj.fullUrlQuery)
       // Request header
       const reqHeaders = Object.keys(obj.headers)
       if (reqHeaders.length) {
-        msgReq.push(space)
-        reqHeaders.forEach(k => msgReq.push(chalk.italic(`• ${k}: ${obj.headers[k]}`)))
+        context.log(chalk.gray('%s'), space)
+        reqHeaders.forEach(k => context.log(chalk.redBright.italic(`• ${k}: ${obj.headers[k]}`)))
       }
       // Request body
       if (obj.data) {
-        msgReq.push(space)
-        msgReq.push(...JSON.stringify(obj.data, null, '  ').split('\n'))
+        context.log(chalk.gray('%s'), space)
+        context.log(obj.data)
       }
-      msgReq.push('')
+      context.log('')
     }
-    const msgRes = []
     if (['details', 'response'].includes(this.debug as string) && this.response) {
       const res = this.response
-      msgRes.push(chalk.bold(`${res.status} ${res.statusText}`))
+      context.log(chalk.green('%s'), `RESPONSE - ${res.status} ${res.statusText}`)
       // Response headers
       const resHeaders = Object.keys(res.headers)
       if (resHeaders.length > 0) {
-        msgRes.push(space)
-        resHeaders.forEach(k => msgRes.push(chalk.italic(`• ${k}: ${res.headers[k]}`)))
+        context.log(chalk.gray('%s'), space)
+        resHeaders.forEach(k => context.log(chalk.greenBright.italic(`• ${k}: ${res.headers[k]}`)))
       }
       // Response data
       if (res.data) {
-        msgRes.push(space)
-        if (typeof res.data === 'object') {
-          msgRes.push(...JSON.stringify(res.data, null, '  ').split('\n'))
-        } else if (typeof res.data === 'string') {
-          msgRes.push(...res.data.split('\n'))
-        } else {
-          msgRes.push(res.data)
-        }
+        context.log(chalk.gray('%s'), space)
+        context.log(res.data)
       }
-      msgRes.push('')
+      context.log('')
     }
-    return [msgReq, msgRes]
   }
 
   toTestLink(link?: string) {

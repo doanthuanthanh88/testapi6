@@ -76,7 +76,7 @@ export class Validator extends Tag {
   setup(_, attrs = {}) {
     const chai = Chai
     // @ts-ignore
-    const { Validate, Utils } = context
+    const { Validate, Utils, Vars } = context
     // @ts-ignore
     const { expect, assert, util } = chai
     // @ts-ignore

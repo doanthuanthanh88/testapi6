@@ -57,6 +57,9 @@
             "$ref": "#/definitions/Validate"
           },
           {
+            "$ref": "#/definitions/Validator"
+          },
+          {
             "$ref": "#/definitions/Utils"
           },
           {
@@ -720,10 +723,10 @@
                   "description": "Validation details"
                 },
                 "func": {
-                  "description": "Function name",
+                  "description": "Function name or function",
                   "type": "string",
                   "examples": [
-                    "matchIgnoreCase"
+                    "match", "empty", "(...args): Error & {actual: any, expected: any} => {}"
                   ]
                 },
                 "args": {
@@ -1050,7 +1053,7 @@
                     "curl",
                     "request",
                     "response",
-                    "all"
+                    "details"
                   ]
                 }
               ],

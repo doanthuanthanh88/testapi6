@@ -11,7 +11,7 @@ class Eval {
       eval(script)
       return rs17263817
     } catch (err) {
-      console.log(script)
+      console.error(script)
       throw err
     }
   }

@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events'
-import { format } from 'util'
+import { inspect } from 'util'
 import { Testcase } from '@/components/Testcase'
 import { toJsonSchema } from "./components/doc/DocUtils";
 import crypto from 'crypto'
@@ -130,7 +130,18 @@ export class Context {
           expected: b
         }
       }
-    }
+    },
+    equals: 'expect.to.equal',
+    notEquals: 'expect.to.not.equal',
+    deepEquals: 'expect.to.deep.equal',
+    deepIncludes: 'expect.to.deep.include',
+    notIncludes: 'expect.to.not.include',
+    haveDeepMembers: 'expect.to.have.deep.members',
+    haveNotMembers: 'expect.to.not.have.members',
+    haveDeepProperty: 'expect.to.have.deep.property',
+    notHaveProperty: 'expect.to.not.have.property',
+    empty: 'expect.to.not.be.empty',
+    notEmpty: 'expect.to.not.be.empty',
   }
   private _event = new EventEmitter()
   constructor() {
@@ -159,29 +170,39 @@ export class Context {
     return this._event
   }
   /** Print without any spaces */
-  print(fm = '', ...args: any[]) {
-    this._event.emit('log', format(fm, ...args))
+  print(...args: any[]) {
+    // this._event.emit('log', format(fm, ...args))
+    console.log(...args.map(a => typeof a === 'object' ? inspect(a, { depth: null }) : a))
   }
   /** Clear screen */
   clear() {
-    this._event.emit('clear')
+    // this._event.emit('clear')
+    console.clear()
   }
   /** Print log with space in group */
-  log(fm = '', ...args: any[]) {
-    this._event.emit('log', this.space.join('') + format(fm, ...args))
+  log(...args) {
+    // this._event.emit('log', this.space.join('') + format(fm, ...args))
+    console.log(...args.map(a => typeof a === 'object' ? inspect(a, { depth: null }) : a))
+  }
+  /** Print table */
+  table(arrs: string[][], opts?: any) {
+    console.table(arrs, opts)
   }
   /** Print error with space in group */
-  error(fm = '', ...args: any[]) {
-    this._event.emit('log', this.space.join('') + format(fm, ...args), true)
+  error(...args) {
+    // this._event.emit('log', this.space.join('') + format(fm, ...args), true)
+    console.log(...args.map(a => typeof a === 'object' ? inspect(a, { depth: null }) : a))
   }
   /** Add spaces before log */
-  group(fm: string, ...args: any[]) {
-    this.log(fm, ...args)
-    this.space.push('  ')
+  group(...args: any[]) {
+    console.group(...args)
+    // this.log(fm, ...args)
+    // this.space.push('  ')
   }
   /** Remove spaces */
   groupEnd() {
-    this.space.splice(0, 1)
+    // this.space.splice(0, 1)
+    console.groupEnd()
   }
 }
 

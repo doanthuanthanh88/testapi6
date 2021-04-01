@@ -1,7 +1,7 @@
 import { Tag } from "../Tag";
 import chalk from 'chalk'
 import chai from 'chai'
-import {context} from '../../Context'
+import { context } from '../../Context'
 
 /**
  * Validate data (system, chaijs, user customize, user customize base on chaijs)
@@ -32,40 +32,79 @@ export class Validate extends Tag {
 
   async exec() {
     try {
-      const [chaiFunc] = this.func.split('.', 1)
-      if (chaiFunc === 'expect') {
+      if (this.func.includes('?')) {
+        let func = this.func as string
+        var i = 0
+        const rd = Math.random().toString()
+        func = func.split('\\?').join(rd).replace(/(\?)/g, () => `arrs[${i++}]`).split(rd).join('\\?')
         // @ts-ignore
-        const [obj, ...args] = this.args
+        const { expect, assert } = chai
         // @ts-ignore
-        const expect = chai.expect(obj) 
+        const arrs = this.args
         let t
-        eval(`t = ${this.func}(...args)`)
-        await t
-      } else if (chaiFunc === 'assert') {
-        // @ts-ignore
-        const assert = chai.assert
-        // @ts-ignore
-        const args = this.args
-        let t
-        eval(`t = ${this.func}(...args)`)
+        eval(`t = ${func}`)
+        if (typeof t === 'function') {
+          eval(`t = t(...args)`)
+        }
+        eval(func)
         await t
       } else {
-        const func = context.Validate[this.func]
-        if (!func) throw new Error(`Could not found validate "${this.func}"`)
-        await func(...this.args)
+        this.func = context.Validate[this.func] || this.func
+        if (typeof this.func === 'string') {
+          const [chaiFunc] = this.func.split('.', 1)
+          if (chaiFunc === 'expect') {
+            // @ts-ignore
+            const [obj, ...args] = this.args
+            // @ts-ignore
+            const expect = chai.expect(obj)
+            let t
+            eval(`t = ${this.func}`)
+            if (typeof t === 'function') {
+              eval(`t = t(...args)`)
+            }
+            await t
+          } else if (chaiFunc === 'assert') {
+            // @ts-ignore
+            const { assert } = chai
+            // @ts-ignore
+            const args = this.args
+            let t
+            eval(`t = ${this.func}`)
+            if (typeof t === 'function') {
+              eval(`t = t(...args)`)
+            }
+            await t
+          } else {
+            let func
+            eval(`func = ${this.func}`) as any
+            await func(...this.args)
+          }
+        } else if (typeof this.func === 'function') {
+          const func = this.func as any
+          await func(...this.args)
+        } else {
+          throw new Error(`Could not found validate "${this.func}"`)
+        }
       }
     } catch (err) {
       this.error = err
     } finally {
       if (!this.error) {
         if (!this.slient) {
-          context.log('- %s %s', chalk.green('✔️'), chalk.magenta(this.title))
+          context.log('  %s\t%s', chalk.green('✔️'), chalk.magenta(this.title))
         }
       } else {
-        context.group('- %s %s: %s', chalk.red('❌'), chalk.bgRed(this.title), chalk.red.italic(this.error.message || ''))
+        context.group('  %s\t%s: %s', chalk.red('✘'), chalk.magenta(this.title.split(' ').join('-')), this.error.message || '')
         if (this.error.actual || this.error.expected) {
-          context.error('  + %s', chalk.red('actual'), this.error.actual)
-          context.error('  + %s', chalk.green('expected'), this.error.expected)
+          context.print('')
+          context.print(`${chalk.red('‣ %s')}`, 'Actual')
+          context.print('')
+          context.print(`${chalk.red.italic('%s')}`, this.error.actual)
+          context.print('')
+          context.print(`${chalk.green('‣ %s')}`, 'Expected')
+          context.print('')
+          context.print(`${chalk.green.italic('%s')}`, this.error.expected)
+          context.print('')
         }
         context.groupEnd()
       }
