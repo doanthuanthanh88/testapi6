@@ -32,6 +32,10 @@ export class Validate extends Tag {
 
   async exec() {
     try {
+      const _func = context.Validate[this.func]
+      if (typeof _func === 'string') {
+        this.func = _func
+      }
       if (this.func.includes('?')) {
         let func = this.func as string
         var i = 0
@@ -44,9 +48,8 @@ export class Validate extends Tag {
         let t
         eval(`t = ${func}`)
         if (typeof t === 'function') {
-          eval(`t = t(...args)`)
+          eval(`t(...args)`)
         }
-        eval(func)
         await t
       } else {
         this.func = context.Validate[this.func] || this.func

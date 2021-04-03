@@ -18,7 +18,7 @@ import { parse } from 'querystring'
 
 context
   .on('log:api:begin', (api: Api) => {
-    if (!api.slient && api.title !== null) {
+    if (!api.slient && !api.depends) {
       context.log(`${chalk.gray('%s')}.\t${chalk.green('%s')}\t${chalk.gray.underline('%s %s')}`, api.index.toString(), api.title, api.method.toString(), api._axiosData.fullUrlQuery)
     }
   })
@@ -26,7 +26,7 @@ context
     // Validate done
   })
   .on('log:api:done', (api: Api) => {
-    if (!api.slient && api.title !== null) {
+    if (!api.slient && !api.depends) {
       context.log(`\t${chalk[api.response?.ok ? 'green' : 'red']('↳ %s')} ${chalk.gray('%s')} ${chalk.gray.italic('%s')}`, api.response?.status.toString(), api.response?.statusText, ` (${api.time.toString()}ms)`)
     }
   })
@@ -86,11 +86,11 @@ export class URL {
       if (required) delete this.params[_k]
     }
 
-    this.url = url.replace(/\*/g, '').replace(URL.PT, `$1$\{_params.$2\}`)
+    this.url = url.replace(/\*/g, '').replace(URL.PT, `$1$\{$params.$2\}`)
   }
 
   async prepare() {
-    this.url = this.$.replaceVars(this.url, { _params: this.toParams() }, undefined)
+    this.url = this.$.replaceVars(this.url, { $params: this.toParams() }, undefined)
     this.url = this.$.replaceVars(this.url, { ...context.Vars, Vars: context.Vars, $: this.$, $$: this.$.$$, Utils: context.Utils, Result: context.Result }, undefined)
 
     const [_url, queries = ''] = this.url.split('?')
@@ -161,8 +161,6 @@ export class Api extends Tag {
   url: string
   /** Http method */
   method: Method
-  /** Set global variables */
-  vars: object
   /** Set timeout for the request */
   timeout: number
   /** 
@@ -182,6 +180,8 @@ export class Api extends Tag {
   '->': string
   /** Extends from a expose tag */
   '<-': string | string[]
+  /** Only validate for the before step */
+  depends: boolean
   /** Load from curl command */
   curl?: string
   /** Request body */
@@ -244,6 +244,7 @@ export class Api extends Tag {
 
   constructor(attrs: Api) {
     super(attrs)
+    if (attrs.title === 'Get feed follow') debugger
     if (this.curl) {
       const meta = new CURLParser(this.curl).parse()
       const { method, url, headers, query, body } = meta
@@ -423,11 +424,6 @@ export class Api extends Tag {
       if (this.docs) {
         this.docs = this.replaceVars(this.docs, { ...context.Vars, Vars: context.Vars, $: this, $$: this.$$, Utils: context.Utils, Result: context.Result })
       }
-      // if (this.vars) {
-      //   for (let k in this.vars) {
-      //     context.Vars[k] = res[k]
-      //   }
-      // }
     } catch (err) {
       err = pick(err, 'config', 'response', 'status', 'statusText')
       if (err.config) {

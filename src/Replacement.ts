@@ -2,7 +2,7 @@ class Eval {
   constructor(public str: string) { }
 
   getValue(context = {} as any) {
-    const declare = Object.keys(context).map(k => `const ${k} = context.${k}`).join('\n')
+    const declare = Object.keys(context).filter(k => /^[\$a-zA-Z]/.test(k)).map(k => `const ${k} = context.${k}`).join('\n')
     let rs17263817
     const script = `${declare}
       rs17263817 = ${this.str}

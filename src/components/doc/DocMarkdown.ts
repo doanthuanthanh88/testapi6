@@ -1,7 +1,7 @@
 import { OutputFile } from '@/components/output/OutputFile';
 import { Testcase } from '@/components/Testcase';
 import { Api } from '@/components/api/Api';
-import { merge, pick } from 'lodash';
+import { merge, pick, uniqBy } from 'lodash';
 import { stringify } from 'querystring';
 import { isGotData } from './DocUtils';
 
@@ -56,10 +56,10 @@ export class DocMarkdown extends OutputFile {
     menu.push('')
     menu.push('## APIs')
     const details = ['## Details']
-    const apis = Testcase.APIs.filter(api => api.docs)
+    const apis = uniqBy(Testcase.APIs.filter(api => api.docs && api.title), e => `${e.method.toLowerCase()} ${e.url}`)
     const tags = [] as { name: string, items: Api[] }[]
     apis.forEach(a => {
-      a.docs = merge(a.docs, { md: { tags: [] } })
+      a.docs = merge({ md: { tags: [] } }, a.docs)
       if (!a.docs.md.tags.length) {
         a.docs.md.tags.push('default')
       }
@@ -80,7 +80,7 @@ export class DocMarkdown extends OutputFile {
     const menus = []
     menus.push(`|No.  | API Description | Actions |`)
     menus.push(`|---: | ---- | ---- |`)
-    
+
     for (let tag of tags) {
       const testItems = [] as any
       const idx = menus.length

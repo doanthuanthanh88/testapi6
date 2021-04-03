@@ -1,7 +1,7 @@
 import { OutputFile } from '@/components/output/OutputFile';
 import { dump } from 'js-yaml';
 import { isGotData, toJsonSchema } from '@/components/doc/DocUtils';
-import { difference, merge } from 'lodash';
+import { differenceWith, merge, uniqBy } from 'lodash';
 import { Testcase } from '@/components/Testcase';
 import { Api } from '@/components/api/Api';
 import { OpenAPI } from '@/components/doc/OpenAPI3';
@@ -75,11 +75,11 @@ export class DocSwagger extends OutputFile {
         schemas: {}
       }
     }, this.raw)
-    const apis = Testcase.APIs.filter(api => api.docs)
+    const apis = uniqBy(Testcase.APIs.filter(api => api.docs && api.title), e => `${e.method.toLowerCase()} ${e.url}`)
     let tags = this.raw.tags || []
     apis.forEach((api: Api) => {
       if (api.docs.swagger?.tags) {
-        const newTags = difference(tags, api.docs.swagger?.tags as any)
+        const newTags = differenceWith(tags, api.docs.swagger?.tags as any, (a, b) => a.name === b)
         tags = tags.concat(newTags)
       }
       const pathName = api.url //(api.docs.pathname || api._url)
@@ -141,31 +141,35 @@ export class DocSwagger extends OutputFile {
       }
       // Request body
       if (isGotData(api.body)) {
-        rs.requestBody = merge({}, rs.requestBody || {}, {
+        rs.requestBody = merge({}, {
           content: {
             'application/json': {
               example: api.body,
               schema: toJsonSchema(api.body, jsonSchemaOptions)
             }
           }
-        })
+        }, rs.requestBody || {})
       }
       // Response
       if (isGotData(api.response)) {
-        rs.responses = merge({}, rs.responses || {}, {
+        rs.responses = merge({}, {
           [api.response.status]: {
             description: 'Success'
           }
-        })
+        }, rs.responses || {})
 
         if (isGotData(api.response.data, false)) {
           const [contentType] = api.response.headers['content-type']?.split(';')
-          rs.responses[api.response.status].content = {
-            [contentType]: {
-              example: api.response.data,
-              schema: toJsonSchema(api.response.data, jsonSchemaOptions)
+          rs.responses = merge({}, {
+            [api.response.status]: {
+              content: {
+                [contentType]: {
+                  example: api.response.data,
+                  schema: toJsonSchema(api.response.data, jsonSchemaOptions)
+                }
+              }
             }
-          }
+          }, rs.responses)
         }
 
         let arrs = Object.keys(api.response.headers)

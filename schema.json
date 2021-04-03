@@ -18,10 +18,10 @@
       "items": {
         "anyOf": [
           {
-            "$ref": "#/definitions/Require"
+            "$ref": "#/definitions/Templates"
           },
           {
-            "$ref": "#/definitions/Upload"
+            "$ref": "#/definitions/Require"
           },
           {
             "$ref": "#/definitions/DocSwagger"
@@ -99,9 +99,6 @@
             "$ref": "#/definitions/Group"
           },
           {
-            "$ref": "#/definitions/Define"
-          },
-          {
             "$ref": "#/definitions/Load"
           }
         ]
@@ -120,7 +117,7 @@
             {
               "allOf": [
                 {
-                  "$ref": "#/definitions/DefaultProps"
+                  "$ref": "#/definitions/defaultTags"
                 },
                 {
                   "type": "object",
@@ -144,7 +141,7 @@
         "Load": {
           "allOf": [
             {
-              "$ref": "#/definitions/DefaultProps"
+              "$ref": "#/definitions/defaultTags"
             },
             {
               "description": "Import data file(.json, .yaml, .csv(separate by , and \n))",
@@ -157,17 +154,8 @@
                   "type": "string"
                 },
                 "var": {
-                  "description": "Set data to a variable after handle",
-                  "anyOf": [
-                    {
-                      "type": "string",
-                      "description": "Set data to this"
-                    },
-                    {
-                      "type": "object",
-                      "description": "Set a part of data to this"
-                    }
-                  ]
+                  "description": "Load data to a variable after handle",
+                  "$ref": "#/definitions/setVar"
                 }
               }
             }
@@ -180,8 +168,11 @@
       "additionalProperties": false,
       "properties": {
         "Script": {
-          "description": "Embed script in scenario",
-          "type": "string"
+          "description": "Run javascript in scenario",
+          "type": "string",
+          "examples": [
+            "Vars.name = 'hello'"
+          ]
         }
       }
     },
@@ -194,7 +185,7 @@
             {
               "allOf": [
                 {
-                  "$ref": "#/definitions/DefaultProps"
+                  "$ref": "#/definitions/defaultTags"
                 },
                 {
                   "type": "object",
@@ -204,16 +195,28 @@
                       "description": "Description"
                     },
                     "msg": {
-                      "type": "string",
-                      "description": "Content which your want to print out"
+                      "anyOf": [
+                        {
+                          "$ref": "#/definitions/getText"
+                        },
+                        {
+                          "$ref": "#/definitions/getVar"
+                        }
+                      ]
                     }
                   }
                 }
               ]
             },
             {
-              "description": "Print log or data object",
-              "type": "string"
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/getText"
+                },
+                {
+                  "$ref": "#/definitions/getVar"
+                }
+              ]
             }
           ]
         }
@@ -238,7 +241,7 @@
             {
               "allOf": [
                 {
-                  "$ref": "#/definitions/DefaultProps"
+                  "$ref": "#/definitions/defaultTags"
                 },
                 {
                   "type": "object",
@@ -248,8 +251,14 @@
                       "description": "Description"
                     },
                     "msg": {
-                      "type": "string",
-                      "description": "Content which your want to print schema out"
+                      "anyOf": [
+                        {
+                          "$ref": "#/definitions/getObject"
+                        },
+                        {
+                          "$ref": "#/definitions/getVar"
+                        }
+                      ]
                     }
                   }
                 }
@@ -270,7 +279,7 @@
         "Regex": {
           "allOf": [
             {
-              "$ref": "#/definitions/DefaultProps"
+              "$ref": "#/definitions/defaultTags"
             },
             {
               "type": "object",
@@ -307,75 +316,11 @@
                 },
                 "var": {
                   "description": "Set result to a variable after handle",
-                  "anyOf": [
-                    {
-                      "type": "string",
-                      "description": "Set result to this"
-                    },
-                    {
-                      "type": "object",
-                      "description": "Set a part of result to this"
-                    }
-                  ]
+                  "$ref": "#/definitions/setVar"
                 },
                 "pattern": {
                   "type": "string",
                   "description": "Regex pattern"
-                }
-              }
-            }
-          ]
-        }
-      }
-    },
-    "Upload": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "Upload": {
-          "allOf": [
-            {
-              "$ref": "#/definitions/DefaultProps"
-            },
-            {
-              "type": "object",
-              "description": "Pause or delay",
-              "additionalProperties": false,
-              "required": [
-                "file"
-              ],
-              "properties": {
-                "title": {
-                  "type": "string",
-                  "description": "Description"
-                },
-                "file": {
-                  "type": "string",
-                  "description": "Path to upload file"
-                },
-                "var": {
-                  "description": "Get download link",
-                  "type": "string"
-                },
-                "tmpfiles.org": {
-                  "type": "object",
-                  "description": "File will be uploaded to https://tmpfiles.org/",
-                  "properties": {
-                    "maxViews": {
-                      "description": "Number of view time",
-                      "type": [
-                        "number",
-                        "string"
-                      ]
-                    },
-                    "maxMinutes": {
-                      "description": "Max time which file will be stored on server",
-                      "type": [
-                        "number",
-                        "string"
-                      ]
-                    }
-                  }
                 }
               }
             }
@@ -390,7 +335,7 @@
         "Require": {
           "allOf": [
             {
-              "$ref": "#/definitions/DefaultProps"
+              "$ref": "#/definitions/defaultTags"
             },
             {
               "type": "object",
@@ -437,7 +382,7 @@
             {
               "allOf": [
                 {
-                  "$ref": "#/definitions/DefaultProps"
+                  "$ref": "#/definitions/defaultTags"
                 },
                 {
                   "type": "object",
@@ -449,9 +394,13 @@
                       "description": "Description"
                     },
                     "time": {
-                      "type": [
-                        "integer",
-                        "string"
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "$ref": "#/definitions/getVar"
+                        }
                       ],
                       "description": "Miliseconds"
                     }
@@ -478,7 +427,7 @@
         "Input": {
           "allOf": [
             {
-              "$ref": "#/definitions/DefaultProps"
+              "$ref": "#/definitions/defaultTags"
             },
             {
               "type": "object",
@@ -493,7 +442,7 @@
                 },
                 "var": {
                   "description": "Assign user input value to",
-                  "type": "string"
+                  "$ref": "#/definitions/setVar"
                 },
                 "required": {
                   "description": "User input must be required",
@@ -574,7 +523,7 @@
         "Exec": {
           "allOf": [
             {
-              "$ref": "#/definitions/DefaultProps"
+              "$ref": "#/definitions/defaultTags"
             },
             {
               "type": "object",
@@ -596,24 +545,7 @@
                 },
                 "var": {
                   "description": "Set result after execution",
-                  "anyOf": [
-                    {
-                      "type": "string",
-                      "description": "Result code",
-                      "examples": [
-                        0,
-                        1
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "description": "Set result to this properties",
-                      "examples": [
-                        "${$.log}",
-                        "${$.code}"
-                      ]
-                    }
-                  ]
+                  "$ref": "#/definitions/setVar"
                 },
                 "args": {
                   "type": "array",
@@ -635,7 +567,7 @@
         "PreExec": {
           "allOf": [
             {
-              "$ref": "#/definitions/DefaultProps"
+              "$ref": "#/definitions/defaultTags"
             },
             {
               "type": "object",
@@ -657,24 +589,7 @@
                 },
                 "var": {
                   "description": "Set result after execution",
-                  "anyOf": [
-                    {
-                      "type": "string",
-                      "description": "Result code",
-                      "examples": [
-                        0,
-                        1
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "description": "Set result to this properties",
-                      "examples": [
-                        "${$.log}",
-                        "${$.code}"
-                      ]
-                    }
-                  ]
+                  "$ref": "#/definitions/setVar"
                 },
                 "args": {
                   "type": "array",
@@ -696,7 +611,7 @@
         "Validate": {
           "allOf": [
             {
-              "$ref": "#/definitions/DefaultProps"
+              "$ref": "#/definitions/defaultTags"
             },
             {
               "type": "object",
@@ -726,7 +641,9 @@
                   "description": "Function name or function",
                   "type": "string",
                   "examples": [
-                    "match", "empty", "(...args): Error & {actual: any, expected: any} => {}"
+                    "match",
+                    "empty",
+                    "(...args): Error & {actual: any, expected: any} => {}"
                   ]
                 },
                 "args": {
@@ -754,17 +671,10 @@
       "additionalProperties": false,
       "properties": {
         "Utils": {
-          "allOf": [
-            {
-              "$ref": "#/definitions/DefaultProps"
-            },
-            {
-              "type": "object",
-              "description": "Declare new utils function. ${Utils.toLower}",
-              "examples": [
-                "toLower: (txt) => { return txt?.toLowerCase() }"
-              ]
-            }
+          "type": "object",
+          "description": "Declare new util functions",
+          "examples": [
+            "${Utils.toLower}"
           ]
         }
       }
@@ -774,52 +684,8 @@
       "additionalProperties": false,
       "properties": {
         "Validator": {
-          "allOf": [
-            {
-              "$ref": "#/definitions/DefaultProps"
-            },
-            {
-              "type": "object",
-              "description": "Declare new utils function. ${Utils.toLower}",
-              "examples": [
-                "toLower: (txt) => { return txt?.toLowerCase() }"
-              ]
-            }
-          ]
-        }
-      }
-    },
-    "Define": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "Define": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/DefaultProps"
-            },
-            {
-              "type": "string",
-              "description": "Declare new Utils/Validate/Vars",
-              "examples": [
-                "Utils.toLower = (txt) => { return txt?.toLowerCase() }",
-                "Validate.matchIgnoreCase = (a, b) => { return a?.toLowerCase() === b?.toLowerCase() }",
-                "Vars.myGlobalVar = 'thanh'"
-              ]
-            },
-            {
-              "type": "array",
-              "items": {
-                "type": "string",
-                "description": "Declare new Utils/Validate/Vars",
-                "examples": [
-                  "Utils.toLower = (txt) => { return txt?.toLowerCase() }",
-                  "Validate.matchIgnoreCase = (a, b) => { return a?.toLowerCase() === b?.toLowerCase() }",
-                  "Vars.myGlobalVar = 'thanh'"
-                ]
-              }
-            }
-          ]
+          "type": "object",
+          "description": "Declare new validates which is used in Api, Validate, Get... tags"
         }
       }
     },
@@ -858,17 +724,12 @@
           "type": "object",
           "description": "Servers which is published to client implements"
         },
-        "curl": {
-          "type": "string",
-          "description": "Run from curl command"
-        },
         "developer": {
           "type": "string",
           "description": "Developer email"
         },
         "vars": {
-          "type": "object",
-          "description": "Declare global variables"
+          "$ref": "#/definitions/declareGlobalVars"
         },
         "templates": {
           "$ref": "#/definitions/allOfSteps",
@@ -884,18 +745,7 @@
       "additionalProperties": false,
       "properties": {
         "Vars": {
-          "allOf": [
-            {
-              "$ref": "#/definitions/DefaultProps"
-            },
-            {
-              "description": "Declare local variables which is used in this (In !api ...) and these childs steps (In !group)",
-              "type": "object",
-              "examples": [
-                "$ = this, $$ = this.parent"
-              ]
-            }
-          ]
+          "$ref": "#/definitions/declareGlobalVars"
         }
       }
     },
@@ -906,7 +756,7 @@
         "DocSwagger": {
           "allOf": [
             {
-              "$ref": "#/definitions/DefaultProps"
+              "$ref": "#/definitions/defaultTags"
             },
             {
               "type": "object",
@@ -955,7 +805,7 @@
         "DocMarkdown": {
           "allOf": [
             {
-              "$ref": "#/definitions/DefaultProps"
+              "$ref": "#/definitions/defaultTags"
             },
             {
               "type": "object",
@@ -999,7 +849,7 @@
         "OutputFile": {
           "allOf": [
             {
-              "$ref": "#/definitions/DefaultProps"
+              "$ref": "#/definitions/defaultTags"
             },
             {
               "type": "object",
@@ -1025,15 +875,171 @@
         }
       }
     },
-    "RawApi": {
+    "Get": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Get": {
+          "type": "object",
+          "description": "Make a Get request",
+          "$ref": "#/definitions/rawApi"
+        }
+      }
+    },
+    "Post": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Post": {
+          "type": "object",
+          "description": "Make a Post request",
+          "$ref": "#/definitions/rawApi"
+        }
+      }
+    },
+    "Put": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Put": {
+          "type": "object",
+          "description": "Make a Put request",
+          "$ref": "#/definitions/rawApi"
+        }
+      }
+    },
+    "Patch": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Patch": {
+          "type": "object",
+          "description": "Make a Patch request",
+          "$ref": "#/definitions/rawApi"
+        }
+      }
+    },
+    "Head": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Head": {
+          "type": "object",
+          "description": "Make a Head request",
+          "$ref": "#/definitions/rawApi"
+        }
+      }
+    },
+    "Delete": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Delete": {
+          "type": "object",
+          "description": "Make a Delete request",
+          "$ref": "#/definitions/rawApi"
+        }
+      }
+    },
+    "Api": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Api": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/rawApi"
+            },
+            {
+              "type": "object",
+              "description": "Make a RESTFUL API",
+              "properties": {
+                "method": {
+                  "type": "string",
+                  "description": "Http method",
+                  "enum": [
+                    "GET",
+                    "POST",
+                    "PUT",
+                    "DELETE",
+                    "PATCH",
+                    "HEAD"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "Templates": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Templates": {
+          "$ref": "#/definitions/allOfSteps",
+          "description": "Declare steps which not used to run, just extends"
+        }
+      }
+    },
+    "Group": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Group": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/defaultTags"
+            },
+            {
+              "type": "object",
+              "description": "Group steps",
+              "properties": {
+                "ignoreError": {
+                  "description": "Keep running the next when got error",
+                  "type": [
+                    "boolean",
+                    "string"
+                  ]
+                },
+                "title": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Group title"
+                },
+                "description": {
+                  "type": "string",
+                  "description": "Group description"
+                },
+                "loop": {
+                  "type": "string",
+                  "description": "Loop in object or array. (Get in group: '$.loopKey', '$.loopValue'), Get in each steps ('$$.loopKey', '$$.loopValue')"
+                },
+                "templates": {
+                  "$ref": "#/definitions/allOfSteps",
+                  "description": "Declare steps which not used to run, just extends"
+                },
+                "steps": {
+                  "$ref": "#/definitions/allOfSteps"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "rawApi": {
       "type": "object",
       "description": "Make a RESTFUL API",
       "allOf": [
         {
-          "$ref": "#/definitions/DefaultProps"
+          "$ref": "#/definitions/defaultTags"
         },
         {
           "type": "object",
+          "additionalProperties": true,
           "properties": {
             "ignoreError": {
               "description": "Keep running the next when got error",
@@ -1042,10 +1048,17 @@
                 "string"
               ]
             },
+            "depends": {
+              "description": "This only validate for the before step, not show log request, only show validate log",
+              "type": "boolean"
+            },
             "debug": {
               "anyOf": [
                 {
                   "type": "boolean"
+                },
+                {
+                  "$ref": "#/definitions/getVar"
                 },
                 {
                   "type": "string",
@@ -1117,20 +1130,11 @@
             },
             "var": {
               "description": "Set response data to a variable after call request",
-              "anyOf": [
-                {
-                  "type": "string",
-                  "description": "Set response data ($.response.data) to this"
-                },
-                {
-                  "type": "object",
-                  "description": "Set response ($.response) to this properties"
-                }
+              "$ref": "#/definitions/setVar",
+              "examples": [
+                "Set response data ($.response.data) if it's string",
+                "Set response ($.response) to its properties if it's object"
               ]
-            },
-            "vars": {
-              "type": "object",
-              "description": "Declare global variables. Same Vars"
             },
             "validate": {
               "type": "array",
@@ -1180,39 +1184,46 @@
               }
             },
             "docs": {
-              "type": "object",
-              "description": "Document information for this api",
-              "properties": {
-                "headers": {
-                  "description": "Only doc these request headers",
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/getVar"
                 },
-                "responseHeaders": {
-                  "description": "Only doc these response headers",
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                },
-                "md": {
-                  "tags": {
-                    "description": "Tag",
-                    "type": "array",
-                    "items": {
-                      "type": "string"
+                {
+                  "type": "object",
+                  "description": "Document information for this api",
+                  "properties": {
+                    "headers": {
+                      "description": "Only doc these request headers",
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
                     },
-                    "uniqueItems": true
+                    "responseHeaders": {
+                      "description": "Only doc these response headers",
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "md": {
+                      "tags": {
+                        "description": "Tag",
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "uniqueItems": true
+                      }
+                    },
+                    "swagger": {
+                      "description": "Set swagger properties",
+                      "required": [],
+                      "$ref": "https://raw.githubusercontent.com/OAI/OpenAPI-Specification/master/schemas/v3.0/schema.json#/definitions/Operation"
+                    }
                   }
-                },
-                "swagger": {
-                  "description": "Set swagger properties",
-                  "required": [],
-                  "$ref": "https://raw.githubusercontent.com/OAI/OpenAPI-Specification/master/schemas/v3.0/schema.json#/definitions/Operation"
                 }
-              }
+              ]
             },
             "benchmark": {
               "type": "object",
@@ -1309,152 +1320,48 @@
         }
       ]
     },
-    "Get": {
+    "declareGlobalVars": {
       "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "Get": {
-          "type": "object",
-          "description": "Make a Get request",
-          "$ref": "#/definitions/RawApi"
-        }
-      }
+      "description": "Declare global variables. It's stored in Vars"
     },
-    "Post": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "Post": {
-          "type": "object",
-          "description": "Make a Post request",
-          "$ref": "#/definitions/RawApi"
-        }
-      }
+    "getText": {
+      "type": "string",
+      "description": "Text content"
     },
-    "Put": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "Put": {
-          "type": "object",
-          "description": "Make a Put request",
-          "$ref": "#/definitions/RawApi"
-        }
-      }
+    "getObject": {
+      "type": [
+        "object",
+        "array",
+        "boolean",
+        "number",
+        "string"
+      ],
+      "description": "Object value"
     },
-    "Patch": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "Patch": {
-          "type": "object",
-          "description": "Make a Patch request",
-          "$ref": "#/definitions/RawApi"
-        }
-      }
+    "getVar": {
+      "description": "Eval string to object value",
+      "type": "string",
+      "examples": [
+        "${name}: Return Vars.name"
+      ]
     },
-    "Head": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "Head": {
-          "type": "object",
-          "description": "Make a Head request",
-          "$ref": "#/definitions/RawApi"
-        }
-      }
-    },
-    "Delete": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "Delete": {
-          "type": "object",
-          "description": "Make a Delete request",
-          "$ref": "#/definitions/RawApi"
-        }
-      }
-    },
-    "Api": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "Api": {
-          "allOf": [
-            {
-              "$ref": "#/definitions/RawApi"
-            },
-            {
-              "type": "object",
-              "description": "Make a RESTFUL API",
-              "properties": {
-                "method": {
-                  "type": "string",
-                  "description": "Http method",
-                  "enum": [
-                    "GET",
-                    "POST",
-                    "PUT",
-                    "DELETE",
-                    "PATCH",
-                    "HEAD"
-                  ]
-                }
-              }
-            }
+    "setVar": {
+      "description": "Set value to a variable",
+      "anyOf": [
+        {
+          "type": "string",
+          "description": "Set value to this",
+          "examples": [
+            "varname: Get value from ${varname} or Vars.varname"
           ]
+        },
+        {
+          "type": "object",
+          "description": "Set a part of data to this"
         }
-      }
+      ]
     },
-    "Group": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "Group": {
-          "allOf": [
-            {
-              "$ref": "#/definitions/DefaultProps"
-            },
-            {
-              "type": "object",
-              "description": "Group steps",
-              "properties": {
-                "ignoreError": {
-                  "description": "Keep running the next when got error",
-                  "type": [
-                    "boolean",
-                    "string"
-                  ]
-                },
-                "title": {
-                  "type": [
-                    "string",
-                    "null"
-                  ],
-                  "description": "Group title"
-                },
-                "description": {
-                  "type": "string",
-                  "description": "Group description"
-                },
-                "loop": {
-                  "type": "string",
-                  "description": "Loop in object or array. (Get in group: '$.loopKey', '$.loopValue'), Get in each steps ('$$.loopKey', '$$.loopValue')"
-                },
-                "templates": {
-                  "$ref": "#/definitions/allOfSteps",
-                  "description": "Declare steps which not used to run, just extends"
-                },
-                "steps": {
-                  "$ref": "#/definitions/allOfSteps"
-                }
-              }
-            }
-          ]
-        }
-      }
-    },
-    "DefaultProps": {
+    "defaultTags": {
       "type": "object",
       "properties": {
         "async": {

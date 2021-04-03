@@ -127,7 +127,6 @@ export * from './data_handler/Validate'
 /**
  * Common
  */
-export * from './Define'
 export * from './Group'
 export * from './Import'
 export * from './Pause'
