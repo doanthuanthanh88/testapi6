@@ -35,7 +35,11 @@ steps:
   # - Import: examples/request.yaml
   # - Import: examples/load_data.yaml
   # - Import: examples/benchmark.yaml
-  - Import: examples/generate_doc.yaml
+  # - Import: examples/generate_doc.yaml
   # - Import: examples/load_dynamic_modules.yaml
   # - Import: examples/specific_test.yaml
   # - Import: examples/overide_remove_item.yaml
+  
+  # gRPC
+  # - Import: examples/grpc_server.yaml
+  - Import: examples/grpc_client.yaml

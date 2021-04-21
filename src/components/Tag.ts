@@ -72,7 +72,7 @@ export abstract class Tag {
   constructor(attrs: any, attrName?: string) {
     const base = { '<--': [], '-->': [], tagName: this.constructor.name }
     if (attrName) {
-      attrs = typeof attrs !== 'string' ? attrs : { [attrName]: attrs }
+      attrs = typeof attrs === 'object' ? attrs : { [attrName]: attrs }
     }
     if (attrs) {
       const { Templates } = require('.')

@@ -1,0 +1,46 @@
+# Run docker with external library
+# docker run --rm -it -e MODULES="testapi6-grpc" -v $PWD/test/examples/grpc.yaml:/test/index.yaml doanthuanthanh88/testapi6
+
+- PreExec:
+    args:
+      - yarn
+      - global
+      - add
+      - testapi6-grpc
+      - --prefer-offline
+- PreExec:
+    # title: null
+    # slient: true
+    args:
+      - yarn
+      - global
+      - dir
+    var:
+      libPath: ${($.log[1] || $.log[0]).trim()}/node_modules/
+
+- Require:
+    root: ${libPath}
+    modules:
+      - testapi6-grpc/dist/index.js
+
+- Group:
+    title: Call to gRPC server
+    steps:
+      - Pause: 1000
+      - gRPC:
+          host: 0.0.0.0
+          port: 9000
+          title: Test call to a gRPC server
+          proto: examples/assets/server.proto
+          package: user
+          service: RouteUser
+          function: GetUsers
+          arg: null
+          timeout: 1000
+          debug: details
+          validate:
+            - title: Check something
+              func: length
+              args:
+                - ${$.response.data.data}
+                - 1

@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package user;
+
+import "google/protobuf/empty.proto";
+
+service RouteUser {
+  rpc GetUsers(google.protobuf.Empty) returns (ResponseUser);
+}
+
+message ResponseUser {
+  optional int32 code = 1;
+  repeated User data = 2;
+}
+
+message User {
+  string name = 1;
+  int32 age = 2;
+}

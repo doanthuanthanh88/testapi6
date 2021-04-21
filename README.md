@@ -15,6 +15,7 @@ Quick unit test and export document APIs base on scenario file (yaml)
 2. [Sql](https://github.com/doanthuanthanh88/testapi6-sql): _Execute mysql, postgres... query_
 2. [Mongo](https://github.com/doanthuanthanh88/testapi6-mongo): _Execute mongo query command_
 3. [MockApi](https://github.com/doanthuanthanh88/testapi6-mockapi) _Create mocking api and serve static files_
+3. [gRPC](https://github.com/doanthuanthanh88/testapi6-grpc) _Create a gRPC server to mock data and gRPC client to call others_
 
 # Practice
 - See [examples](./test)
