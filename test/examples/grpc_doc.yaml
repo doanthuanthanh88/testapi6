@@ -35,10 +35,11 @@
           package: user
           service: RouteUser
           function: GetUsers
+          input: null
           metadata:
             api-key: my-key-here
-          input: null
           timeout: 1000
+          docs: true
           debug: details
           validate:
             - title: Check something
@@ -46,3 +47,9 @@
               args:
                 - ${$.output.data.data}
                 - 1
+
+- Group:
+    title: Document
+    steps:
+      - gRPCDoc:
+          saveTo: assets/grpc_doc.md
