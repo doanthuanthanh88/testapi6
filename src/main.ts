@@ -19,7 +19,7 @@ export class InputYamlText {
 }
 
 export async function handleHttpFile(yamlFile: string, decryptPassword?: string) {
-  if (yamlFile?.startsWith('http://') || yamlFile.startsWith('https://')) {
+  if (yamlFile?.startsWith('http://') || yamlFile?.startsWith('https://')) {
     const response = await axios.get(yamlFile, { responseType: 'stream' });
     yamlFile = join(tmpdir(), `${context.Utils.random()}.yaml` + (decryptPassword ? '.encrypt' : ''))
     const writer = createWriteStream(yamlFile)
