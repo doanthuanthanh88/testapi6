@@ -10,6 +10,8 @@ import axios from 'axios'
 import { tmpdir } from "os";
 import { loadContent } from "./components/Import";
 import { context } from "./Context";
+import { Templates } from "./components/Templates";
+import { Api } from "./components/api/Api";
 
 export class InputYamlFile {
   constructor(public yamlFile: string) { }
@@ -42,7 +44,12 @@ export async function load(inp: InputYamlFile | InputYamlText, decryptPassword?:
   } catch (err) {
     throw new Error(`Could not found scenario file at "${yamlFile}"`)
   }
+  // Reset
   Testcase.RootDir = dirname(yamlFile)
+  Templates.Templates = new Map()
+  Testcase.APIs = []
+  Api.Index = 0
+
   let content: string
   if (inp instanceof InputYamlFile) {
     // load from file
