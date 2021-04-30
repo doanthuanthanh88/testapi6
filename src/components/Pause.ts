@@ -38,7 +38,7 @@ export class Pause extends Tag {
   }
 
   pause() {
-    context.log(`${this.title || '...'} (continue?)`)
+    context.log(`|▶ ${this.title || 'Enter to continue'}`)
     this._rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout
@@ -52,7 +52,7 @@ export class Pause extends Tag {
   }
 
   delay() {
-    context.log(`|| Sleep ${this.time}ms (${this.title || ''})`)
+    if (this.title) context.log(this.title)
     return new Promise((r) => {
       this._tm = setTimeout(r, this.time)
     })

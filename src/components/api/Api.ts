@@ -19,15 +19,19 @@ import { parse } from 'querystring'
 context
   .on('log:api:begin', (api: Api) => {
     if (!api.slient && !api.depends) {
-      context.log(`${chalk.gray('%s')}.\t${chalk.green('%s')}\t${chalk.gray.underline('%s %s')}`, api.index.toString(), api.title, api.method.toString(), api._axiosData.fullUrlQuery)
+      context.log(`${chalk.gray('%s')} ${chalk.green('%s')}\t${chalk.yellow('%s')}${chalk.gray.underline('%s %s')}`, '⥂', api.title, api.docs ? '★ ' : '', api.method.toString(), api._axiosData.fullUrlQuery)
     }
   })
   .on('log:api:validate:done', (_api: Api) => {
     // Validate done
   })
   .on('log:api:done', (api: Api) => {
-    if (!api.slient && !api.depends) {
-      context.log(`\t${chalk[api.response?.ok ? 'green' : 'red']('↳ %s')} ${chalk.gray('%s')} ${chalk.gray.italic('%s')}`, api.response?.status.toString(), api.response?.statusText, ` (${api.time.toString()}ms)`)
+    if (!api.slient) {
+      if (!api.depends) {
+        context.log(`  ${chalk.gray('↳')} ${chalk[api.response?.ok ? 'green' : 'red']('%s')} ${chalk.gray('%s')} ${chalk.gray.italic('%s')}`, api.response?.status.toString(), api.response?.statusText, ` (${api.time.toString()}ms)`)
+      } else if (api.title) {
+        context.log('  %s %s \t %s', chalk.green('☑'), chalk.magenta(api.title), chalk.gray.underline(`${api.method} ${api._axiosData.fullUrl}`))
+      }
     }
   })
   .on('log:api:end', (api: Api) => {
@@ -235,6 +239,7 @@ export class Api extends Tag {
 
   _axiosData: AxiosRequestConfig & {
     readonly fullUrlQuery: string
+    readonly fullUrl: string
     readonly contentType: string
   }
   _axios: AxiosInstance
@@ -308,8 +313,11 @@ export class Api extends Tag {
       method: this.method,
       baseURL: this.baseURL,
       url: this.$url.url,
+      get fullUrl() {
+        return `${self.baseURL}${self.$url.url}`
+      },
       get fullUrlQuery() {
-        return `${this.baseURL}${self.$url.getUrlJoinQuery()}`
+        return `${self.baseURL}${self.$url.getUrlJoinQuery()}`
       },
       params: this.query,
       headers: merge({ 'content-type': 'application/json' }, this.headers),
@@ -338,8 +346,15 @@ export class Api extends Tag {
   }
 
   async validates() {
-    for (const v of this.validate.filter(v => v)) {
-      v.slient = this.slient
+    this.validate = this.validate.filter(v => v)
+    for (const v of this.validate) {
+      if (this.depends) {
+        v.description = `${this.docs ? chalk.yellow('★ ') : ''}${this.method.toString()} ${this._axiosData.fullUrl}`
+        if (this.title) {
+          v.slient = true
+        }
+      }
+      if (v.slient === undefined) v.slient = this.slient
       v.tc = this.tc
       await v.prepare(this)
       if (!v.disabled) {

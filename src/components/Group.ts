@@ -6,7 +6,7 @@ import chalk from "chalk"
 
 context
   .on('log:group:begin', (e: Group) => {
-    if (e.title) context.group(chalk.blue(e.title), ':', e.description)
+    if (e.title) context.group(chalk.blue(e.title), ':', chalk.italic(e.description || ''))
   })
   .on('log:group:end', (e: Group) => {
     if (e.title) context.groupEnd()

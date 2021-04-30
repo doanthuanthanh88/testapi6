@@ -29,6 +29,8 @@ export class Validate extends Tag {
   func: string
   /** Validator arguments */
   args: any[]
+  /** Inject request when it is embeded in a request */
+  description: string
 
   async exec() {
     try {
@@ -94,10 +96,10 @@ export class Validate extends Tag {
     } finally {
       if (!this.error) {
         if (!this.slient) {
-          context.log('  %s\t%s', chalk.green('✔️'), chalk.magenta(this.title))
+          context.log('  %s %s \t %s', chalk.green('☑'), chalk.magenta(this.title), chalk.gray.underline(this.description || ''))
         }
       } else {
-        context.group('  %s\t%s: %s', chalk.red('✘'), chalk.magenta(this.title.split(' ').join('-')), this.error.message || '')
+        context.group('  %s %s: %s \t %s', chalk.red('☒'), chalk.magenta(this.title?.split(' ').join('-')), this.error.message || '', chalk.gray.underline(this.description || ''))
         if (this.error.actual || this.error.expected) {
           context.print('')
           context.print(`${chalk.red('‣ %s')}`, 'Actual')
