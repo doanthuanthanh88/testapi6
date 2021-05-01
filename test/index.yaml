@@ -40,5 +40,5 @@ steps:
   - Import: examples/specific_test.yaml
   - Import: examples/overide_remove_item.yaml
   # gRPC
-  - Import: examples/grpc_server.yaml
-  - Import: examples/grpc_client.yaml
+  - Import: examples/grpc/grpc_server.yaml
+  - Import: examples/grpc/grpc_client.yaml
