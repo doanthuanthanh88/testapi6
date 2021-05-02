@@ -1,0 +1,15 @@
+- Require:
+    root: ~/.config/yarn/global/node_modules
+    modules:
+      - testapi6-redis/dist/index.js
+
+- Redis:
+    connection: redis://localhost:6379
+    commands: 
+      - title: Get users
+        command: 
+          - get
+          - users
+        var: rs
+      - get users
+      - set users_count 1
