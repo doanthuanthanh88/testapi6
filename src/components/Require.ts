@@ -69,11 +69,11 @@ export class Require extends Tag {
           if (!this.root || this.root === 'npm') {
             libPaths.push(npm.packages, npm.prefix, npm.binaries)
           }
-          if (this.root) {
-            libPaths.push(Testcase.getPathFromRoot(`${join(this.root || '', p)}`))
+          if (libPaths.length === 0) {
+            libPaths.push(this.root || '')
           }
           for (const i in libPaths) {
-            modulePath = libPaths[i]
+            modulePath = Testcase.getPathFromRoot(`${join(libPaths[i], p)}`)
             try {
               obj = require(modulePath)
               break
