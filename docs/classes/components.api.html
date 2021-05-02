@@ -142,6 +142,7 @@
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="components.api.html#body" class="tsd-kind-icon">body</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="components.api.html#curl" class="tsd-kind-icon">curl</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="components.api.html#debug" class="tsd-kind-icon">debug</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="components.api.html#depends" class="tsd-kind-icon">depends</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="components.api.html#description" class="tsd-kind-icon">description</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="components.api.html#disabled" class="tsd-kind-icon">disabled</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="components.api.html#docs" class="tsd-kind-icon">docs</a></li>
@@ -160,7 +161,7 @@
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="components.api.html#url" class="tsd-kind-icon">url</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="components.api.html#validate" class="tsd-kind-icon">validate</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="components.api.html#var" class="tsd-kind-icon">var</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-overwrite"><a href="components.api.html#vars" class="tsd-kind-icon">vars</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="components.api.html#vars" class="tsd-kind-icon">vars</a></li>
 							</ul>
 						</section>
 					</div>
@@ -293,12 +294,24 @@
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="debug" class="tsd-anchor"></a>
 					<h3>debug</h3>
-					<div class="tsd-signature tsd-kind-icon">debug<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">&quot;curl&quot;</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">&quot;details&quot;</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">&quot;request&quot;</span></div>
+					<div class="tsd-signature tsd-kind-icon">debug<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">&quot;curl&quot;</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">&quot;details&quot;</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">&quot;request&quot;</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">&quot;response&quot;</span></div>
 					<aside class="tsd-sources">
 					</aside>
 					<div class="tsd-comment tsd-typography">
 						<div class="lead">
 							<p>How to log for debugging</p>
+						</div>
+					</div>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="depends" class="tsd-anchor"></a>
+					<h3>depends</h3>
+					<div class="tsd-signature tsd-kind-icon">depends<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div>
+					<aside class="tsd-sources">
+					</aside>
+					<div class="tsd-comment tsd-typography">
+						<div class="lead">
+							<p>Only validate for the before step</p>
 						</div>
 					</div>
 				</section>
@@ -615,16 +628,16 @@
 </code></pre>
 					</div>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-overwrite">
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
 					<a name="vars" class="tsd-anchor"></a>
 					<h3>vars</h3>
-					<div class="tsd-signature tsd-kind-icon">vars<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
+					<div class="tsd-signature tsd-kind-icon">vars<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
 					<aside class="tsd-sources">
-						<p>Overrides Tag.vars</p>
+						<p>Inherited from Tag.vars</p>
 					</aside>
 					<div class="tsd-comment tsd-typography">
 						<div class="lead">
-							<p>Set global variables</p>
+							<p>Declare global variable</p>
 						</div>
 					</div>
 				</section>
@@ -685,6 +698,9 @@
 								<a href="components.api.html#debug" class="tsd-kind-icon">debug</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class">
+								<a href="components.api.html#depends" class="tsd-kind-icon">depends</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class">
 								<a href="components.api.html#description" class="tsd-kind-icon">description</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
@@ -738,13 +754,16 @@
 							<li class=" tsd-kind-property tsd-parent-kind-class">
 								<a href="components.api.html#var" class="tsd-kind-icon">var</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-overwrite">
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
 								<a href="components.api.html#vars" class="tsd-kind-icon">vars</a>
 							</li>
 						</ul>
 					</li>
 				</ul>
 				<ul class="after-current">
+					<li class=" tsd-kind-class tsd-parent-kind-module">
+						<a href="components.clear.html" class="tsd-kind-icon">Clear</a>
+					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-module">
 						<a href="components.delete.html" class="tsd-kind-icon">Delete</a>
 					</li>

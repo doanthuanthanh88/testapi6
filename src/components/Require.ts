@@ -4,6 +4,7 @@ import { ContentScript } from './Script'
 import { context } from '../Context'
 import chalk from 'chalk'
 import { join } from 'path'
+import { npm, yarn } from 'global-dirs'
 
 /**
  * Load external modules or javascript code
@@ -23,7 +24,13 @@ import { join } from 'path'
  */
 export class Require extends Tag {
   preload = true
-  /** Root path where modules are installed */
+  /**
+   * Root path where modules are installed
+   * - npm: It auto load in npm global packages, prefix and binaries
+   * - yarn: It auto load in yarn global packages, prefix and binaries
+   * - "": It combine npm and yarn
+   * - /PATH_TO_MODULE: It auto load from this path
+   */
   root: string
   /** External modules */
   modules: string[]
@@ -55,12 +62,27 @@ export class Require extends Tag {
         try {
           obj = require(p)
         } catch (err) {
-          try {
-            modulePath = Testcase.getPathFromRoot(`${join(this.root || '', p)}`)
-            obj = require(modulePath)
-          } catch (err) {
-            context.error(chalk.red(`Could not install external library %s`), p)
-            throw err
+          const libPaths = []
+          if (!this.root || this.root === 'yarn') {
+            libPaths.push(yarn.packages, yarn.prefix, yarn.binaries)
+          }
+          if (!this.root || this.root === 'npm') {
+            libPaths.push(npm.packages, npm.prefix, npm.binaries)
+          }
+          if (this.root) {
+            libPaths.push(Testcase.getPathFromRoot(`${join(this.root || '', p)}`))
+          }
+          for (const i in libPaths) {
+            modulePath = libPaths[i]
+            try {
+              obj = require(modulePath)
+              break
+            } catch (err) {
+              if (+i === libPaths.length - 1) {
+                context.error(chalk.red(`Could not install external library %s`), p)
+                throw err
+              }
+            }
           }
         }
         for (let k in obj) {

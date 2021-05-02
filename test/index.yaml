@@ -42,7 +42,7 @@ steps:
 
   ########## External modules
   # Mock data
-  - Import: examples/mock_data.yaml
+  - Import: examples/external-modules/mock_data.yaml
   # Mongo
   - Import: examples/external-modules/mongo.yaml
   # Redis

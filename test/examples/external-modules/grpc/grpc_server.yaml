@@ -19,7 +19,11 @@
       libPath: ${($.log[1] || $.log[0]).trim()}/node_modules/
 
 - Require:
-    root: ${libPath}
+    # root is empty: It auto load from "npm" or "yarn"
+    # root is "npm": It auto load from npm global
+    # root is "yarn": It auto load from yarn global
+    # root is specific
+    root: ~/.config/yarn/global/node_modules
     modules:
       - testapi6-grpc/dist/index.js
 
