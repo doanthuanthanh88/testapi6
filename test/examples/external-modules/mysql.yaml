@@ -14,14 +14,3 @@
         prms: 
           - thanh
         var: rs
-
-- Sql:
-    title: PostgreSQL in local
-    connection: postgres://root:root@localhost/mydb
-    queries: 
-      - select * from users
-      - title: Get users
-        sql: select * from users where name = ?
-        prms: 
-          - thanh
-        var: rs
