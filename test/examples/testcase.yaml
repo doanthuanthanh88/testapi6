@@ -1,0 +1,24 @@
+title: Demo service
+description: Example
+version: 1.0.0
+developer: email-developer@email.com
+servers:
+  production: https://api.production.com
+  staging: https://api.staging.com # '->' to get this to be environment. In this case variable "env" is "staging"
+debug: true
+vars:
+  # url: https://api.production.com   # production
+  # url: https://api.staging.com      # staging
+  url: http://0.0.0.0:8514
+templates:
+  - Api: # Create an api request
+      ->: base # Expose template to extends later
+      baseURL: ${url}
+      docs:
+        swagger:
+          security:
+            - bypassAuth: []
+              bypassAuthHeader: []
+            - bearerAuth: []
+steps:
+  - Import: examples/print.yaml
