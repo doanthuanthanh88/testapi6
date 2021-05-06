@@ -122,6 +122,10 @@
                 {
                   "type": "object",
                   "properties": {
+                    "title": {
+                      "type": "string",
+                      "description": "Description"
+                    },
                     "src": {
                       "type": "string",
                       "description": "Path to scenarios .yaml file"

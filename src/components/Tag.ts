@@ -53,6 +53,7 @@ export abstract class Tag {
   error: any
   tagName: string
   preload: boolean
+  icon: string
 
   /** Only allow run it then ignore others which not set testIt or set it to false */
   testIt: boolean

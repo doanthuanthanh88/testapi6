@@ -65,7 +65,7 @@ export class Validate extends Tag {
             let t
             eval(`t = ${this.func}`)
             if (typeof t === 'function') {
-              eval(`t = t(...args)`)
+              t = t.apply(expect, args)
             }
             await t
           } else if (chaiFunc === 'assert') {

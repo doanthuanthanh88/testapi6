@@ -12,15 +12,6 @@
               var obj = utils.flag(this, 'object');
               new chai.Assertion(obj).to.be.equal(str);
             });
-      - Define:
-          - |
-            Validate.upperCheck = (a, b) => {
-              if(a?.toLowerCase() !== b?.toLowerCase()) throw {
-                message: 'String lower not match',
-                actual: a,
-                expect: b
-              } 
-            }
     steps:
       - Vars:
           obj: { name: Name 1 }
@@ -39,12 +30,6 @@
           args:
             - ${obj.name}
             - name 12
-      - Validate:
-          title: check name ignore case upper
-          func: upperCheck
-          args:
-            - ${obj.name}
-            - name 1
       
       - Echo: Use chaijs (assert, expect) to validate (https://www.chaijs.com/api/bdd/)
 

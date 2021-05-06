@@ -19,7 +19,7 @@ import { parse } from 'querystring'
 context
   .on('log:api:begin', (api: Api) => {
     if (!api.slient && !api.depends) {
-      context.log(`${chalk.gray('%s')} ${chalk.green('%s')}\t${chalk.yellow('%s')}${chalk.gray.underline('%s %s')}`, '⥂', api.title, api.docs ? '★ ' : '', api.method.toString(), api._axiosData.fullUrlQuery)
+      context.log(`${chalk.green('%s')} ${chalk.green('%s')}\t${chalk.yellow('%s')}${chalk.gray.underline('%s %s')}`, api.icon, api.title, api.docs ? '★ ' : '', api.method.toString(), api._axiosData.fullUrlQuery)
     }
   })
   .on('log:api:validate:done', (_api: Api) => {
@@ -28,7 +28,7 @@ context
   .on('log:api:done', (api: Api) => {
     if (!api.slient) {
       if (!api.depends) {
-        context.log(`  ${chalk.gray('↳')} ${chalk[api.response?.ok ? 'green' : 'red']('%s')} ${chalk.gray('%s')} ${chalk.gray.italic('%s')}`, api.response?.status.toString(), api.response?.statusText, ` (${api.time.toString()}ms)`)
+        context.log(`  ${chalk.gray(api.iconResponse)} ${chalk[api.response?.ok ? 'green' : 'red']('%s')} ${chalk.gray('%s')} ${chalk.gray.italic('%s')}`, api.response?.status.toString(), api.response?.statusText, ` (${api.time.toString()}ms)`)
       } else if (api.title) {
         context.log('  %s %s \t %s', chalk.green('☑'), chalk.magenta(api.title), chalk.gray.underline(`${api.method} ${api._axiosData.fullUrl}`))
       }
@@ -154,6 +154,8 @@ export class URL {
  */
 export class Api extends Tag {
   static Index = 0
+  icon = '→'
+  iconResponse = '↳'
   index = 0
   /** Description */
   description: string

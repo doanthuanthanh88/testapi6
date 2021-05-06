@@ -6,6 +6,7 @@ import { context } from "../Context";
 import { SCHEMA } from ".";
 import { handleHttpFile } from '../main'
 import { extname } from "path";
+import chalk from "chalk";
 
 export function loadContent(file, encryptPassword: string, decryptPassword: string) {
   if (decryptPassword) {
@@ -76,6 +77,16 @@ export class Import extends Tag {
     if (this.src?.startsWith('http://') || this.src?.startsWith('https://')) {
       this.src = await handleHttpFile(this.src)
     }
-    return loadContent(Testcase.getPathFromRoot(this.src), tc.encryptPassword, tc.decryptPassword)
+    const root = loadContent(Testcase.getPathFromRoot(this.src), tc.encryptPassword, tc.decryptPassword)
+    if (this.title && Array.isArray(root)) {
+      return [{
+        Group: {
+          title: chalk.gray.underline(this.title.toUpperCase()),
+          icon: chalk.gray('⬇ '),
+          steps: root
+        }
+      }]
+    }
+    return root
   }
 }

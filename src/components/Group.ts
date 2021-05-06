@@ -6,7 +6,7 @@ import chalk from "chalk"
 
 context
   .on('log:group:begin', (e: Group) => {
-    if (e.title) context.group(chalk.blue(e.title), ':', chalk.italic(e.description || ''))
+    if (e.title) context.group(chalk.blue(e.icon + ' ' + e.title), ':', chalk.italic(e.description || ''))
   })
   .on('log:group:end', (e: Group) => {
     if (e.title) context.groupEnd()
@@ -69,6 +69,7 @@ export class Group extends Tag {
       }
     }
     if (!this.tc.isTestSome) this.tc.isTestSome = this.testIt
+    if (!this.icon) this.icon = '⊢'
     return this
   }
 

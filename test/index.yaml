@@ -21,36 +21,4 @@ templates:
               bypassAuthHeader: []
             - bearerAuth: []
 steps:
-  ########## Core modules
-  - Import: examples/input_keyboard.yaml
-  - Import: examples/loop.yaml
-  - Import: examples/common.yaml
-  - Import: examples/validate.yaml
-  - Import: examples/utils.yaml
-  - Import: examples/output.yaml
-  - Import: examples/crawler.yaml
-  - Import: examples/print.yaml
-  - Import: examples/crawler.yaml
-  - Import: examples/event.yaml
-  - Import: examples/request.yaml
-  - Import: examples/load_data.yaml
-  - Import: examples/benchmark.yaml
-  - Import: examples/generate_doc.yaml
-  - Import: examples/load_dynamic_modules.yaml
-  - Import: examples/specific_test.yaml
-  - Import: examples/overide_remove_item.yaml
-
-  ########## External modules
-  # Mock data
-  - Import: examples/external-modules/mock_data.yaml
-  # Mongo
-  - Import: examples/external-modules/mongo.yaml
-  # Redis
-  - Import: examples/external-modules/redis.yaml
-  # MySql
-  - Import: examples/external-modules/mysql.yaml
-  # PostgreSQL
-  - Import: examples/external-modules/postgre_sql.yaml
-  # gRPC
-  - Import: examples/external-modules/grpc/grpc_server.yaml
-  - Import: examples/external-modules/grpc/grpc_client.yaml
+  - Import: examples/import.yaml

@@ -6,11 +6,5 @@
             (txt) => {
               return Buffer.from(txt).toString('base64')
             }
-      - Define:
-          - |
-            Utils.base642 = (txt) => {
-              return 'base642>'+txt
-            }
     steps:
       - Echo: ${Utils.base641('test')}
-      - Echo: ${Utils.base642('test')}
