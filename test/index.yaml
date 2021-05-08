@@ -48,9 +48,8 @@ steps:
 - Import: examples/external-modules/mongo.yaml
 # Redis
 - Import: examples/external-modules/redis.yaml
-# MySql
+# Sql
 - Import: examples/external-modules/mysql.yaml
-# PostgreSQL
 - Import: examples/external-modules/postgre_sql.yaml
 # gRPC
 - Import: examples/external-modules/grpc/grpc_server.yaml

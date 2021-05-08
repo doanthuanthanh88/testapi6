@@ -6,4 +6,4 @@ if [[ ! -z "$MODULES" ]]; then
   yarn global add $MODULES --slient
 fi
 
-testapi6 $1
+testapi6 $1 $2

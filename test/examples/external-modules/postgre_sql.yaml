@@ -5,15 +5,15 @@
     # root is specific
     root: ~/.config/yarn/global/node_modules
     modules:
-      - testapi6-sql/dist/index.js
+      - testapi6-sql
 
-- Sql:
+- PostgreSql:
     title: PostgreSQL in local
     connection: postgres://root:root@localhost/mydb
     queries: 
       - select * from users
       - title: Get users
-        sql: select * from users where name = ?
-        prms: 
+        query: select * from users where name = ?
+        args: 
           - thanh
         var: rs

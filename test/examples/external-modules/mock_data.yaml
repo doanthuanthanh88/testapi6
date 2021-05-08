@@ -25,7 +25,7 @@
     # root is specific
     root: ~/.config/yarn/global/node_modules
     modules:
-      - testapi6-mockapi/dist/index.js
+      - testapi6-mockapi
 
 - Group:
     title: Build mock server with HTTP scheme

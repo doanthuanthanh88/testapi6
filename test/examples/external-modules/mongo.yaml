@@ -5,7 +5,7 @@
     # root is specific
     root: ~/.config/yarn/global/node_modules
     modules:
-      - testapi6-mongo/dist/index.js
+      - testapi6-mongo
 
 - Mongo:
     disabled: true
