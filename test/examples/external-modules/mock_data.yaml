@@ -1,29 +1,11 @@
-# Run docker with external library
-# docker run --rm -it -e MODULES="testapi6-mockapi testapi6-sql" -v $PWD/test/examples/mock_data.yaml:/test/index.yaml doanthuanthanh88/testapi6
-
-- PreExec:
-    args:
-      - yarn
-      - global
-      - add
-      - testapi6-mockapi
-      - --prefer-offline
-- PreExec:
-    # title: null
-    # slient: true
-    args:
-      - yarn
-      - global
-      - dir
-    var:
-      libPath: ${($.log[1] || $.log[0]).trim()}/node_modules/
 
 - Require:
     # root is empty: It auto load from "npm" or "yarn"
     # root is "npm": It auto load from npm global
     # root is "yarn": It auto load from yarn global
     # root is specific
-    root: ~/.config/yarn/global/node_modules
+    # Install: yarn global add testapi6-mockapi
+    root: yarn
     modules:
       - testapi6-mockapi
 

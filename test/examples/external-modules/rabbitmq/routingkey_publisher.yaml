@@ -1,0 +1,17 @@
+- Require:
+    root: yarn
+    modules:
+      - testapi6-rabbitmq
+
+- RMQRoutingKeyPublisher:
+    title: Test RoutingKey Publisher
+    connection: amqp://user:password@localhost
+    exchanges:
+      - name: thanh
+        type: direct
+        exchangeOpts:
+          durable: true
+        targets:
+          - routingKey: sayHello
+            data: { to: "thanh" }
+            publishOpts:

@@ -1,68 +1,63 @@
-Group:
-  title: Simple request
-  description: Example to make a request
-  steps:
-    # Make get request
-    - Get:
-        <-: base # Extends from "base" template which is declared in main scenario (../index.testapi6.yaml)
-        title: Get test data
-        baseURL: https://people.sc.fsu.edu
-        url: /~jburkardt/data/{type}/{name}
-        debug: details
-        params:
-          type*: csv
-          name: addresses.csv
-        headers: 
-          content-type: test-type
-          size: 123
-        docs: # Required to generate DOC
-          md:
-            tags:
-              - TEST
-          swagger:
-            tags: 
-              - TEST
-        query:
-          must-have*: abc
-          optional: test
-        var: result # Set response result into "result" var
-        validate:
-          - Status: 200
-          - StatusText: OK
-          - title: Check data length must be 20
-            func: length
-            args:
-              - ${$.response.data}
-              - 328
+# Make get request
+- Get:
+    <-: base # Extends from "base" template which is declared in main scenario (../index.testapi6.yaml)
+    title: Get test data
+    baseURL: https://people.sc.fsu.edu
+    url: /~jburkardt/data/{type}/{name}
+    debug: details
+    params:
+      type*: csv
+      name: addresses.csv
+    headers: 
+      content-type: test-type
+      size: 123
+    docs: # Required to generate DOC
+      md:
+        tags:
+          - TEST
+      swagger:
+        tags: 
+          - TEST
+    query:
+      must-have*: abc
+      optional: test
+    var: result # Set response result into "result" var
+    validate:
+      - Status: 200
+      - StatusText: OK
+      - title: Check data length must be 20
+        func: length
+        args:
+          - ${$.response.data}
+          - 328
 
-    # Export to document
-    - Group:
-        title: Generate document
-        description: --------------------------------------
-        steps:
-          - DocSwagger:
-              saveTo: test.swagger.yaml         # Swagger ouput file
-              headers: []                       # Only expose these request headers
-              responseHeaders: ["content-type"] # Only expose these response headers
-              raw:                              # Overide OpenAPI properties
-                components:
-                  securitySchemes:
-                    bearerAuth:
-                      type: http
-                      scheme: bearer
-                      bearerFormat: JWT
-                    bypassAuth:
-                      type: apiKey
-                      name: keyHere
-                      description: ...
-                      in: header
-                    bypassAuthHeader:
-                      type: apiKey
-                      name: valueHere
-                      description: ...
-                      in: header
-          - DocMarkdown:
-              saveTo: test.md                       # Markdown ouput file
-              headers: []                           # Only expose these request headers
-              responseHeaders: ["content-type"]     # Only expose these response headers
-          
+# Export to document
+- Group:
+    title: Generate document
+    description: --------------------------------------
+    steps:
+      - DocSwagger:
+          saveTo: test.swagger.yaml         # Swagger ouput file
+          headers: []                       # Only expose these request headers
+          responseHeaders: ["content-type"] # Only expose these response headers
+          raw:                              # Overide OpenAPI properties
+            components:
+              securitySchemes:
+                bearerAuth:
+                  type: http
+                  scheme: bearer
+                  bearerFormat: JWT
+                bypassAuth:
+                  type: apiKey
+                  name: keyHere
+                  description: ...
+                  in: header
+                bypassAuthHeader:
+                  type: apiKey
+                  name: valueHere
+                  description: ...
+                  in: header
+      - DocMarkdown:
+          saveTo: test.md                       # Markdown ouput file
+          headers: []                           # Only expose these request headers
+          responseHeaders: ["content-type"]     # Only expose these response headers

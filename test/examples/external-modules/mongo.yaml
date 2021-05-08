@@ -3,14 +3,13 @@
     # root is "npm": It auto load from npm global
     # root is "yarn": It auto load from yarn global
     # root is specific
-    root: ~/.config/yarn/global/node_modules
+    # Install: yarn global add testapi6-mongo
+    root: yarn
     modules:
       - testapi6-mongo
 
 - Mongo:
-    disabled: true
-    title: User
-    description: Mongo - Staging
+    title: Mongo - local
     connection: mongodb://user:password@localhost:27017/user-db
     config:
       useUnifiedTopology: true

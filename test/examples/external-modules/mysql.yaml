@@ -3,12 +3,13 @@
     # root is "npm": It auto load from npm global
     # root is "yarn": It auto load from yarn global
     # root is specific
-    root: ~/.config/yarn/global/node_modules
+    # Install: yarn global add testapi6-sql
+    root: yarn
     modules:
       - testapi6-sql
 
 - MySql:
-    title: MySQL in local
+    title: MySQL - local
     connection: mysql://root:root@localhost/mydb
     # connection: postgres://root:root@localhost/mydb
     queries: 

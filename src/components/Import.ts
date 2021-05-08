@@ -83,7 +83,7 @@ export class Import extends Tag {
         Group: {
           title: chalk.gray.underline(this.title.toUpperCase()),
           icon: chalk.gray('⬇ '),
-          steps: root
+          steps: Array.isArray(root) ? root : []
         }
       }]
     }

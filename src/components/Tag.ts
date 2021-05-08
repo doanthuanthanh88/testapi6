@@ -9,6 +9,7 @@ export async function Import(arrs: any[], tc: Testcase) {
   if (arrs && arrs.length > 0) {
     const tags = []
     for (const t of flatten(arrs).filter(e => e)) { //  { [tag: string]: any }
+      if (Object.keys(t).length !== 1) throw new Error(`Format tag is not valid "${Object.keys(t).join(',')}"`)
       const tagName = Object.keys(t)[0]
       try {
         let TagClass = require('.')[tagName]

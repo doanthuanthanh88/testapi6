@@ -3,11 +3,13 @@
     # root is "npm": It auto load from npm global
     # root is "yarn": It auto load from yarn global
     # root is specific
-    root: ~/.config/yarn/global/node_modules
+    # Install: yarn global add testapi6-redis
+    root: yarn
     modules:
       - testapi6-redis
 
 - Redis:
+    title: Redis - local
     connection: redis://localhost:6379
     commands: 
       - title: Get users

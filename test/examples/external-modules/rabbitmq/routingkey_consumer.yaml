@@ -1,0 +1,21 @@
+- Require:
+    root: yarn
+    modules:
+      - testapi6-rabbitmq
+
+- RMQRoutingKeyConsumer:
+    title: Test RoutingKey Consumer
+    connection: amqp://user:password@localhost
+    exchanges:
+      - name: thanh
+        type: direct
+        exchangeOpts:
+          durable: true
+        targets:
+          - queue: thanh-test-queue
+            routingKey: sayHello
+            prefetch: 1
+            autoAck: true
+            queueOpts:
+            consumeOpts:
+              exclusive: false

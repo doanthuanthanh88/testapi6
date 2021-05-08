@@ -1,7 +1,6 @@
-
 - Group:
     title: Test 01
-    testIt: true
+    # testIt: true
     steps:
       - Validate:
           title: Check 01 in ${$$.title}
@@ -15,8 +14,6 @@
           args:
             - 1
             - 1
-
-
 - Group:
     title: Test 02
     steps:
@@ -27,7 +24,7 @@
             - 1
             - 1
       - Validate:
-          testIt: true
+          # testIt: true
           title: Check 02 in ${$$.title}
           func: expect.to.equal
           args:
@@ -43,7 +40,7 @@
                   - 1
                   - 1
             - Validate:
-                testIt: true
+                # testIt: true
                 title: Check 02 in ${$$.title}
                 func: expect.to.equal
                 args:
