@@ -251,7 +251,6 @@ export class Api extends Tag {
 
   constructor(attrs: Api) {
     super(attrs)
-    if (attrs.title === 'Get feed follow') debugger
     if (this.curl) {
       const meta = new CURLParser(this.curl).parse()
       const { method, url, headers, query, body } = meta
