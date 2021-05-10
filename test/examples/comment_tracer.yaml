@@ -1,0 +1,5 @@
+- CommentTracer:
+    title: Read log in file then generate to file (Support mermaid sequence diagram)
+    src: assets/comment_tracer.js
+    saveTo: assets/comment_tracer.mmd
+    type: mmd:sequence

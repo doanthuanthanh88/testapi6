@@ -18,6 +18,9 @@
       "items": {
         "anyOf": [
           {
+            "$ref": "#/definitions/CommentTracer"
+          },
+          {
             "$ref": "#/definitions/Templates"
           },
           {
@@ -160,6 +163,90 @@
                 "var": {
                   "description": "Load data to a variable after handle",
                   "$ref": "#/definitions/setVar"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "CommentTracer": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "CommentTracer": {
+          "description": "Extract log from comment in code",
+          "type": "object",
+          "required": [
+            "src"
+          ],
+          "allOf": [
+            {
+              "$ref": "#/definitions/defaultTags"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "saveTo": {
+                  "type": "string",
+                  "description": "Output mermaid file (.mmd)",
+                  "examples": [
+                    "/test.mmd"
+                  ]
+                },
+                "type": {
+                  "description": "Type generate support mermaid sequence",
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "mmd:sequence"
+                  ]
+                },
+                "src": {
+                  "type": [
+                    "array",
+                    "string"
+                  ],
+                  "description": "Source files",
+                  "items": {
+                    "type": "string",
+                    "examples": [
+                      "/test.ts"
+                    ]
+                  }
+                },
+                "excludes": {
+                  "description": "File or folder which not be scaned",
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "default": [
+                      "node_modules"
+                    ],
+                    "examples": [
+                      "node_modules"
+                    ]
+                  }
+                },
+                "ext": {
+                  "type": "string",
+                  "description": "File ext which not be scaned",
+                  "items": {
+                    "type": "string",
+                    "default": [
+                      ".ts",
+                      ".js",
+                      ".go",
+                      ".py",
+                      ".yaml"
+                    ],
+                    "examples": [
+                      ".ts",
+                      ".js"
+                    ]
+                  }
                 }
               }
             }
@@ -791,10 +878,6 @@
                 "saveTo": {
                   "type": "string",
                   "description": "Target file"
-                },
-                "title": {
-                  "type": "string",
-                  "description": "Description"
                 }
               }
             }

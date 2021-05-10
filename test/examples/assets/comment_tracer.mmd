@@ -1,0 +1,11 @@
+Client ->> Service: Get user information
+  Service ->> UserService: Get user by id
+    alt Check user id must be greater than 0
+    Service -->> Service: Return user information
+    else
+    Service -->> Service: Return null
+    end
+  alt User not existed
+  Service -->> Service: Print user to console
+  end
+Service -->> Client : Return user information

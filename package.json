@@ -1,6 +1,6 @@
 {
   "name": "testapi6",
-  "version": "1.1.27",
+  "version": "1.1.28",
   "description": "Test and auto export document to .md or .swagger file. Support many others tasks",
   "keywords": [
     "tool",
@@ -21,9 +21,9 @@
     "pub": "npm publish",
     "doc": "typedoc --tsconfig tsconfig.doc.json --watch",
     "build:doc": "rm -rf docs && typedoc --tsconfig tsconfig.doc.json",
-    "test": "npx nodemon --watch src --watch modules --ext .ts --exec 'node -r ts-node/register -r ./bin/tsconfig-paths-bootstrap.js --expose-gc --harmony --inspect src/index.ts test'",
+    "test": "npx nodemon --watch src --watch modules --ext .ts --exec 'node -r ts-node/register -r ./bin/tsconfig-paths-bootstrap.js --expose-gc --harmony --inspect src/test.ts'",
     "start": "npx nodemon --watch src --watch modules --ext .ts --exec 'node -r ts-node/register -r ./bin/tsconfig-paths-bootstrap.js --expose-gc --harmony src/index.ts test/examples/crawler.yaml'",
-    "dev": "npx nodemon --watch src --watch modules --ext .ts --exec 'node -r ts-node/register -r ./bin/tsconfig-paths-bootstrap.js --expose-gc --harmony --inspect src/index.ts /Users/doanthuanthanh/code/gapo/periodic-survey/test/index.yaml'",
+    "dev": "npx nodemon --watch src --watch modules --ext .ts --exec 'node -r ts-node/register -r ./bin/tsconfig-paths-bootstrap.js --expose-gc --harmony --inspect src/index.ts /Users/doanthuanthanh/code/github/testapi6/test/examples/comment_tracer.yaml'",
     "preview": "npx nodemon --watch src --watch modules --ext .ts --exec 'node -r ts-node/register -r ./bin/tsconfig-paths-bootstrap.js --expose-gc --harmony --inspect src/preview.ts test'",
     "serve": "npx nodemon --watch src --watch modules --ext .ts --exec 'node -r ts-node/register -r ./bin/tsconfig-paths-bootstrap.js --expose-gc --harmony --inspect src/index.ts test/examples/mock_data.yaml'",
     "watch": "npx nodemon --watch src --watch modules --ext .ts --exec 'yarn build:only && yarn doc'",

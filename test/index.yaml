@@ -73,6 +73,9 @@ steps:
 - Import: 
     title: overide_remove_item.yaml
     src: examples/overide_remove_item.yaml
+- Import:
+    title: comment_tracer.yaml
+    src: examples/comment_tracer.yaml
 
 ########## External modules
 # Mock data
