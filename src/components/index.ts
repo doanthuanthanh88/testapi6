@@ -97,7 +97,7 @@ export { IWrk } from './benchmark/Wrk'
 export * from './doc/DocMarkdown'
 // export * from './doc/DocMermaid'
 export * from './doc/DocSwagger'
-export * from './doc/CommentTracer'
+export * from './doc/DocSequence'
 
 /**
  * External

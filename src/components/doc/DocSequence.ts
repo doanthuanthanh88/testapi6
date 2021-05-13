@@ -1,6 +1,6 @@
 import { createInterface } from 'readline'
-import { createReadStream, readdirSync, statSync, createWriteStream } from 'fs'
-import { join } from 'path'
+import { createReadStream, readdirSync, statSync, createWriteStream, WriteStream } from 'fs'
+import { join, dirname } from 'path'
 import { Tag } from '../Tag'
 import { Testcase } from '../Testcase'
 import { context } from "../../Context";
@@ -38,29 +38,28 @@ class Group {
   }
 }
 
-export class CommentTracer extends Tag {
+export class DocSequence extends Tag {
   static all = {}
   static steps = []
   excludes?: string[]
-  type?: 'mmd:sequence'
   ext?: string[]
   src: string[]
   saveTo: string
 
   group: Group[]
 
-  constructor(attrs: CommentTracer) {
+  constructor(attrs: DocSequence) {
     super(attrs)
     if (!this.excludes) this.excludes = ['node_modules']
     if (!this.ext) this.ext = ['.ts', '.js', '.go', '.py', '.yaml']
     if (!Array.isArray(attrs.src)) this.src = [attrs.src]
     this.src = this.src.map(src => Testcase.getPathFromRoot(src))
-    if (this.saveTo) this.saveTo = Testcase.getPathFromRoot(this.saveTo)
+    if (this.saveTo) this.saveTo = dirname(Testcase.getPathFromRoot(this.saveTo))
     if (!this.title) this.title = 'Comment tracer'
   }
 
   format(txt: string) {
-    return this.type === 'mmd:sequence' ? this.mmdSequence(txt) : txt
+    return this.mmdSequence(txt)
   }
 
   mmdSequence(txt: string) {
@@ -80,11 +79,8 @@ export class CommentTracer extends Tag {
     context.group(chalk.green(this.title, this.src.join(', ')))
     await Promise.all(this.src.map(f => this.scan(f)))
     this.group = this.done()
-    const isSave = this.print()
+    this.print()
     context.groupEnd()
-    if (isSave) {
-      context.log(chalk.magentaBright('- %s was saved at "%s"'), chalk.bold(this.title), this.saveTo)
-    }
   }
 
   async scan(folder: string) {
@@ -101,10 +97,10 @@ export class CommentTracer extends Tag {
   }
 
   private handleMMDSequence(line: string, group: Group) {
-    let m = line.match(/\[\+ (if|loop|parallel|alt|par)\](.*)/i)     // [+ if] Name is string
+    let m = line.match(/\+ (IF|LOOP|PARALLEL|ALT|PAR)[:\s]*(.*)/)     // [+ if] Name is string
     if (m) {
       // ref
-      m[1] = m[1]?.trim().toUpperCase()
+      m[1] = m[1]?.trim()
       m[1] = m[1] === 'ALT' ? 'IF' : m[1] === 'PARALLEL' ? 'PAR' : m[1]
       group.steps.push({
         tab: group.tab,
@@ -113,30 +109,32 @@ export class CommentTracer extends Tag {
       })
       group.push()
     } else {
-      m = line.match(/\[\+ (else|end|and)\](.*)/i)     // [+ else] Name is number
+      m = line.match(/\+ (END_LOOP|END_IF|ELSE_IF|ELIF|AND|END_PAR|END_PARALLEL|ELSE|END)[:\s]*(.*)/)     // [+ else] Name is number
       if (m) {
         group.pop()
         m[1] = m[1]?.trim()
         m[2] = m[2]?.trim()
+        if (['ELSE_IF', 'ELIF'].includes(m[1])) m[1] = 'ELSE'
+        else if (['END_IF', 'END_PAR', 'END_PARALLEL', 'END_LOOP'].includes(m[1])) m[1] = 'END'
         group.steps.push({
           tab: group.tab,
-          des: m[1].toUpperCase() + ' ' + m[2],
+          des: m[1] + ' ' + m[2],
           tag: m[1]
         })
-        if (m[1].toUpperCase() !== 'END') group.push()
+        if (m[1] !== 'END') group.push()
       } else {
-        m = line.match(/\[\+ (note_right|note_left|note_over):([^\]]+)\](.*)/i)     // [+ else] Name is number
+        m = line.match(/\+ (NOTE_RIGHT|NOTE_LEFT|NOTE_OVER)\s+([^\]]+)[:\s]*(.*)/)     // [+ else] Name is number
         if (m) {
           m[1] = m[1]?.trim()
           m[2] = m[2]?.trim()
           m[3] = m[3]?.trim()
           group.steps.push({
             tab: group.tab,
-            des: 'Note ' + (m[1] === 'NOTE_LEFT' ? 'left of ' : m[1] === 'NOTE_RIGHT' ? 'right of ' : 'over ') + m[2] + ': ' + m[3],
+            des: 'NOTE ' + (m[1] === 'NOTE_LEFT' ? 'LEFT OF ' : m[1] === 'NOTE_RIGHT' ? 'RIGHT OF ' : 'OVER ') + m[2] + ': ' + m[3],
             tag: m[1]
           })
         } else {
-          m = line.match(/\[\+ ([^\s]+)\s?([^\s]+)?([^\]]*)?\](.*)/i)     // [+ Service -> UserService] Get something here
+          m = line.match(/\- ([^\s]+)\s?([^\s]+)?([^\]]*)?:(.*)/i)     // - Service -> UserService: Get something here
           if (m) {
             m[1] = m[1]?.trim()
             m[2] = m[2]?.trim()
@@ -169,6 +167,18 @@ export class CommentTracer extends Tag {
                 tag: ''
               })
             }
+          } else {
+            m = line.match(/\- (.+)/i)     // - Service -> UserService: Get something here
+            if (m && m[1]) {
+              m[1] = m[1].trim()
+              if (m[1]) {
+                group.steps.push({
+                  tab: group.tab,
+                  des: `Service ->> Service: ${m[1]}`,
+                  tag: ''
+                })
+              }
+            }
           }
         }
       }
@@ -183,26 +193,29 @@ export class CommentTracer extends Tag {
         let group: Group
         let ns = ''
         rl.on('line', (line) => {
-          let m = line.match(/\[>(.*?)]/i) // [> functionName]
+          let m = line.match(/\/\/\s+(.+)/i)
+          if (!m || !m[1]) return
+          line = m[1].trim()
+          m = line.match(/^>\s?(.*)/i) // > functionName
           if (m) {
             // group
             m[1] = m[1]?.trim()
             if (!group) {
-              if (m[1][0] === '>') {            // [>> functionName]
+              if (m[1][0] === '>') {            // >> startup functionName
                 m[1] = m[1].substr(1).trim()
                 group = new Group(ns, m[1], '', true)
               } else {
                 group = new Group(ns, m[1], '')
               }
               group.push()
-            } else {                            // [>] End function
+            } else if (!m[1]) {                            // > End function
               group.pop()
-              if (CommentTracer.all[group.key]) throw new Error('Duplicate group ' + group.name)
-              CommentTracer.all[group.key] = group
+              if (DocSequence.all[group.key]) throw new Error('Duplicate group ' + group.name)
+              DocSequence.all[group.key] = group
               group = undefined
             }
           } else {
-            m = line.match(/\[<(.*?)\](.*)/i)     // [< functionName] Call functionName
+            m = line.match(/^< (.*)/i)     // [< functionName] Call functionName
             if (m) {
               // ref
               m[1] = m[1]?.trim()
@@ -215,23 +228,11 @@ export class CommentTracer extends Tag {
               })
               group.push()
             } else {
-              m = line.match(/\[-\](.*)/i)
+              m = line.match(/@ (.+)/i)
               if (m) {
-                group.steps.push({
-                  tab: group.tab,
-                  des: m[1].trim(),
-                  tag: '-'
-                })
+                ns = m[1].trim()
               } else {
-                if (this.type === 'mmd:sequence') {
-                  const isHandle = this.handleMMDSequence(line, group)
-                  if (!isHandle && !ns) {
-                    m = line.match(/\[(\w+)\]/i)
-                    if (m) {
-                      ns = m[1].trim()
-                    }
-                  }
-                }
+                this.handleMMDSequence(line, group)
               }
             }
           }
@@ -246,10 +247,10 @@ export class CommentTracer extends Tag {
   }
 
   private done() {
-    const heads: Group[] = Object.keys(CommentTracer.all).map(k => CommentTracer.all[k]).filter(e => e.isHead)
+    const heads: Group[] = Object.keys(DocSequence.all).map(k => DocSequence.all[k]).filter(e => e.isHead)
     function applyRef(h: Group) {
       h.steps.filter(step => step.ref && !step.group).forEach(step => {
-        step.group = CommentTracer.all[step.ref] || CommentTracer.all[h.ns + step.ref]
+        step.group = DocSequence.all[step.ref] || DocSequence.all[h.ns + step.ref]
         if (!step.group) {
           throw new Error('Could not found ref ' + step.ref)
         } else {
@@ -262,9 +263,7 @@ export class CommentTracer extends Tag {
   }
 
   print() {
-    const writer = this.saveTo ? createWriteStream(this.saveTo) : null
-    writer?.write('sequenceDiagram\r\n')
-    const outGroup = (h: Group, des: string, tab = '') => {
+    const outGroup = (h: Group, writer: WriteStream, des: string, tab = '') => {
       let msg = this.format(des || h.name)
       if (msg) {
         context.group(h.tab + '↳ ' + msg)
@@ -276,7 +275,7 @@ export class CommentTracer extends Tag {
       tab += '  '
       h.steps?.forEach(step => {
         if (step.group) {
-          outGroup(step.group, step.des, tab)
+          outGroup(step.group, writer, step.des, tab)
         } else {
           const msg = this.format(step.des)
           context.log(step.tab + '↳ ' + msg)
@@ -285,9 +284,16 @@ export class CommentTracer extends Tag {
       })
       context.groupEnd()
     }
-    this.group.forEach(g => outGroup(g, undefined))
-    writer?.close()
-    return !!writer
+    if (this.saveTo) context.group(chalk.magentaBright('- %s'), chalk.bold(this.title))
+    this.group.forEach(g => {
+      const fileSave = this.saveTo ? join(this.saveTo, g.key + '.mmd') : undefined
+      const writer = fileSave ? createWriteStream(fileSave) : null
+      writer?.write('sequenceDiagram\r\n')
+      outGroup(g, writer, undefined)
+      writer?.close()
+      if (writer) context.log(chalk.magentaBright('- %s'), fileSave)
+    })
+    if (this.saveTo) context.groupEnd()
   }
 
 }

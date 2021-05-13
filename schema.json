@@ -18,7 +18,7 @@
       "items": {
         "anyOf": [
           {
-            "$ref": "#/definitions/CommentTracer"
+            "$ref": "#/definitions/DocSequence"
           },
           {
             "$ref": "#/definitions/Templates"
@@ -170,11 +170,11 @@
         }
       }
     },
-    "CommentTracer": {
+    "DocSequence": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "CommentTracer": {
+        "DocSequence": {
           "description": "Extract log from comment in code",
           "type": "object",
           "required": [
