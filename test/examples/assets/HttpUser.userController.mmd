@@ -1,24 +1,71 @@
 sequenceDiagram
-    %% > HttpUser.userController
+
+  %% > HttpUser.userController
     Client -) Service: Add something
     PAR Run worker
-      %% > HttpUser.workerRun
+
+    %% > HttpUser.workerRun
       LOOP Forever
         Service ->> Service: Log ok
       END 
-      %% < HttpUser.workerRun
+    %% < HttpUser.workerRun
+
     END 
-      %% > HttpUser.getUser
+    NOTE RIGHT OF Service : Case ADMIN
+
+    %% > HttpUser.getUser
+    ALT admin
+      Service ->> Service: Only for admin cases
+    END 
+    ALT user or admin
+      Service ->> Service: For all case
+    END 
     ALT id > 0
       Service ->> Service: Return {name}
     ELSE Return null
     END 
-      %% < HttpUser.getUser
-      %% > HttpUser.getCompany
+    %% < HttpUser.getUser
+
+    NOTE RIGHT OF Service : Case USER
+
+    %% > HttpUser.getUser
+    ALT user
+      Service ->> Service: Only for user cases
+    END 
+    ALT user or admin
+      Service ->> Service: For all case
+    END 
+    ALT id > 0
+      Service ->> Service: Return {name}
+    ELSE Return null
+    END 
+    %% < HttpUser.getUser
+
+    NOTE RIGHT OF Service : Case ADMIN & USER
+
+    %% > HttpUser.getUser
+    ALT admin
+      Service ->> Service: Only for admin cases
+    END 
+    ALT user
+      Service ->> Service: Only for user cases
+    END 
+    ALT user or admin
+      Service ->> Service: For all case
+    END 
+    ALT id > 0
+      Service ->> Service: Return {name}
+    ELSE Return null
+    END 
+    %% < HttpUser.getUser
+
+
+    %% > HttpUser.getCompany
     Service -->> Redis: Hello
     Service -) RabbitMQ: hello
     Service --) Kafka : HEllo
-      %% < HttpUser.getCompany
+    %% < HttpUser.getCompany
+
     ALT Not user
       Service ->> Service: Log user
       LOOP i in 10
@@ -26,6 +73,7 @@ sequenceDiagram
       END 
     ELSE return user
     END 
-    NOTE RIGHT OF Service undefined: Here
+    NOTE RIGHT OF Service : Here
     Service --) Client : Return user
-    %% < HttpUser.userController
+  %% < HttpUser.userController
+

@@ -5,9 +5,11 @@ import { Tag } from '../Tag'
 import { Testcase } from '../Testcase'
 import { context } from "../../Context";
 import chalk from 'chalk'
+import { cloneDeep } from 'lodash'
 
 class Group {
   static all = {}
+  args: string
   _tab = []
 
   push(_k) {
@@ -30,6 +32,7 @@ class Group {
     ref?: string
     group?: Group,
     tag?: string
+    args?: string
   }[]
 
   constructor(public ns: string, public key: string, public name: string, public isHead = false) {
@@ -111,13 +114,14 @@ export class DocSequence extends Tag {
     }
   }
 
-  private handleMMDSequence(line: string, group: Group) {
+  private handleMMDSequence(line: string, group: Group, args: string) {
     let m = line.match(/\+ (IF|LOOP|PARALLEL|ALT|PAR)[:\s]*(.*)/)     // [+ if] Name is string
     if (m) {
       // ref
       m[1] = m[1]?.trim()
       const key = m[1] === 'IF' ? 'ALT' : m[1] === 'PARALLEL' ? 'PAR' : m[1]
       group.steps.push({
+        args,
         tab: group.tab,
         des: key + ' ' + m[2],
         log: chalk.blue(m[1]) + ' ' + chalk.yellow(m[2]),
@@ -132,6 +136,7 @@ export class DocSequence extends Tag {
         group.pop(m[1])
         const key = !m[1].includes('END') ? 'ELSE' : 'END'
         group.steps.push({
+          args,
           tab: group.tab,
           des: key + ' ' + m[2],
           log: chalk.blue(m[1]) + ' ' + chalk.yellow(m[2]),
@@ -153,9 +158,10 @@ export class DocSequence extends Tag {
             key = m[1] === 'NOTE_LEFT' ? 'LEFT OF' : m[1] === 'NOTE_RIGHT' ? 'RIGHT OF' : 'OVER'
           }
           group.steps.push({
+            args,
             tab: group.tab,
-            des: 'NOTE ' + key + ' ' + m[2] + ': ' + m[3],
-            log: `${chalk.yellow.bold('NOTE')}: ` + chalk.yellow(m[3]),
+            des: 'NOTE ' + key + ' ' + (m[2] || '') + ': ' + m[3],
+            log: `${chalk.yellow.bold('NOTE')} ` + chalk.green(m[3]),
             tag: m[1]
           })
         } else {
@@ -185,6 +191,7 @@ export class DocSequence extends Tag {
             }
             if (m[3]) {
               group.steps.push({
+                args,
                 tab: group.tab,
                 des: `${m[1]} ${dir} ${m[3]}: ${m[4]}`,
                 log: `${chalk.magenta(m[1])} ${chalk[isBack ? 'red' : 'green'](m[2])} ${chalk.magenta(m[3])}: ${m[4]}`,
@@ -192,6 +199,7 @@ export class DocSequence extends Tag {
               })
             } else {
               group.steps.push({
+                args,
                 tab: group.tab,
                 des: `${m[1]} ${dir} ${m[1]}: ${m[4]}`,
                 log: `${chalk.magenta(m[1])} ${chalk.gray(isBack ? 'red' : 'green')} ${chalk.magenta(m[1])}: ${m[4]}`,
@@ -204,6 +212,7 @@ export class DocSequence extends Tag {
               m[1] = m[1].trim()
               if (m[1]) {
                 group.steps.push({
+                  args,
                   tab: group.tab,
                   des: `Service ->> Service: ${m[1]}`,
                   log: `${chalk.magenta('Service')}: ${m[1]}`,
@@ -248,14 +257,15 @@ export class DocSequence extends Tag {
               group = undefined
             }
           } else {
-            m = line.match(/^< (.*)/i)     // [< functionName] Call functionName
+            m = line.match(/^< ([^\()]+)(\(.*?\))?/i)     // [< functionName] Call functionName
             if (m) {
               // ref
               m[1] = m[1]?.trim()
               m[2] = m[2]?.trim()
               group.steps.push({
                 tab: group.tab,
-                des: m[2],
+                des: '',
+                args: m[2],
                 ref: m[1],
                 tag: '<'
               })
@@ -265,7 +275,13 @@ export class DocSequence extends Tag {
               if (m) {
                 ns = m[1].trim()
               } else {
-                this.handleMMDSequence(line, group)
+                m = line.match(/([\+\-]) (\(\w+\))(.*)/i)
+                let ns = undefined
+                if (m) {
+                  ns = m[2].trim() || undefined
+                  line = `${m[1]} ${m[3].trim()}`
+                }
+                this.handleMMDSequence(line, group, ns)
               }
             }
           }
@@ -282,14 +298,19 @@ export class DocSequence extends Tag {
   private done() {
     const heads: Group[] = Object.keys(DocSequence.all).map(k => DocSequence.all[k]).filter(e => e.isHead)
     function applyRef(h: Group) {
-      h.steps.filter(step => step.ref && !step.group).forEach(step => {
-        step.group = DocSequence.all[step.ref] || DocSequence.all[h.ns + step.ref]
-        if (!step.group) {
-          throw new Error('Could not found ref ' + step.ref)
-        } else {
-          applyRef(step.group)
-        }
-      })
+      console.log(h.args, h.steps.map(e => e.args))
+      h.steps
+        .filter(step => step.ref && !step.group)
+        .forEach(step => {
+          step.group = cloneDeep(DocSequence.all[step.ref] || DocSequence.all[h.ns + step.ref])
+          if (!step.group) {
+            throw new Error('Could not found ref ' + step.ref)
+          } else {
+            step.group.args = step.args
+            step.group.steps = step.group.steps.filter(s => step.group.args === undefined || s.args === undefined || step.group.args === s.args)
+            applyRef(step.group)
+          }
+        })
     }
     heads.forEach(applyRef)
     return heads
@@ -306,7 +327,7 @@ export class DocSequence extends Tag {
           writer?.write(tab + msg + '\r\n')
         }
       } else {
-        writer?.write(tab + '    %% > ' + h.key + '\r\n')
+        writer?.write('\r\n' + tab + '  %% > ' + h.key + '\r\n')
       }
       tab += '  '
       h.steps?.forEach(step => {
@@ -321,7 +342,7 @@ export class DocSequence extends Tag {
           }
         }
       })
-      writer?.write(tab + '  %% < ' + h.key + '\r\n')
+      writer?.write(tab + '%% < ' + h.key + '\r\n\r\n')
       // context.groupEnd()
     }
     if (this.saveTo) context.group(chalk.magentaBright('- %s'), chalk.bold(this.title))

@@ -5,10 +5,22 @@ class HttpUser {
   
   // > getUser
   getUser(id) {
+    // + (admin) IF: admin
+    // - (admin) Only for admin cases
+    // + (admin) END_IF
+
+    // + (user) IF: user
+    // - (user) Only for user cases
+    // + (user) END_IF
+
+    // + IF: user or admin
+    // - For all case
+    // + END_IF
+
     // + IF: id > 0
     if (id > 0)    
       // - Return {name}
-      return { name: 'thanh' }  
+      return { name: 'thanh' }
     // + ELSE: Return null         
     return null           
     // + END_IF      
@@ -46,8 +58,18 @@ class HttpUser {
     this.workerRun()
     // + END_PARALLEL
 
-    // < getUser  
-    const user = this.getUser()         
+    // + NOTE: Case ADMIN
+    // < getUser(admin)
+    const user = this.getUser('case admin')
+
+    // + NOTE: Case USER
+    // < getUser(user)
+    const user = this.getUser('case user')         
+
+    // + NOTE: Case ADMIN & USER
+    // < getUser
+    const user = this.getUser('case all')  
+
     // < getCompany
     const company = this.getCompany()   
     // + IF: Not user
