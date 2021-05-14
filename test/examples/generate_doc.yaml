@@ -30,7 +30,21 @@
         args:
           - ${$.response.data}
           - 328
-
+- Get:
+    title: Test fake data
+    url: http://localhost/test
+    docs:
+      md:
+        tags:
+          - TEST
+      swagger:
+        tags: 
+          - TEST
+    response:
+      status: 200
+      headers:
+        content-type: application/json
+      data: [1,2,3,4]
 # Export to document
 - Group:
     title: Generate document

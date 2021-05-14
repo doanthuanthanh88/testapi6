@@ -428,15 +428,18 @@ export class Api extends Tag {
       if (this.saveTo) {
         this._axiosData.responseType = 'stream'
       }
-      const res = this.saveTo ? await this.download(this._axiosData) : await this._axios.request(this._axiosData)
-      data = res.data
-      this.response = {
-        ok: res.status >= 200 && res.status < 300,
-        status: res.status,
-        statusText: res.statusText,
-        headers: res.headers,
-        data,
+      if (!this.response) {
+        const res = this.saveTo ? await this.download(this._axiosData) : await this._axios.request(this._axiosData)
+        data = res.data
+        this.response = {
+          ok: null,
+          status: res.status,
+          statusText: res.statusText,
+          headers: res.headers,
+          data,
+        }
       }
+      this.response.ok = this.response.status >= 200 && this.response.status < 300
       if (this.docs) {
         this.docs = this.replaceVars(this.docs, { ...context.Vars, Vars: context.Vars, $: this, $$: this.$$, Utils: context.Utils, Result: context.Result })
       }

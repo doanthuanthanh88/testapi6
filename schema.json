@@ -187,6 +187,11 @@
             {
               "type": "object",
               "properties": {
+                "auto": {
+                  "type": "boolean",
+                  "description": "Auto detect function",
+                  "default": false
+                },
                 "saveTo": {
                   "type": "string",
                   "description": "Output mermaid file (.mmd)",

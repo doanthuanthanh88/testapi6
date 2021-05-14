@@ -1,0 +1,111 @@
+openapi: 3.0.1
+info:
+  title: generate_doc.yaml
+  description: /Users/doanthuanthanh/code/github/testapi6/test/examples/generate_doc.yaml
+  version: ''
+  contact:
+    name: ''
+    email: ''
+externalDocs:
+  description: 'Last updated: Fri May 14 2021 23:00:50 GMT+0700 (Indochina Time)'
+  url: 'https://'
+servers: []
+paths:
+  '/~jburkardt/data/{type}/{name}':
+    get:
+      summary: Get test data
+      description: ''
+      parameters:
+        - in: path
+          name: name
+          required: false
+          example: addresses.csv
+          schema:
+            type: string
+        - in: path
+          name: type
+          required: true
+          example: csv
+          schema:
+            type: string
+        - in: query
+          name: optional
+          required: false
+          example: test
+          schema:
+            type: string
+        - in: query
+          name: must-have
+          required: true
+          example: abc
+          schema:
+            type: string
+      tags:
+        - TEST
+      responses:
+        '200':
+          content:
+            text/csv:
+              example: >
+                John,Doe,120 jefferson st.,Riverside, NJ, 08075
+
+                Jack,McGinnis,220 hobo Av.,Phila, PA,09119
+
+                "John ""Da Man""",Repici,120 Jefferson St.,Riverside, NJ,08075
+
+                Stephen,Tyler,"7452 Terrace ""At the Plaza"" road",SomeTown,SD,
+                91234
+
+                ,Blankman,,SomeTown, SD, 00298
+
+                "Joan ""the bone"", Anne",Jet,"9th, at Terrace plc",Desert
+                City,CO,00123
+              schema:
+                type: string
+          description: Success
+          headers:
+            content-type:
+              description: text/csv
+              schema:
+                type: string
+  'http://localhost/test':
+    get:
+      summary: Test fake data
+      description: ''
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              example:
+                - 1
+                - 2
+                - 3
+                - 4
+              schema:
+                type: array
+                items:
+                  type: integer
+          description: Success
+          headers:
+            content-type:
+              description: application/json
+              schema:
+                type: string
+components:
+  schemas: {}
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    bypassAuth:
+      type: apiKey
+      name: keyHere
+      description: ...
+      in: header
+    bypassAuthHeader:
+      type: apiKey
+      name: valueHere
+      description: ...
+      in: header

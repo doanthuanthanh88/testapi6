@@ -8,24 +8,25 @@ import chalk from 'chalk'
 
 class Group {
   static all = {}
-  private static _tab = []
+  _tab = []
 
-  push() {
-    Group._tab.push('  ')
+  push(_k) {
+    this._tab.push('  ')
   }
 
-  pop() {
-    Group._tab.pop()
+  pop(_k) {
+    this._tab.pop()
   }
 
   get tab() {
-    return Group._tab.join('')
+    return this._tab.join('')
   }
 
   steps: {
     tab?: string
     key?: string
     des?: string
+    log?: string
     ref?: string
     group?: Group,
     tag?: string
@@ -45,17 +46,31 @@ export class DocSequence extends Tag {
   ext?: string[]
   src: string[]
   saveTo: string
+  auto: boolean
 
   group: Group[]
 
   constructor(attrs: DocSequence) {
     super(attrs)
     if (!this.excludes) this.excludes = ['node_modules']
-    if (!this.ext) this.ext = ['.ts', '.js', '.go', '.py', '.yaml']
+    if (!this.ext) this.ext = ['.ts', '.js', '.go', '.py', '.yaml', '.java']
     if (!Array.isArray(attrs.src)) this.src = [attrs.src]
     this.src = this.src.map(src => Testcase.getPathFromRoot(src))
     if (this.saveTo) this.saveTo = dirname(Testcase.getPathFromRoot(this.saveTo))
     if (!this.title) this.title = 'Comment tracer'
+  }
+
+  handleCommentFile(f: string) {
+    let pattern = /\/\/\s+(.+)/i
+    if (f.endsWith('.py')) {
+      // python
+      pattern = /#\s+(.+)/i
+    }
+    return {
+      getMatch(line) {
+        return line.match(pattern)
+      }
+    }
   }
 
   format(txt: string) {
@@ -101,69 +116,85 @@ export class DocSequence extends Tag {
     if (m) {
       // ref
       m[1] = m[1]?.trim()
-      m[1] = m[1] === 'ALT' ? 'IF' : m[1] === 'PARALLEL' ? 'PAR' : m[1]
+      const key = m[1] === 'IF' ? 'ALT' : m[1] === 'PARALLEL' ? 'PAR' : m[1]
       group.steps.push({
         tab: group.tab,
-        des: (m[1] == 'IF' ? 'ALT ' : `${m[1]} `) + m[2],
+        des: key + ' ' + m[2],
+        log: chalk.blue(m[1]) + ' ' + chalk.yellow(m[2]),
         tag: 'if'
       })
-      group.push()
+      group.push(m[1])
     } else {
-      m = line.match(/\+ (END_LOOP|END_IF|ELSE_IF|ELIF|AND|END_PAR|END_PARALLEL|ELSE|END)[:\s]*(.*)/)     // [+ else] Name is number
+      m = line.match(/\+ (END_LOOP|END_IF|ELSE_IF|ELIF|AND|END_PARALLEL|END_PAR|ELSE|END)[:\s]*(.*)/)     // [+ else] Name is number
       if (m) {
-        group.pop()
         m[1] = m[1]?.trim()
         m[2] = m[2]?.trim()
-        if (['ELSE_IF', 'ELIF'].includes(m[1])) m[1] = 'ELSE'
-        else if (['END_IF', 'END_PAR', 'END_PARALLEL', 'END_LOOP'].includes(m[1])) m[1] = 'END'
+        group.pop(m[1])
+        const key = !m[1].includes('END') ? 'ELSE' : 'END'
         group.steps.push({
           tab: group.tab,
-          des: m[1] + ' ' + m[2],
+          des: key + ' ' + m[2],
+          log: chalk.blue(m[1]) + ' ' + chalk.yellow(m[2]),
           tag: m[1]
         })
-        if (m[1] !== 'END') group.push()
+        if (key !== 'END') {
+          group.push(m[1])
+        }
       } else {
-        m = line.match(/\+ (NOTE_RIGHT|NOTE_LEFT|NOTE_OVER)\s+([^\]]+)[:\s]*(.*)/)     // [+ else] Name is number
+        m = line.match(/\+ (NOTE_RIGHT|NOTE_LEFT|NOTE_OVER|NOTE)\s*([^\:]+)?[:\s]*(.*)/)     // [+ else] Name is number
         if (m) {
           m[1] = m[1]?.trim()
           m[2] = m[2]?.trim()
           m[3] = m[3]?.trim()
+          let key = ''
+          if (m[1] === 'NOTE') {
+            key = 'RIGHT OF Service'
+          } else {
+            key = m[1] === 'NOTE_LEFT' ? 'LEFT OF' : m[1] === 'NOTE_RIGHT' ? 'RIGHT OF' : 'OVER'
+          }
           group.steps.push({
             tab: group.tab,
-            des: 'NOTE ' + (m[1] === 'NOTE_LEFT' ? 'LEFT OF ' : m[1] === 'NOTE_RIGHT' ? 'RIGHT OF ' : 'OVER ') + m[2] + ': ' + m[3],
+            des: 'NOTE ' + key + ' ' + m[2] + ': ' + m[3],
+            log: `${chalk.yellow.bold('NOTE')}: ` + chalk.yellow(m[3]),
             tag: m[1]
           })
         } else {
-          m = line.match(/\- ([^\s]+)\s?([^\s]+)?([^\]]*)?:(.*)/i)     // - Service -> UserService: Get something here
+          m = line.match(/\- ([\w]+)\s+([^\w]+)?([\w]*)?:(.*)/i)     // - Service -> UserService: Get something here
           if (m) {
             m[1] = m[1]?.trim()
             m[2] = m[2]?.trim()
             m[3] = m[3]?.trim()
             m[4] = m[4]?.trim()
-            let dir = '->>'
+            let dir = ''
+            let isBack = false
             if (m[2] === '->') {
               dir = '-->>'
             } else if (m[2] === '<-') {
               dir = '<<--'
+              isBack = true
             } else if (m[2] === '>') {
               dir = '->>'
             } else if (m[2] === '<') {
               dir = '<<--'
+              isBack = true
             } else if (m[2] === '=>') {
               dir = '-)'
             } else if (m[2] === '<=') {
               dir = '(--'
+              isBack = true
             }
             if (m[3]) {
               group.steps.push({
                 tab: group.tab,
                 des: `${m[1]} ${dir} ${m[3]}: ${m[4]}`,
+                log: `${chalk.magenta(m[1])} ${chalk[isBack ? 'red' : 'green'](m[2])} ${chalk.magenta(m[3])}: ${m[4]}`,
                 tag: ''
               })
             } else {
               group.steps.push({
                 tab: group.tab,
                 des: `${m[1]} ${dir} ${m[1]}: ${m[4]}`,
+                log: `${chalk.magenta(m[1])} ${chalk.gray(isBack ? 'red' : 'green')} ${chalk.magenta(m[1])}: ${m[4]}`,
                 tag: ''
               })
             }
@@ -175,6 +206,7 @@ export class DocSequence extends Tag {
                 group.steps.push({
                   tab: group.tab,
                   des: `Service ->> Service: ${m[1]}`,
+                  log: `${chalk.magenta('Service')}: ${m[1]}`,
                   tag: ''
                 })
               }
@@ -192,8 +224,9 @@ export class DocSequence extends Tag {
         const rl = createInterface({ input: createReadStream(file) });
         let group: Group
         let ns = ''
+        const commentType = this.handleCommentFile(file)
         rl.on('line', (line) => {
-          let m = line.match(/\/\/\s+(.+)/i)
+          let m = commentType.getMatch(line)
           if (!m || !m[1]) return
           line = m[1].trim()
           m = line.match(/^>\s?(.*)/i) // > functionName
@@ -204,12 +237,12 @@ export class DocSequence extends Tag {
               if (m[1][0] === '>') {            // >> startup functionName
                 m[1] = m[1].substr(1).trim()
                 group = new Group(ns, m[1], '', true)
+                group.push(m[1])
               } else {
                 group = new Group(ns, m[1], '')
               }
-              group.push()
             } else if (!m[1]) {                            // > End function
-              group.pop()
+              if (group.isHead) group.pop(m[1])
               if (DocSequence.all[group.key]) throw new Error('Duplicate group ' + group.name)
               DocSequence.all[group.key] = group
               group = undefined
@@ -226,7 +259,7 @@ export class DocSequence extends Tag {
                 ref: m[1],
                 tag: '<'
               })
-              group.push()
+              // group.push(m[1])
             } else {
               m = line.match(/@ (.+)/i)
               if (m) {
@@ -263,26 +296,33 @@ export class DocSequence extends Tag {
   }
 
   print() {
-    const outGroup = (h: Group, writer: WriteStream, des: string, tab = '') => {
-      let msg = this.format(des || h.name)
+    const outGroup = (h: Group, writer: WriteStream, step: { des?: string, log?: string }, tab = '') => {
+      const msg = step?.log || h.name
+      tab = tab + h.tab
       if (msg) {
-        context.group(h.tab + '↳ ' + msg)
-        writer?.write(tab + h.tab + msg + '\r\n')
+        context.log(tab + chalk.gray('↳ ') + msg)
+        if (writer) {
+          const msg = this.format(step.des)
+          writer?.write(tab + msg + '\r\n')
+        }
       } else {
-        context.group('')
-        writer?.write('\r\n')
+        writer?.write(tab + '    %% > ' + h.key + '\r\n')
       }
       tab += '  '
       h.steps?.forEach(step => {
         if (step.group) {
-          outGroup(step.group, writer, step.des, tab)
+          outGroup(step.group, writer, step, tab)
         } else {
-          const msg = this.format(step.des)
-          context.log(step.tab + '↳ ' + msg)
-          writer?.write(tab + step.tab + msg + '\r\n')
+          const msg = step.log
+          context.log(tab + step.tab + chalk.gray('↳ ') + msg)
+          if (writer) {
+            const msg = this.format(step.des)
+            writer.write(tab + step.tab + msg + '\r\n')
+          }
         }
       })
-      context.groupEnd()
+      writer?.write(tab + '  %% < ' + h.key + '\r\n')
+      // context.groupEnd()
     }
     if (this.saveTo) context.group(chalk.magentaBright('- %s'), chalk.bold(this.title))
     this.group.forEach(g => {

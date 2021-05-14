@@ -1,4 +1,5 @@
 - DocSequence:
     title: Read log in file then generate to file (Support mermaid sequence diagram)
     src: assets/doc_sequence.js
+    auto: true
     saveTo: assets/doc_sequence.mmd

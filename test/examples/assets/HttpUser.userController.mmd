@@ -1,36 +1,31 @@
 sequenceDiagram
-
-    Client -) Service: Get user information
-    NOTE RIGHT OF Service: note right here: 
-    NOTE LEFT OF Service: note left here: 
-    NOTE OVER Service,Redis: note over here: 
-
-      PAR Start worker
-        LOOP Forever
-          Service ->> Service: Do something here
-        END 
+    %% > HttpUser.userController
+    Client -) Service: Add something
+    PAR Run worker
+      %% > HttpUser.workerRun
+      LOOP Forever
+        Service ->> Service: Log ok
       END 
-
-      ALT Check user id must be greater than 0
-        Service ->> Service: Return user information
-      ELSE 
-        Service ->> Service: Return null
+      %% < HttpUser.workerRun
+    END 
+      %% > HttpUser.getUser
+    ALT id > 0
+      Service ->> Service: Return {name}
+    ELSE Return null
+    END 
+      %% < HttpUser.getUser
+      %% > HttpUser.getCompany
+    Service -->> Redis: Hello
+    Service -) RabbitMQ: hello
+    Service --) Kafka : HEllo
+      %% < HttpUser.getCompany
+    ALT Not user
+      Service ->> Service: Log user
+      LOOP i in 10
+        Service ->> Service: Log i
       END 
-
-      CompanyService ->> CompanyService: Request to get company infor
-      Service ->> Redis: Pub data
-      PAR Push to sync
-        Service ->> RabbitMQ: Sync data
-      AND Do something
-        Service ->> KAFKA: Sync data
-      END 
-      CompanyService --) Service : Return company info
-          ALT User not existed
-            Service ->> Service: Print user to console
-            LOOP i from 0 to 10
-              Service ->> Service: Print i to console
-            END 
-          ELSE User existed
-            Service ->> Service: Return user
-          END 
-          Service --) Client : Return user information
+    ELSE return user
+    END 
+    NOTE RIGHT OF Service undefined: Here
+    Service --) Client : Return user
+    %% < HttpUser.userController
