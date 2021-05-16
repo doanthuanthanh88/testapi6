@@ -1,0 +1,48 @@
+sequenceDiagram
+
+  %% > HttpUser2.userController2
+    Service ->> Service: Client => Service : Get user information
+    NOTE RIGHT OF Service: note right here
+    NOTE LEFT OF Service: note left here
+    NOTE OVER Service,Redis: note over here
+
+    %% > HttpUser2.worker
+    PAR Start worker
+      LOOP Forever
+        Service ->> Service: Do something here
+      END 
+    END 
+    %% < HttpUser2.worker
+
+
+    %% > HttpUser2.getUser2
+    ALT Check user id must be greater than 0
+      Service ->> Service: Service: Return user information
+    ELSE 
+      Service ->> Service: Service: Return null
+    END 
+    %% < HttpUser2.getUser2
+
+
+    %% > HttpUser2.getCompany2
+    Service ->> Service: CompanyService:  Request to get company infor
+    Service ->> Redis: Pub data
+    PAR Push to sync
+      Service ->> RabbitMQ: Sync data
+    ELSE Do something
+      Service ->> KAFKA: Sync data
+    END 
+    CompanyService --) Service : Return company info
+    %% < HttpUser2.getCompany2
+
+    ALT User not existed
+      Service ->> Service: Print user to console
+      LOOP i from 0 to 10
+        Service ->> Service: Print i to console
+      END 
+    ELSE User existed
+      Service ->> Service: Service: Return user
+    END 
+    Service ->> Service: Client <= Service : Return user information
+  %% < HttpUser2.userController2
+

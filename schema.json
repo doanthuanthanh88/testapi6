@@ -236,7 +236,7 @@
                   }
                 },
                 "ext": {
-                  "type": "string",
+                  "type": "array",
                   "description": "File ext which not be scaned",
                   "items": {
                     "type": "string",

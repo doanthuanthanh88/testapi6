@@ -1,6 +1,6 @@
 const EventEmitter = require("node:events")
 
-// @ HttpUser
+// # HttpUser
 class HttpUser {
   
   // > getUser
@@ -50,7 +50,7 @@ class HttpUser {
   }
   // >
   
-  // >> userController
+  // >>> userController
   // - Client => Service: Add something
   userController() {
     // + PARALLEL: Run worker                            

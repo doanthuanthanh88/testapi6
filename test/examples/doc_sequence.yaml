@@ -1,5 +1,9 @@
 - DocSequence:
     title: Read log in file then generate to file (Support mermaid sequence diagram)
-    src: assets/doc_sequence.js
+    ext: ['.ts', '.js', '.go', '.py', '.yaml', '.java']
+    excludes: ["node_modules"]
+    # slient: true
+    src: assets/
+    # src: /Users/doanthuanthanh/code/gapo/workspace/apps
     auto: true
     saveTo: assets/doc_sequence.mmd

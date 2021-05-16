@@ -45,13 +45,18 @@ class Group {
 export class DocSequence extends Tag {
   static all = {}
   static steps = []
+  /** Not scan in these paths */
   excludes?: string[]
+  /** Only scan file with the extensions */
   ext?: string[]
+  /** Root path to scan */
   src: string[]
+  /** Export sequence diagram to this path */
   saveTo: string
   auto: boolean
+  private runSomeCases: string[]
 
-  group: Group[]
+  private group: Group[]
 
   constructor(attrs: DocSequence) {
     super(attrs)
@@ -61,13 +66,14 @@ export class DocSequence extends Tag {
     this.src = this.src.map(src => Testcase.getPathFromRoot(src))
     if (this.saveTo) this.saveTo = dirname(Testcase.getPathFromRoot(this.saveTo))
     if (!this.title) this.title = 'Comment tracer'
+    this.runSomeCases = []
   }
 
   handleCommentFile(f: string) {
-    let pattern = /\/\/\s+(.+)/i
+    let pattern = /\/\/\s+([\+\-#><]+\s*(.*))/i
     if (f.endsWith('.py')) {
       // python
-      pattern = /#\s+(.+)/i
+      pattern = /#\s+([\+\-#><]+\s*(.+))/i
     }
     return {
       getMatch(line) {
@@ -245,14 +251,21 @@ export class DocSequence extends Tag {
             if (!group) {
               if (m[1][0] === '>') {            // >> startup functionName
                 m[1] = m[1].substr(1).trim()
+                const isRunIt = m[1][0] === '>'
+                if (isRunIt) {
+                  m[1] = m[1].substr(1).trim()
+                }
                 group = new Group(ns, m[1], '', true)
                 group.push(m[1])
+                if (isRunIt) {
+                  this.runSomeCases.push(group.key)
+                }
               } else {
                 group = new Group(ns, m[1], '')
               }
             } else if (!m[1]) {                            // > End function
               if (group.isHead) group.pop(m[1])
-              if (DocSequence.all[group.key]) throw new Error('Duplicate group ' + group.name)
+              if (DocSequence.all[group.key]) throw new Error(`Duplicate group ${group?.key}`)
               DocSequence.all[group.key] = group
               group = undefined
             }
@@ -271,7 +284,7 @@ export class DocSequence extends Tag {
               })
               // group.push(m[1])
             } else {
-              m = line.match(/@ (.+)/i)
+              m = line.match(/# (.+)/i)
               if (m) {
                 ns = m[1].trim()
               } else {
@@ -296,9 +309,8 @@ export class DocSequence extends Tag {
   }
 
   private done() {
-    const heads: Group[] = Object.keys(DocSequence.all).map(k => DocSequence.all[k]).filter(e => e.isHead)
+    let heads: Group[] = Object.keys(DocSequence.all).map(k => DocSequence.all[k]).filter(e => e.isHead)
     function applyRef(h: Group) {
-      console.log(h.args, h.steps.map(e => e.args))
       h.steps
         .filter(step => step.ref && !step.group)
         .forEach(step => {
@@ -312,6 +324,9 @@ export class DocSequence extends Tag {
           }
         })
     }
+    if (this.runSomeCases.length) {
+      heads = heads.filter(g => this.runSomeCases.includes(g.key))
+    }
     heads.forEach(applyRef)
     return heads
   }
@@ -321,7 +336,7 @@ export class DocSequence extends Tag {
       const msg = step?.log || h.name
       tab = tab + h.tab
       if (msg) {
-        context.log(tab + chalk.gray('↳ ') + msg)
+        if (!this.slient) context.log(tab + chalk.gray('↳ ') + msg)
         if (writer) {
           const msg = this.format(step.des)
           writer?.write(tab + msg + '\r\n')
@@ -335,7 +350,7 @@ export class DocSequence extends Tag {
           outGroup(step.group, writer, step, tab)
         } else {
           const msg = step.log
-          context.log(tab + step.tab + chalk.gray('↳ ') + msg)
+          if (!this.slient) context.log(tab + step.tab + chalk.gray('↳ ') + msg)
           if (writer) {
             const msg = this.format(step.des)
             writer.write(tab + step.tab + msg + '\r\n')
@@ -345,16 +360,15 @@ export class DocSequence extends Tag {
       writer?.write(tab + '%% < ' + h.key + '\r\n\r\n')
       // context.groupEnd()
     }
-    if (this.saveTo) context.group(chalk.magentaBright('- %s'), chalk.bold(this.title))
     this.group.forEach(g => {
       const fileSave = this.saveTo ? join(this.saveTo, g.key + '.mmd') : undefined
+      if (fileSave) context.log(`${chalk.bold[!this.runSomeCases.length ? 'green' : 'red']('- %s')} ${chalk.gray('%s')}`, g.key, fileSave)
       const writer = fileSave ? createWriteStream(fileSave) : null
       writer?.write('sequenceDiagram\r\n')
       outGroup(g, writer, undefined)
       writer?.close()
-      if (writer) context.log(chalk.magentaBright('- %s'), fileSave)
+      context.log()
     })
-    if (this.saveTo) context.groupEnd()
   }
 
 }

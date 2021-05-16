@@ -1,10 +1,10 @@
 const EventEmitter = require("node:events")
 
-// @ HttpUser
-class HttpUser {
-  // > getUser
+// # HttpUser2
+class HttpUser2 {
+  // > getUser2
   // Service => UserService: Get user by id
-  getUser(id) {
+  getUser2(id) {
     if (id > 0)                 //  + IF: Check user id must be greater than 0
       return { name: 'thanh' }  //    - Service: Return user information
                                 //  + ELSE
@@ -12,9 +12,9 @@ class HttpUser {
   }                             //  + END
   // >
 
-  // > getCompany
+  // > getCompany2
   // - CompanyService:  Request to get company infor
-  getCompany() {
+  getCompany2() {
     new EventEmitter().emit('redis', 'hello')    // - Service > Redis: Pub data
                                                  // + PARALLEL: Push to sync
     new EventEmitter().emit('rabbitmq', 'hello') //   - Service > RabbitMQ: Sync data
@@ -27,7 +27,7 @@ class HttpUser {
 
   // > worker
   // + PAR: Start worker
-  workerRun() {
+  workerRun2() {
     // + LOOP: Forever
     while(true) {
       console.log('ok') // - Do something here
@@ -37,15 +37,15 @@ class HttpUser {
   // + END_PAR
   // >
 
-  // >> userController
+  // >> userController2
   // - Client => Service : Get user information
-  userController() {
+  userController2() {
                                         // + NOTE_RIGHT Service: note right here
                                         // + NOTE_LEFT Service: note left here
                                         // + NOTE_OVER Service,Redis: note over here
-    this.workerRun()                    // < worker
-    const user = this.getUser()         // < getUser
-    const company = this.getCompany()   // < getCompany
+    this.workerRun2()                    // < worker
+    const user = this.getUser2()         // < getUser2
+    const company = this.getCompany2()   // < getCompany2
     
     if (!user) {                        // + IF: User not existed
       console.log(user)                 //   - Print user to console

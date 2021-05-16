@@ -97,6 +97,7 @@ steps:
   - OutputFile:     # Save data to file
   - DocSwagger:     # Save to swagger document
   - DocMarkdown:    # Save to markdown document
+  - DocSequence:    # Generate to sequence diagram base on comments in code
   ...
 ```
 
