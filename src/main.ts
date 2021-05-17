@@ -39,10 +39,8 @@ export async function load(inp: InputYamlFile | InputYamlText, decryptPassword?:
   let yamlFile = await handleHttpFile(inp.yamlFile, decryptPassword)
   try {
     const s = lstatSync(yamlFile)
-    yamlFile = ['.yaml', 'index.6.yaml', 'index.yaml'].find(df => {
-      if (s.isDirectory()) yamlFile = join(yamlFile, df + (decryptPassword ? '.encrypt' : ''))
-      return existsSync(yamlFile)
-    })
+    if (s.isDirectory()) yamlFile = join(yamlFile, 'index.yaml' + (decryptPassword ? '.encrypt' : ''))
+    if (!existsSync(yamlFile)) throw new Error()
   } catch (err) {
     throw new Error(`Could not found scenario file at "${yamlFile}"`)
   }

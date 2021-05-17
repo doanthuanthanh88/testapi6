@@ -1,0 +1,4 @@
+- Test API:
+    - Run: test/index.yaml
+- Sequence diagram:
+    - Generate: test-flow/flow.yaml
