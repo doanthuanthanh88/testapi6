@@ -4,6 +4,5 @@
     excludes: ["node_modules"]
     # slient: true
     src: assets/
-    # src: /Users/doanthuanthanh/code/gapo/workspace/apps
     auto: true
-    saveTo: assets/doc_sequence.mmd
+    saveTo: assets

@@ -43,7 +43,7 @@ class HttpUser2 {
                                         // + NOTE_RIGHT Service: note right here
                                         // + NOTE_LEFT Service: note left here
                                         // + NOTE_OVER Service,Redis: note over here
-    this.workerRun2()                    // < worker
+    this.workerRun2()                    // < worker$worker
     const user = this.getUser2()         // < getUser2
     const company = this.getCompany2()   // < getCompany2
     
