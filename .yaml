@@ -1,3 +1,10 @@
+- Dev:
+    - Start Api: yarn api
+    - Start Worker: yarn worker
+- Git:
+    - Pull: git pull
+    - List branch: git branch
+    - Push: git push
 - Test API:
     - Run: test/index.yaml
 - Sequence diagram:

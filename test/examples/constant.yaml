@@ -1,0 +1,8 @@
+- Api: 
+    ->: user-base
+    headers:
+      x-gapo-role: user
+- Api: 
+    ->: service-base
+    headers:
+      x-gapo-role: service

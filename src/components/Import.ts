@@ -8,6 +8,21 @@ import { handleHttpFile } from '../main'
 import { extname } from "path";
 import chalk from "chalk";
 
+export function includeComment(cnt: string) {
+  return cnt.split('\n').reduce((sum, e) => {
+    const m = e.match(/^([\t|\s]*)#\s*Includes\s*:\s*(.+)/)
+    if (m) {
+      const file = m[2].trim()
+      let cnt = readFileSync(Testcase.getPathFromRoot(file), 'utf8').toString()
+      return sum.concat(cnt.split('\n').map(e => `${m[1]}${e}`))
+    } else {
+      sum.push(e)
+    }
+    return sum
+  }, []).join('\n')
+
+}
+
 export function loadContent(file, encryptPassword: string, decryptPassword: string) {
   if (decryptPassword) {
     if (!file.endsWith('.encrypt')) {
@@ -18,6 +33,7 @@ export function loadContent(file, encryptPassword: string, decryptPassword: stri
   if (decryptPassword) {
     cnt = context.Utils.crypto.decryptAES(cnt, decryptPassword)
   }
+  cnt = includeComment(cnt)
   const type = extname(file)
   const msg = []
   let root: any

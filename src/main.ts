@@ -8,7 +8,7 @@ import { flatten } from "lodash";
 import { SCHEMA } from "./components";
 import axios from 'axios'
 import { tmpdir } from "os";
-import { loadContent } from "./components/Import";
+import { includeComment, loadContent } from "./components/Import";
 import { context } from "./Context";
 import { Templates } from "./components/Templates";
 import { Api } from "./components/api/Api";
@@ -56,7 +56,7 @@ export async function load(inp: InputYamlFile | InputYamlText, decryptPassword?:
     root = loadContent(yamlFile, '\0\0\0', decryptPassword)
   } else if (inp instanceof InputYamlText) {
     // load from text content then set yaml file
-    content = inp.yamlText
+    content = includeComment(inp.yamlText)
     root = safeLoad(content, { schema: SCHEMA })
   } else {
     throw new Error('Wrong input')
