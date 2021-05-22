@@ -12,7 +12,7 @@ import { context } from '../../Context'
 import { Wrk, IWrk } from "../benchmark/Wrk"
 import { Operation } from "../doc/OpenAPI3"
 import { createWriteStream } from "fs"
-import { CURLParser } from 'parse-curl-js'
+import { CURLParser } from './CUrlParser'
 import { CurlGenerator } from "curl-generator";
 import { parse } from 'querystring'
 
@@ -252,15 +252,16 @@ export class Api extends Tag {
   constructor(attrs: Api) {
     super(attrs)
     if (this.curl) {
-      const meta = new CURLParser(this.curl).parse()
+      const meta = CURLParser.parse(this.curl)
       const { method, url, headers, query, body } = meta
-      merge({
+      merge(attrs, {
         method: method.toUpperCase(),
         url: url.replace(/["']/g, ''),
         headers: headers,
         body: body?.data,
         query: query
-      }, this)
+      })
+      merge(this, attrs)
     }
     merge(this, merge({ headers: {} }, this))
     if (this.benchmark?.wrk) {
