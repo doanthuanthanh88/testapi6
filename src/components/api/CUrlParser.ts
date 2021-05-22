@@ -32,6 +32,7 @@ export class CURLParser {
       partition.push(tmp.join(''))
     }
     const rs = {
+      baseURL: '',
       method: undefined,
       headers: {},
       body: undefined,
@@ -82,7 +83,8 @@ export class CURLParser {
     }
     if (remain[0]) {
       const url = new URL(remain[0].trim())
-      rs.url = url.origin + url.pathname
+      rs.baseURL = url.origin
+      rs.url = url.pathname
       for (const [k, vl] of url.searchParams.entries()) {
         rs.query[k] = vl
       }

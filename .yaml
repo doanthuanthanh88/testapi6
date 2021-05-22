@@ -1,11 +1,5 @@
 - Dev:
-    - Start Api: yarn api
-    - Start Worker: yarn worker
+    - Dev: yarn dev
 - Git:
-    - Pull: git pull
-    - List branch: git branch
-    - Push: git push
-- Test API:
-    - Run: test/index.yaml
-- Sequence diagram:
-    - Generate: test-flow/flow.yaml
+    - Build: yarn build
+    - Publish: npm pub
