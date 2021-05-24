@@ -4,7 +4,7 @@ import { createWriteStream, existsSync, lstatSync } from 'fs'
 import { safeLoad } from "js-yaml";
 import '@/components/Utils'
 import '@/components/data_handler/Validate'
-import { flatten } from "lodash";
+import { flatten, merge } from "lodash";
 import { SCHEMA } from "./components";
 import axios from 'axios'
 import { tmpdir } from "os";
@@ -88,8 +88,10 @@ export async function execute(tc) {
   await tc.exec()
 }
 
-export async function main(input: InputYamlFile | InputYamlText, decryptPassword?: string) {
+export async function main(input: InputYamlFile | InputYamlText, decryptPassword?: string, initEnv?: string) {
   context.tc = await load(input, decryptPassword)
+  const newVar = merge({}, JSON.parse(initEnv), context.Vars)
+  context.Vars = newVar
   await execute(context.tc)
   return context.tc
 }
