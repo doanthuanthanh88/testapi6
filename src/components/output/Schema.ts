@@ -1,7 +1,7 @@
+import { context } from "@/Context";
+import chalk from "chalk";
 import { toJsonSchema } from "../doc/DocUtils";
 import { Tag } from "../Tag";
-import chalk from "chalk";
-import { context } from "@/Context";
 
 /**
  * Print schema of data

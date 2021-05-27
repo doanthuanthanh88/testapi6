@@ -1,5 +1,4 @@
-import { Method } from "./Api";
-import { Api } from "./Api";
+import { Api, Method } from "./Api";
 
 /**
  * Http DELETE request
@@ -21,7 +20,7 @@ import { Api } from "./Api";
 export class Delete extends Api {
   /** @ignore */
   body: any
-  
+
   constructor(attrs: any) {
     super({ ...attrs, method: Method.DELETE })
   }

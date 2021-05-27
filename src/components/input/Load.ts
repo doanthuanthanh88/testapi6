@@ -1,5 +1,5 @@
+import { loadContent } from '../Import';
 import { Tag } from "../Tag";
-import { loadContent } from '../Import'
 import { Testcase } from "../Testcase";
 
 /**

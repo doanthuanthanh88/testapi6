@@ -4,7 +4,6 @@
     "editor.insertSpaces": true,
     "editor.tabSize": 2,
     "yaml.schemas": {
-        // "https://raw.githubusercontent.com/doanthuanthanh88/testapi6/master/schema.json": "*.yaml"
         "schema.json": "*.yaml"
     },
     "yaml.customTags": [
@@ -21,5 +20,9 @@
         // "**/tslint.json": true,
         // "**/tsfmt.json": true,
         // "**/tsconfig.json": true
+    },
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": true,
     }
 }

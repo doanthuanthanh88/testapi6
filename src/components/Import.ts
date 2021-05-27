@@ -1,12 +1,12 @@
-import { Tag } from "./Tag";
-import { safeLoad } from 'js-yaml'
-import { readFileSync, writeFileSync } from 'fs'
-import { Testcase } from "./Testcase";
-import { context } from "../Context";
-import { SCHEMA } from ".";
-import { handleHttpFile } from '../main'
-import { extname } from "path";
 import chalk from "chalk";
+import { readFileSync, writeFileSync } from 'fs';
+import { safeLoad } from 'js-yaml';
+import { extname } from "path";
+import { SCHEMA } from ".";
+import { context } from "../Context";
+import { handleHttpFile } from '../main';
+import { Tag } from "./Tag";
+import { Testcase } from "./Testcase";
 
 export function includeComment(cnt: string) {
   return cnt.split('\n').reduce((sum, e) => {

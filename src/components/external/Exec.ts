@@ -1,6 +1,6 @@
-import { Tag } from "../Tag";
-import { ChildProcessWithoutNullStreams, spawn } from 'child_process'
 import { context } from "@/Context";
+import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
+import { Tag } from "../Tag";
 
 /**
  * Execute external command line

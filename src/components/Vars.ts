@@ -1,6 +1,6 @@
-import { Tag } from "./Tag";
-import { omit } from 'lodash'
 import { context } from "@/Context";
+import { omit } from 'lodash';
+import { Tag } from "./Tag";
 
 /**
  * Create new global variables

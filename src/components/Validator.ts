@@ -1,7 +1,7 @@
-import { Tag } from "./Tag";
-import Chai from 'chai'
-import { ContentScript } from "./Script";
 import { context } from "@/Context";
+import Chai from 'chai';
+import { ContentScript } from "./Script";
+import { Tag } from "./Tag";
 
 /**
  * Create new validation functions

@@ -30,7 +30,7 @@ export class Regex extends Tag {
   constructor(attrs) {
     super(attrs)
   }
-  
+
   exec() {
     if (this.title) context.log(`- %s`, this.title)
     const pt = eval(this.pattern) as RegExp

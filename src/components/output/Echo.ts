@@ -1,7 +1,7 @@
-import { Tag } from "../Tag";
-import chalk from "chalk";
 import { context } from "@/Context";
+import chalk from "chalk";
 import { merge } from "lodash";
+import { Tag } from "../Tag";
 
 /**
  * Print to screen

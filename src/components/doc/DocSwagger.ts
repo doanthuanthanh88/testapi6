@@ -1,10 +1,10 @@
-import { OutputFile } from '@/components/output/OutputFile';
-import { dump } from 'js-yaml';
-import { isGotData, toJsonSchema } from '@/components/doc/DocUtils';
-import { differenceWith, merge, uniqBy } from 'lodash';
-import { Testcase } from '@/components/Testcase';
 import { Api } from '@/components/api/Api';
+import { isGotData, toJsonSchema } from '@/components/doc/DocUtils';
 import { OpenAPI } from '@/components/doc/OpenAPI3';
+import { OutputFile } from '@/components/output/OutputFile';
+import { Testcase } from '@/components/Testcase';
+import { dump } from 'js-yaml';
+import { differenceWith, merge, uniqBy } from 'lodash';
 
 const jsonSchemaOptions = undefined
 

@@ -1,11 +1,11 @@
-import { unlinkSync, writeFileSync, existsSync } from "fs";
+import { existsSync, unlinkSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { stringify } from "querystring";
+import { context } from "../../Context";
 import { Api } from "../api/Api";
 import { Exec } from "../external/Exec";
 import { Testcase } from "../Testcase";
-import { context } from "../../Context"
 
 /**
  * Execute wrk command line to test benchmark

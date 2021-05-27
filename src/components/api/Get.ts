@@ -1,5 +1,4 @@
-import { Method } from "./Api";
-import { Api } from "./Api";
+import { Api, Method } from "./Api";
 
 /**
  * Http GET request
@@ -23,7 +22,7 @@ import { Api } from "./Api";
 export class Get extends Api {
   /** @ignore */
   body: any
-  
+
   constructor(attrs: any) {
     super({ ...attrs, method: Method.GET })
   }

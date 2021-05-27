@@ -1,7 +1,6 @@
-import * as _ from 'lodash'
-import { Tag } from "../Tag";
-import prompts from 'prompts'
 import { context } from '@/Context';
+import prompts from 'prompts';
+import { Tag } from "../Tag";
 
 /**
  * Get user input

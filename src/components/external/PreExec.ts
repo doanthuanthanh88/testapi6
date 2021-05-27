@@ -12,5 +12,5 @@ import { Exec } from "./Exec";
  * ```
  */
 export class PreExec extends Exec {
-  preload = true 
+  preload = true
 }

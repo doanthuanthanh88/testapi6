@@ -1,11 +1,11 @@
-import { EventEmitter } from 'events'
-import { inspect } from 'util'
-import { Testcase } from '@/components/Testcase'
-import { toJsonSchema } from "./components/doc/DocUtils";
-import crypto from 'crypto'
-import { Validator } from 'jsonschema';
+import { Testcase } from '@/components/Testcase';
+import crypto from 'crypto';
+import { EventEmitter } from 'events';
 import { safeDump } from 'js-yaml';
-import * as lodash from 'lodash'
+import { Validator } from 'jsonschema';
+import * as lodash from 'lodash';
+import { inspect } from 'util';
+import { toJsonSchema } from "./components/doc/DocUtils";
 
 process.setMaxListeners(0)
 

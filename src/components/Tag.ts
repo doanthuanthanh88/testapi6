@@ -1,7 +1,7 @@
-import { mergeWith, merge, flatten, cloneDeep, omit } from 'lodash'
 import { Testcase } from '@/components/Testcase'
-import { context } from '../Context'
 import { Replacement } from '@/Replacement'
+import { cloneDeep, flatten, merge, mergeWith, omit } from 'lodash'
+import { context } from '../Context'
 
 export const REMOVE_CHARACTER = null
 

@@ -1,8 +1,8 @@
+import chalk from "chalk"
 import { cloneDeep } from "lodash"
+import { context } from "../Context"
 import { Import, Tag } from "./Tag"
 import { Testcase } from "./Testcase"
-import { context } from "../Context"
-import chalk from "chalk"
 
 context
   .on('log:group:begin', (e: Group) => {

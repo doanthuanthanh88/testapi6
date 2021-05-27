@@ -1,6 +1,6 @@
+import { Api } from '@/components/api/Api';
 import { OutputFile } from '@/components/output/OutputFile';
 import { Testcase } from '@/components/Testcase';
-import { Api } from '@/components/api/Api';
 import { merge, pick, uniqBy } from 'lodash';
 import { stringify } from 'querystring';
 import { isGotData } from './DocUtils';

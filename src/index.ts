@@ -1,8 +1,8 @@
+import { InputYamlFile, main } from '@/main'
 import './init'
 
-import { InputYamlFile, main } from '@/main'
 
-main(new InputYamlFile(process.argv[2]), process.argv[3], process.argv[4] || '{}')
+main(new InputYamlFile(process.argv[2]), process.argv[3], process.argv[4])
 
 // (async () => {
 //   await main(new InputYamlText('- !echo thanh', process.argv[2]))

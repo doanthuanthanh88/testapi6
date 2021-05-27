@@ -1,5 +1,4 @@
-import { Method } from "./Api";
-import { Api } from "./Api";
+import { Api, Method } from "./Api";
 
 /**
  * Http PATCH request

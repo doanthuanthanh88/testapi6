@@ -1,17 +1,17 @@
-import { Testcase } from "./components/Testcase";
-import { resolve, join, dirname, basename } from 'path'
-import { createWriteStream, existsSync, lstatSync } from 'fs'
+import '@/components/data_handler/Validate';
+import '@/components/Utils';
+import axios from 'axios';
+import { createWriteStream, existsSync, lstatSync } from 'fs';
 import { safeLoad } from "js-yaml";
-import '@/components/Utils'
-import '@/components/data_handler/Validate'
 import { flatten, merge } from "lodash";
-import { SCHEMA } from "./components";
-import axios from 'axios'
 import { tmpdir } from "os";
-import { includeComment, loadContent } from "./components/Import";
-import { context } from "./Context";
-import { Templates } from "./components/Templates";
+import { basename, dirname, join, resolve } from 'path';
+import { SCHEMA } from "./components";
 import { Api } from "./components/api/Api";
+import { includeComment, loadContent } from "./components/Import";
+import { Templates } from "./components/Templates";
+import { Testcase } from "./components/Testcase";
+import { context } from "./Context";
 
 export class InputYamlFile {
   constructor(public yamlFile: string) { }
@@ -90,7 +90,7 @@ export async function execute(tc) {
 
 export async function main(input: InputYamlFile | InputYamlText, decryptPassword?: string, initEnv?: string) {
   context.tc = await load(input, decryptPassword)
-  const newVar = merge({}, JSON.parse(initEnv), context.Vars)
+  const newVar = merge({}, context.Vars, JSON.parse(initEnv || '{}'))
   context.Vars = newVar
   await execute(context.tc)
   return context.tc

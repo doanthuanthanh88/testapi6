@@ -1,8 +1,8 @@
-import chalk from 'chalk'
-import { Tag } from "../Tag";
-import { writeFileSync } from 'fs';
-import { Testcase } from '../Testcase';
 import { context } from '@/Context';
+import chalk from 'chalk';
+import { writeFileSync } from 'fs';
+import { Tag } from "../Tag";
+import { Testcase } from '../Testcase';
 
 /**
  * Save to file

@@ -1,10 +1,10 @@
 import { Tag } from '@/components/Tag'
 import { Testcase } from '@/components/Testcase'
-import { ContentScript } from './Script'
-import { context } from '../Context'
 import chalk from 'chalk'
-import { join } from 'path'
 import { npm, yarn } from 'global-dirs'
+import { join } from 'path'
+import { context } from '../Context'
+import { ContentScript } from './Script'
 
 /**
  * Load external modules or javascript code

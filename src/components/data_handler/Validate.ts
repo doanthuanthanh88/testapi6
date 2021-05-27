@@ -1,7 +1,7 @@
+import chai from 'chai';
+import chalk from 'chalk';
+import { context } from '../../Context';
 import { Tag } from "../Tag";
-import chalk from 'chalk'
-import chai from 'chai'
-import { context } from '../../Context'
 
 /**
  * Validate data (system, chaijs, user customize, user customize base on chaijs)

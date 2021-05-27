@@ -1,7 +1,7 @@
+import { createReadStream } from 'fs'
 import { Type } from 'js-yaml'
-import { createReadStream, } from 'fs'
-import { Testcase } from '../Testcase'
 import { ReadStream } from 'tty'
+import { Testcase } from '../Testcase'
 
 export const upload = new Type('!upload', {
   kind: 'scalar',

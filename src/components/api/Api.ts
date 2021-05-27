@@ -1,20 +1,19 @@
-import { Tag } from "../Tag"
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, CancelTokenSource } from 'axios'
-import { merge, pick } from 'lodash'
-import { stringify } from 'querystring'
-import { Testcase } from "../Testcase"
 import chalk from 'chalk'
-import { Validate } from "../data_handler/Validate"
+import { CurlGenerator } from "curl-generator"
 import FormData from 'form-data'
-import { URLSearchParams } from "url"
-import pako from 'pako'
-import { context } from '../../Context'
-import { Wrk, IWrk } from "../benchmark/Wrk"
-import { Operation } from "../doc/OpenAPI3"
 import { createWriteStream } from "fs"
+import { merge, pick } from 'lodash'
+import pako from 'pako'
+import { parse, stringify } from 'querystring'
+import { URLSearchParams } from "url"
+import { context } from '../../Context'
+import { IWrk, Wrk } from "../benchmark/Wrk"
+import { Validate } from "../data_handler/Validate"
+import { Operation } from "../doc/OpenAPI3"
+import { Tag } from "../Tag"
+import { Testcase } from "../Testcase"
 import { CURLParser } from './CUrlParser'
-import { CurlGenerator } from "curl-generator";
-import { parse } from 'querystring'
 
 context
   .on('log:api:begin', (api: Api) => {
@@ -33,8 +32,6 @@ context
         context.log('  %s %s \t %s', chalk.green('☑'), chalk.magenta(api.title), chalk.gray.underline(`${api.method} ${api._axiosData.fullUrl}`))
       }
     }
-  })
-  .on('log:api:end', (api: Api) => {
     if (api.debug === 'curl') {
       context.group('')
       context.log(`${chalk.green('⬤')} ${chalk.gray.underline('%s')}`, api.toCUrl())
@@ -44,6 +41,8 @@ context
       api.logDetails()
       context.groupEnd()
     }
+  })
+  .on('log:api:end', (api: Api) => {
     if (api.debug === true || api.error) {
       context.group('')
       context.log(`${chalk.red('⬤')} ${chalk.underline.gray('%s')}`, api.toTestLink())
@@ -251,19 +250,19 @@ export class Api extends Tag {
 
   constructor(attrs: Api) {
     super(attrs)
+    merge(this, merge({ headers: {} }, this))
     if (this.curl) {
       const meta = CURLParser.parse(this.curl)
-      const { method, url, headers, query, body } = meta
-      merge(attrs, {
+      const { method, url, headers, query, body, baseURL } = meta
+      merge(this, merge({
         method: method.toUpperCase(),
+        baseURL,
         url: url.replace(/["']/g, ''),
         headers: headers,
         body: body?.data,
         query: query
-      })
-      merge(this, attrs)
+      }, this))
     }
-    merge(this, merge({ headers: {} }, this))
     if (this.benchmark?.wrk) {
       this._benchmark = new Wrk(this.benchmark?.wrk)
     }

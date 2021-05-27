@@ -1,11 +1,11 @@
-import { Group } from '@/components/Group'
-import { merge, omit, pick } from 'lodash'
 import { Api } from '@/components/api/Api'
+import { Group } from '@/components/Group'
 import { replaceVars } from '@/components/Tag'
-import chalk from 'chalk'
-import { context } from '../Context'
-import { join, resolve } from 'path'
 import { loadConfig } from '@/config'
+import chalk from 'chalk'
+import { merge, omit, pick } from 'lodash'
+import { join, resolve } from 'path'
+import { context } from '../Context'
 
 context
   .on('log:testcase:begin', (e: Testcase) => {

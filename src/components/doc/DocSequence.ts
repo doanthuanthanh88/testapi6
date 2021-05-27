@@ -1,11 +1,11 @@
-import { createInterface } from 'readline'
-import { createReadStream, readdirSync, statSync, createWriteStream, WriteStream } from 'fs'
+import chalk from 'chalk'
+import { createReadStream, createWriteStream, readdirSync, statSync, WriteStream } from 'fs'
+import { cloneDeep } from 'lodash'
 import { join } from 'path'
+import { createInterface } from 'readline'
+import { context } from "../../Context"
 import { Tag } from '../Tag'
 import { Testcase } from '../Testcase'
-import { context } from "../../Context";
-import chalk from 'chalk'
-import { cloneDeep } from 'lodash'
 
 class Group {
   static all = {}
