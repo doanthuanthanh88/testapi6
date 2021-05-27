@@ -48,8 +48,9 @@ export async function Import(arrs: any[], tc: Testcase) {
 }
 
 export abstract class Tag {
+  static Cached = new Map<string, Tag>()
   $$: Tag
-  id: number
+  id: string
   tc: Testcase
   error: any
   tagName: string

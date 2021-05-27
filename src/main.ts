@@ -9,6 +9,7 @@ import { basename, dirname, join, resolve } from 'path';
 import { SCHEMA } from "./components";
 import { Api } from "./components/api/Api";
 import { includeComment, loadContent } from "./components/Import";
+import { Tag } from './components/Tag';
 import { Templates } from "./components/Templates";
 import { Testcase } from "./components/Testcase";
 import { context } from "./Context";
@@ -48,6 +49,7 @@ export async function load(inp: InputYamlFile | InputYamlText, decryptPassword?:
   Testcase.RootDir = dirname(yamlFile)
   Templates.Templates = new Map()
   Testcase.APIs = []
+  Tag.Cached.clear()
   Api.Index = 0
 
   let content: string
