@@ -44,6 +44,7 @@ export class Wrk extends Exec {
   bodyData: string
   saveTo?: string
   info?: any
+  // @ts-ignore
   $$: Api
 
   constructor(attrs: IWrk) {

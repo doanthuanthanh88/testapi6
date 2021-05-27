@@ -18,8 +18,6 @@ import { Api, Method } from "./Api";
  * ```
  */
 export class Delete extends Api {
-  /** @ignore */
-  body: any
 
   constructor(attrs: any) {
     super({ ...attrs, method: Method.DELETE })

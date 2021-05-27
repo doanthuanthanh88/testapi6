@@ -19,6 +19,7 @@ import { Api, Method } from "./Api";
  * ```
  */
 export class Post extends Api {
+
   constructor(attrs: any) {
     super({ ...attrs, method: Method.POST })
   }

@@ -20,8 +20,6 @@ import { Api, Method } from "./Api";
  * ```
  */
 export class Get extends Api {
-  /** @ignore */
-  body: any
 
   constructor(attrs: any) {
     super({ ...attrs, method: Method.GET })

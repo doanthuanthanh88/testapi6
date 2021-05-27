@@ -21,6 +21,7 @@ import { Api, Method } from "./Api";
  * ```
  */
 export class Patch extends Api {
+
   constructor(attrs: any) {
     super({ ...attrs, method: Method.PATCH })
   }
