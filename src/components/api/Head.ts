@@ -19,7 +19,7 @@ import { Api, Method } from "./Api";
  */
 export class Head extends Api {
 
-  constructor(attrs: any) {
-    super({ ...attrs, method: Method.HEAD })
+  init(attrs: any) {
+    super.init({ ...attrs, method: Method.HEAD })
   }
 }

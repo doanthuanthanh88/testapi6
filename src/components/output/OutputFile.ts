@@ -23,10 +23,6 @@ export class OutputFile extends Tag {
   /** Output file to save */
   saveTo: string
 
-  constructor(attrs) {
-    super(attrs)
-  }
-
   async prepare() {
     await super.prepare()
     this.saveTo = Testcase.getPathFromRoot(this.saveTo)

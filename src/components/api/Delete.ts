@@ -19,7 +19,7 @@ import { Api, Method } from "./Api";
  */
 export class Delete extends Api {
 
-  constructor(attrs: any) {
-    super({ ...attrs, method: Method.DELETE })
+  init(attrs: any) {
+    super.init({ ...attrs, method: Method.DELETE })
   }
 }

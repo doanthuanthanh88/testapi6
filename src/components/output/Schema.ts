@@ -19,8 +19,8 @@ import { Tag } from "../Tag";
 export class Schema extends Tag {
   msg: any
 
-  constructor(attrs) {
-    super(attrs, 'msg')
+  init(attrs: any) {
+    super.init(attrs, 'msg')
   }
 
   async exec() {

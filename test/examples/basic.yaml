@@ -1,7 +1,11 @@
-
 templates:
-  # Includes: ./constant.yaml
+# Includes: ./constant.yaml
 steps:
+  - Vars:
+      c: 10
+      b: ${c}
+      a: ${b}
+  - Echo: Hello ${a}
   - Api:
       <-: user-base
       debug: details

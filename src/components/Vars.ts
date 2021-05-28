@@ -16,10 +16,6 @@ import { Tag } from "./Tag";
 export class Vars extends Tag {
   [key: string]: any
 
-  constructor(attrs) {
-    super(attrs)
-  }
-
   prepare() {
     for (let k in omit(this, ['$$', 'tc', 'context'])) {
       context.Vars[k] = this.replaceVars(this[k], { ...context.Vars, Vars: context.Vars, $: this, $$: this.$$, Utils: context.Utils, Result: context.Result })

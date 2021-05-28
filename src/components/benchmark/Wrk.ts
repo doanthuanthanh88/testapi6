@@ -47,8 +47,8 @@ export class Wrk extends Exec {
   // @ts-ignore
   $$: Api
 
-  constructor(attrs: IWrk) {
-    super(attrs)
+  init(attrs: IWrk) {
+    super.init(attrs)
     this.args = ['wrk']
   }
 

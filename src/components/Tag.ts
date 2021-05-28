@@ -19,7 +19,8 @@ export async function Import(arrs: any[], tc: Testcase) {
             throw new Error(`Could not found the tag "${tagName}"`)
           }
         }
-        let tag = new TagClass(t[tagName]) as Tag
+        let tag = new TagClass() as Tag
+        tag.init(t[tagName])
         let _tag = await tag.setup(tc, t[tagName])
         if (_tag) tag = _tag
         if (tag.preload) {
@@ -72,7 +73,7 @@ export abstract class Tag {
   /** Step title */
   title: string
 
-  constructor(attrs: any, attrName?: string) {
+  init(attrs: any, attrName?: string) {
     const base = { '<--': [], '-->': [], tagName: this.constructor.name }
     if (attrName) {
       attrs = typeof attrs === 'object' ? attrs : { [attrName]: attrs }
@@ -160,12 +161,12 @@ function _replaceVars(obj: any, context = {}, ignores = []) {
         if (k !== _k) delete obj[_k]
       }
     }
-  } else if (typeof obj === 'string') {
-    if (obj.includes('${')) {
-      const rs = Replacement.getValue(obj, context)
-      return rs
-      // obj = getValue(obj, context)
-    }
+  } else if (typeof obj === 'string' && obj.includes('${')) {
+    let rs = obj
+    do {
+      rs = Replacement.getValue(rs, context)
+    } while (typeof rs === 'string' && rs.includes('${'))
+    return rs
   }
   return obj
 }

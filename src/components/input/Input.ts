@@ -28,8 +28,8 @@ export class Input extends Tag {
   /** Allow user pick some in the list which we expected */
   choices?: { title: string, value: any }[]
 
-  constructor(attrs) {
-    super(attrs)
+  init(attrs: any) {
+    super.init(attrs)
   }
 
   stop() {

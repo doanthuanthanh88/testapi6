@@ -43,10 +43,6 @@ export class DocSwagger extends OutputFile {
   /** Overide OpenAPI properties which system generated */
   raw: OpenAPI
 
-  constructor(attrs: DocSwagger) {
-    super(attrs)
-  }
-
   async exec() {
     const self = this
     const cnt = merge({

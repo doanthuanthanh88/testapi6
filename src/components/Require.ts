@@ -49,10 +49,6 @@ export class Require extends Tag {
    * */
   code: ContentScript
 
-  constructor(attrs: Require) {
-    super(attrs)
-  }
-
   async exec() {
     if (this.modules) {
       context.group('Installed external libraries')

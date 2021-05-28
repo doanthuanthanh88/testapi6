@@ -1,6 +1,5 @@
 import { context } from "@/Context";
 import Chai from 'chai';
-import { ContentScript } from "./Script";
 import { Tag } from "./Tag";
 
 /**
@@ -69,8 +68,8 @@ import { Tag } from "./Tag";
  * ```
  */
 export class Validator extends Tag {
-  constructor(_attrs: { [name: string]: ContentScript }) {
-    super(undefined)
+  init() {
+    super.init(undefined)
   }
 
   setup(_, attrs = {}) {

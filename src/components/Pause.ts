@@ -20,8 +20,8 @@ export class Pause extends Tag {
   _rl: any
   _tm: any
 
-  constructor(attrs: number | Pause) {
-    super(attrs, 'time')
+  init(attrs: any) {
+    super.init(attrs, 'time')
   }
 
   async prepare() {

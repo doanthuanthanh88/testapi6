@@ -248,8 +248,8 @@ export class Api extends Tag {
   _benchmark?: Wrk
   isRunBenchmark: boolean
 
-  constructor(attrs: Api) {
-    super(attrs)
+  init(attrs: Api) {
+    super.init(attrs)
     merge(this, merge({ headers: {} }, this))
     if (this.curl) {
       const meta = CURLParser.parse(this.curl)
@@ -264,7 +264,8 @@ export class Api extends Tag {
       }, this))
     }
     if (this.benchmark?.wrk) {
-      this._benchmark = new Wrk(this.benchmark?.wrk)
+      this._benchmark = new Wrk()
+      this._benchmark.init(this.benchmark?.wrk)
     }
     if (!this.baseURL) this.baseURL = ''
     if (!this.url) this.url = ''
@@ -282,20 +283,23 @@ export class Api extends Tag {
     this.params = this.$url.toParams()
     if (this.validate) {
       this.validate = this.validate.filter(v => v).map(v => {
+        let vl = new Validate()
         if (v['Status']) {
-          return new Validate({
+          vl.init({
             title: 'Response status',
             func: Array.isArray(v['Status']) ? 'in' : 'match',
             args: ['${$.response.status}', v['Status']]
           })
         } else if (v['StatusText']) {
-          return new Validate({
+          vl.init({
             title: 'Response status text',
             func: 'match',
             args: ['${$.response.statusText}', v['StatusText']]
           })
+        } else {
+          vl.init(undefined)
         }
-        return new Validate(v)
+        return vl
       })
     }
     if (this._benchmark) {

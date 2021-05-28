@@ -21,7 +21,7 @@ import { Api, Method } from "./Api";
  */
 export class Get extends Api {
 
-  constructor(attrs: any) {
-    super({ ...attrs, method: Method.GET })
+  init(attrs: any) {
+    super.init({ ...attrs, method: Method.GET })
   }
 }

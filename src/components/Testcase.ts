@@ -99,7 +99,8 @@ export class Testcase {
     const g = omit(root, ['title', 'version', 'servers', 'developer', 'debug', 'description', 'vars', 'group', 'encryptPassword'])
     merge(this, { title: '', version: '', description: '', servers: {}, endpoints: {} }, t)
     merge(context.Vars, replaceVars(root.vars))
-    this.group = new Group(g)
+    this.group = new Group()
+    this.group.init(g)
     this.group.tagName = 'Root'
     this.group.tc = this
     if (root.script) eval(root.script)

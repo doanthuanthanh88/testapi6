@@ -13,9 +13,6 @@ import { Tag } from "../Tag";
  * ```
  */
 export class Clear extends Tag {
-  constructor() {
-    super(undefined)
-  }
 
   async exec() {
     context.clear()

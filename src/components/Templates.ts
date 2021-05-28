@@ -4,9 +4,9 @@ export class Templates extends Tag {
   static Templates = new Map<string, Tag>()
   templates: any[]
 
-  constructor(attrs: any[]) {
-    super(undefined)
+  init(attrs: any) {
     this.templates = attrs
+    super.init(undefined)
   }
 
   async setup() {

@@ -33,10 +33,6 @@ export class DocMarkdown extends OutputFile {
     servers: { [env: string]: string }
   }
 
-  constructor(attrs) {
-    super(attrs)
-  }
-
   async exec() {
     let menu = []
     this.raw = merge({}, this.tc, this.raw)

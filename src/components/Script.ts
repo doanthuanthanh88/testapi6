@@ -29,8 +29,8 @@ export type ContentScript = string
 export class Script extends Tag {
   content: ContentScript
 
-  constructor(attrs: string | ContentScript) {
-    super(attrs, 'content')
+  init(attrs: any) {
+    super.init(attrs, 'content')
   }
 
   prepare(scope: any) {

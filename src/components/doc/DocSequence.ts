@@ -59,8 +59,8 @@ export class DocSequence extends Tag {
 
   private group: Group[]
 
-  constructor(attrs: DocSequence) {
-    super(attrs)
+  init(attrs: any) {
+    super.init(attrs)
     if (!this.excludes) this.excludes = ['node_modules']
     if (!this.ext) this.ext = ['.ts', '.js', '.go', '.py', '.yaml', '.java']
     if (!Array.isArray(attrs.src)) this.src = [attrs.src]
@@ -182,7 +182,7 @@ export class DocSequence extends Tag {
             tag: m[1]
           })
         } else {
-          m = line.match(/\- ([\w\$]+)\s*([x\->=<\)\(]+)?\s*([\w\$]*)?:(.*)/i)     // - Service -> UserService: Get something here
+          m = line.match(/\- ([\w\$]+)\s*([x\->=<x\)\(]+)?\s*([\w\$]*)?:(.*)/i)     // - Service -> UserService: Get something here
           if (m) {
             m[1] = m[1]?.trim()
             m[2] = m[2]?.trim()

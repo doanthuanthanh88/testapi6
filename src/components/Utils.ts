@@ -1,5 +1,4 @@
 import { context } from "@/Context";
-import { ContentScript } from "./Script";
 import { Tag } from "./Tag";
 
 /**
@@ -25,8 +24,9 @@ import { Tag } from "./Tag";
  * ```
  */
 export class Utils extends Tag {
-  constructor(_attrs: { [name: string]: ContentScript }) {
-    super(undefined)
+
+  init() {
+    super.init(undefined)
   }
 
   setup(_, attrs = {}) {

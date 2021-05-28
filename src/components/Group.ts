@@ -48,8 +48,8 @@ export class Group extends Tag {
   _shadow: this
   _isStop: boolean
 
-  constructor(attrs) {
-    super(attrs)
+  init(attrs: any) {
+    super.init(attrs)
   }
 
   stop() {

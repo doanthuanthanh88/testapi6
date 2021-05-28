@@ -30,8 +30,8 @@ export class Load extends Tag {
    */
   file: string
 
-  constructor(attrs: any) {
-    super(attrs)
+  init(attrs: any) {
+    super.init(attrs)
   }
 
   exec() {

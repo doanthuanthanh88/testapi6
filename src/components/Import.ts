@@ -82,8 +82,8 @@ export class Import extends Tag {
   /** Absolute or relative path of file */
   src: string
 
-  constructor(attrs: string | Tag) {
-    super(attrs, 'src')
+  init(attrs: any) {
+    super.init(attrs, 'src')
   }
 
   async exec() { }

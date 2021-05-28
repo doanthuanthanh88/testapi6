@@ -24,8 +24,8 @@ export class Exec extends Tag {
   log: string[]
   prc: ChildProcessWithoutNullStreams
 
-  constructor(attrs) {
-    super(attrs)
+  init(attrs) {
+    super.init(attrs)
     if (this.var) this.log = []
   }
 

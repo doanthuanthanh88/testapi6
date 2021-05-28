@@ -63,15 +63,16 @@ export async function load(inp: InputYamlFile | InputYamlText, decryptPassword?:
   } else {
     throw new Error('Wrong input')
   }
-  root.decryptPassword = decryptPassword
   if (Array.isArray(root)) {
     root = {
       title: basename(yamlFile),
       description: yamlFile,
+      decryptPassword,
       steps: root
     }
   }
   if (root.steps) root.steps = flatten(root.steps)
+  if (decryptPassword) root.decryptPassword = decryptPassword
   return new Testcase(root)
 }
 
