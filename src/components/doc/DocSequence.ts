@@ -1,103 +1,125 @@
 import chalk from 'chalk'
-import { createReadStream, createWriteStream, readdirSync, statSync, WriteStream } from 'fs'
+import { createReadStream, createWriteStream, readdirSync, statSync } from 'fs'
 import { cloneDeep } from 'lodash'
-import { join } from 'path'
-import { createInterface } from 'readline'
+import { extname, join } from 'path'
+import * as readline from 'readline'
 import { context } from "../../Context"
 import { Tag } from '../Tag'
 import { Testcase } from '../Testcase'
+/**
+ * Example
+    /// box rgb(0, 255, 0)
+    ///   loop
+    ///     print all
+    ///       print data
 
-class Group {
-  static all = {}
-  args: string
-  tab: string
+    /// parallel 
+    ///   get user
+    ///     {} ->> {UserCore}: Get user information
+    ///   get relation
+    ///     {} ->> {Relation}: Get user relation
+
+    /// if a
+    ///   {} ->> {}: Do a
+    /// else b
+    ///   {} ->> {}: Do b
+    /// else
+    ///   note right of {redis}: Hello you
+    ///   {} ->> {}: Do c
+ */
+
+class Comment {
+  static Comments = new Map<string, Comment>()
+  root: DocSequence
+  key: string
+  childs: Array<Comment | any>
+  runnable: boolean
+  refs: boolean
   ctx: string
+  cmd: string
+  startC: number
+  parent: Comment
 
-  push(_k) {
-    // console.log('push', _k)
-    this.tab += '  '
-  }
-
-  pop(_k) {
-    // console.log('pop', _k)
-    this.tab = this.tab.replace(/\s\s/, '')
-  }
-
-  steps: {
-    tab?: string
-    key?: string
-    des?: string
-    log?: string
-    ref?: string
-    ctx?: string
-    group?: Group,
-    tag?: string
-    args?: string
-  }[]
-
-  constructor(public ns: string, public key: string, public name: string, public isHead = false) {
-    this.steps = []
-    if (this.ns) this.ns += '.'
-    this.key = this.ns + this.key
-    this.tab = ''
-  }
-}
-
-export class DocSequence extends Tag {
-  static all = {}
-  static steps = []
-  /** Not scan in these paths */
-  excludes?: string[]
-  /** Only scan file with the extensions */
-  ext?: string[]
-  /** Root path to scan */
-  src: string[]
-  /** Export sequence diagram to this path */
-  saveTo: string
-  auto: boolean
-  private runSomeCases: string[]
-
-  private group: Group[]
-
-  init(attrs: any) {
-    super.init(attrs)
-    if (!this.excludes) this.excludes = ['node_modules']
-    if (!this.ext) this.ext = ['.ts', '.js', '.go', '.py', '.yaml', '.java']
-    if (!Array.isArray(attrs.src)) this.src = [attrs.src]
-    this.src = this.src.map(src => Testcase.getPathFromRoot(src))
-    if (this.saveTo) {
-      this.saveTo = Testcase.getPathFromRoot(this.saveTo)
+  static getType(name: string) {
+    const m = name.match(/^(if|else|loop|parallel|box)(\s+(.+))?/i)
+    if (m) {
+      const clazz = (m[1] || '').trim().toUpperCase()
+      switch (clazz) {
+        case 'LOOP':
+          return LOOP
+        case 'IF':
+          return IF
+        case 'ELSE':
+          return ELSE
+        case 'BOX':
+          return BOX
+        case 'PARALLEL':
+          return PARALLEL
+      }
     }
-    if (!this.title) this.title = 'Comment tracer'
-    this.runSomeCases = []
+    return Comment
   }
 
-  handleCommentFile(f: string) {
-    let pattern = /\/\/\s+([\+\-#><]+\s*(.*))/i
-    if (f.endsWith('.py')) {
-      // python
-      pattern = /#\s+([\+\-#><]+\s*(.+))/i
-    }
-    return {
-      getMatch(line) {
-        return line.match(pattern)
+  constructor(public name: string, startC: number) {
+    this.startC = startC
+    this.childs = []
+  }
+
+  init(isRoot: boolean) {
+    let m = this.name.match(/^\[(.*?)\]\s*(\{([^\}]+)\})?(.*)/)
+    if (m) {
+      this.key = m[1].trim()
+      const ctx = m[3]?.trim()
+      if (ctx) this.ctx = ctx
+      this.name = m[4].trim()
+      if (isRoot) {
+        if (this.key) {
+          Comment.Comments.set(this.key, this)
+        } else {
+          this.runnable = true
+        }
+      } else {
+        this.refs = true
+      }
+    } else {
+      m = this.name.match(/^(if|else|loop|parallel|box)(\s+(.+))?/i)
+      if (m) {
+        this.cmd = (m[1] || '').trim().toUpperCase()
+        this.name = (m[3] || '').trim()
       }
     }
   }
 
-  format(txt: string) {
-    return this.mmdSequence(txt)
-  }
-
-  preText(txt: string, g: any) {
-    return txt?.replace(/\$this/g, g.ctx || 'IMPOSSIBLE_ERROR')
-  }
-
-  preFileText(txt: string, g: any) {
-    return this.preText(txt, g)?.replace(/\n/g, '<br/>')
-  }
-
   mmdSequence(txt: string) {
+    if (/^note [^:]+:(.+)/i.test(txt)) {
+      txt = txt
+    }
+    const m = txt.match(/\s*(.*?)\s(->|<-|=>|<=|x>|<x|>|<)\s(.*?):(.*)/i)     // - Service -> UserService: Get something here
+    if (m) {
+      m[1] = m[1]?.trim()
+      m[2] = m[2]?.trim()
+      m[3] = m[3]?.trim()
+      m[4] = m[4]?.trim()
+      if (m[2] === '->') {
+        txt = `${m[1]} --) ${m[3]}: ${m[4]}`
+      } else if (m[2] === '<-') {
+        txt = `${m[1]} (- ${m[3]}: ${m[4]}`
+      } else if (m[2] === '>') {
+        txt = `${m[1]} ->> ${m[3]}: ${m[4]}`
+      } else if (m[2] === '<') {
+        txt = `${m[1]} <<-- ${m[3]}: ${m[4]}`
+      } else if (m[2] === '=>') {
+        txt = `${m[1]} ->> ${m[3]}: ${m[4]}`
+      } else if (m[2] === '<=') {
+        txt = `${m[1]} <<-- ${m[3]}: ${m[4]}`
+      } else if (m[2] === 'x>') {
+        txt = `${m[1]} -x ${m[3]}: ${m[4]}`
+      } else if (m[2] === '<x') {
+        txt = `${m[1]} x-- ${m[3]}: ${m[4]}`
+      }
+    } else if (!/(\{[\w\$]*\})\s*([x\->=<x\)\(]+)?\s*(\{[\w\$]*\})?:(.*)/i.test(txt)) {
+      return `{${this.ctx}} ->> {${this.ctx}}: ${txt}`
+    }
     if (txt?.includes('<<--')) {
       txt = txt.replace(/\s*(.*?)\s*<<--\s*(.*?)\s*:\s*(.*)/, '$2 -->> $1 : $3')
     } else if (txt?.includes('<<-')) {
@@ -106,298 +128,358 @@ export class DocSequence extends Tag {
       txt = txt.replace(/\s*(.*?)\s*\(--\s*(.*?)\s*:\s*(.*)/, '$2 --) $1 : $3')
     } else if (txt?.includes('(-')) {
       txt = txt.replace(/\s*(.*?)\s*\(-\s*(.*?)\s*:\s*(.*)/, '$2 -) $1 : $3')
+    } else if (txt?.includes('x--')) {
+      txt = txt.replace(/\s*(.*?)\s*x--\s*(.*?)\s*:\s*(.*)/, '$2 --x $1 : $3')
+    } else if (txt?.includes('x-')) {
+      txt = txt.replace(/\s*(.*?)\s*x-\s*(.*?)\s*:\s*(.*)/, '$2 -x $1 : $3')
     }
-    return txt
+    return txt?.replace(/\{\}/, `{${this.ctx || 'IMPOSSIBLE_ERROR'}}`)
+  }
+
+  prePrint(writer, _i: number, _tab: string, mtab: string): string {
+    if (!this.name) {
+      if (this.key) {
+        writer.write(`${mtab}%% ${this.key}\r\n`)
+      } else {
+        writer.write(`${mtab}%% ${this.cmd || 'COMMENT'}\r\n`)
+      }
+    }
+    if (this.name && this.childs.length) {
+      return `ALT ${this.name}`
+    }
+    return ''
+  }
+
+  postPrint(_writer, _i: number, _tab: string, _mtab: string): string {
+    if (this.name && this.childs.length) {
+      return `END`
+    }
+    return ''
+  }
+
+  getPrint(_writer, _i: number, _tab: string, _mtab: string): string {
+    if (this.childs.length) {
+      return ''
+    }
+    return this.mmdSequence(this.name)
+  }
+
+  getLevel(newOne: Comment) {
+    const i = this.startC - newOne.startC
+    return i > 0 ? 'child' : i < 0 ? 'parent' : 'same'
+  }
+
+  prepare() {
+    this.childs = this.childs.reduce((sum, child) => {
+      if (child.refs) {
+        const newOne = cloneDeep(Comment.Comments.get(child.key))
+        newOne.refs = false
+        newOne.parent = this
+        newOne.ctx = child.ctx
+        newOne.startC = child.startC
+        if (child.name) newOne.name = child.name
+        newOne.prepare()
+        sum.push(newOne)
+      } else {
+        child.prepare()
+        sum.push(child)
+      }
+      return sum
+    }, [])
+  }
+
+  printChild(writer, _i: number, tab = '|-', _mtab: string) {
+    this.childs.forEach((child: Comment, i: number) => {
+      child.print(writer, i, tab.replace(/-/g, ' ') + '|-')
+    })
+  }
+
+  printTagName() {
+    if (this.key) {
+      return `${chalk.magenta(this.name)}${this.name ? ' ' : ''}${chalk.italic.gray(`[${this.key}]`)}`
+    }
+    return this.childs.length ? chalk.magenta(this.name) : ''
+  }
+
+  print(writer, _i: number, tab = '|-') {
+    this.prepare()
+    const mtab = tab.replace(/\W/g, ' ')
+    let color = chalk.magenta
+    if (this.name.toLowerCase().startsWith('throw')) {
+      color = color.red
+    } else if (this.name.toLowerCase().startsWith('return')) {
+      color = color.magentaBright
+    } else if (this.name.toLowerCase().startsWith('response')) {
+      color = color.green
+    }
+
+    const tagName = this.printTagName()
+    if (tagName && !this.root.slient) context.log(chalk.gray(tab) + chalk.magenta(tagName))
+
+    const raw = this.name
+    const txt = this.getPrint(writer, _i, tab, mtab)
+    if (txt && !this.key && !this.root.slient) context.log(chalk.gray(tab) + color(raw))
+
+    const preText = this.prePrint(writer, _i, tab, mtab)
+    if (preText) writer?.write(mtab + preText + '\r\n')
+
+    if (txt) writer?.write(mtab + txt + '\r\n')
+
+    this.printChild(writer, _i, tab, mtab)
+
+    const postText = this.postPrint(writer, _i, tab, mtab)
+    if (postText) writer?.write(mtab + postText + '\r\n')
+  }
+}
+
+class PARALLEL extends Comment {
+
+  override prePrint() {
+    let name = this.name
+    if (!name && this.childs[0]?.childs.length && !this.childs[0].cmd) {
+      name = this.childs[0].name
+      this.childs[0].name = ''
+    }
+    return `PAR ${name}`
+  }
+
+  override postPrint() {
+    return 'END'
+  }
+
+  printChild(writer, _i: number, tab: string, mtab: string) {
+    this.childs.forEach((child: Comment, i: number) => {
+      if (i > 0) {
+        let name = ''
+        if (!child.cmd) {
+          name = child.name
+          child.name = ''
+        }
+        writer?.write(mtab + `AND ${name}` + '\r\n')
+      }
+      child.print(writer, i, tab.replace(/-/g, ' ') + '|-')
+    })
+  }
+
+}
+
+class LOOP extends Comment {
+
+  override prePrint() {
+    let name = this.name
+    if (!name && this.childs.length === 1 && !this.childs[0].cmd) {
+      name = this.childs[0].name
+      this.childs[0].name = ''
+    }
+    return `LOOP ${name}`
+  }
+
+  override postPrint() {
+    return 'END'
+  }
+
+  override printTagName() {
+    return `${chalk.blue('LOOP')} ${this.name}`
+  }
+
+}
+
+class BOX extends Comment {
+
+  override prePrint() {
+    return `RECT ${this.name}`
+  }
+
+  override postPrint() {
+    return 'END'
+  }
+
+  override printTagName() {
+    return `${chalk.blue('BOX')} ${this.name}`
+  }
+
+}
+
+class IF extends Comment {
+
+  override prePrint() {
+    return `ALT ${this.name}`
+  }
+
+  override postPrint(_writer, _i: number, _tab: string, _mtab: string) {
+    const idx = this.parent.childs.findIndex(child => child === this)
+    if (this.parent.childs[idx + 1] instanceof ELSE) {
+      return ''
+    }
+    return 'END'
+  }
+
+  override printTagName() {
+    return `${chalk.blue('IF')} ${this.name}`
+  }
+
+}
+
+class ELSE extends IF {
+
+  override prePrint() {
+    return `ELSE ${this.name}`
+  }
+
+  override printTagName() {
+    return `${chalk.blue('ELSE')} ${this.name}`
+  }
+
+}
+
+export class DocSequence extends Tag {
+  /** Not scan in these paths */
+  excludes?: string[]
+  /** Only scan file with the extensions */
+  ext?: string[]
+  /** Root path to scan */
+  src: string[]
+  /** Export sequence diagram to this path */
+  saveTo: string
+
+  private totalFiles = 0
+  private roots = [] as Comment[]
+
+  static readonly fileTypes = {
+    js: {
+      excludes: ['node_modules', 'dist'],
+      commentTag: '///'
+    },
+    ts: {
+      excludes: ['node_modules', 'dist'],
+      commentTag: '///'
+    },
+    go: {
+      excludes: [],
+      commentTag: '///'
+    },
+    java: {
+      excludes: ['bin', 'build'],
+      commentTag: '///'
+    },
+    py: {
+      excludes: ['__pycache__'],
+      commentTag: '###'
+    },
+    yaml: {
+      excludes: [],
+      commentTag: '###'
+    }
+  }
+
+  init(attrs: any) {
+    super.init(attrs)
+    if (!this.ext) this.ext = Object.keys(DocSequence.fileTypes).map(e => `.${e}`)
+    if (!this.excludes) this.excludes = ['node_modules']
+    if (!Array.isArray(attrs.src)) this.src = [attrs.src]
+    this.src = this.src.map(src => Testcase.getPathFromRoot(src))
+    if (this.saveTo) {
+      this.saveTo = Testcase.getPathFromRoot(this.saveTo)
+    }
+    if (!this.title) this.title = 'Comment sequence diagram'
   }
 
   async exec() {
     context.group(chalk.green(this.title, this.src.join(', ')))
+    context.group()
+    const begin = Date.now()
     await Promise.all(this.src.map(f => this.scan(f)))
-    this.group = this.done()
+    context.log()
+    context.log(`- Scaned ${this.totalFiles} files in ${Date.now() - begin}ms`)
+    context.log()
+    context.groupEnd()
     this.print()
     context.groupEnd()
   }
 
   async scan(folder: string) {
+    this.roots = []
     const f = statSync(folder)
     if (f.isFile()) {
-      if (!this.ext || this.ext.find(e => folder.endsWith(e))) {
-        await this._scan(folder)
+      if (!this.ext?.length || this.ext.includes(extname(folder))) {
+        this.totalFiles++
+        const file = folder
+        const roots = await this.readFileContent(file)
+        this.roots.push(...roots.filter(e => e.runnable))
       }
     } else if (f.isDirectory()) {
       if (!this.excludes || !this.excludes.find(e => folder.includes(e))) {
-        await Promise.all(readdirSync(folder).map(f => this.scan(join(folder, f))))
+        const folders = readdirSync(folder)
+        this.totalFiles += folders.length
+        await Promise.all(folders.map(f => this.scan(join(folder, f))))
       }
     }
   }
 
-  private handleMMDSequence(line: string, group: Group, args: string, i: number) {
-    let m = line.match(/\+ (IF|LOOP|PARALLEL|ALT|PAR)[:\s]*(.*)/)     // [+ if] Name is string
-    if (m) {
-      // ref
-      m[1] = m[1]?.trim()
-      const key = m[1] === 'IF' ? 'ALT' : m[1] === 'PARALLEL' ? 'PAR' : m[1]
-      group.steps.push({
-        args,
-        tab: group.tab,
-        des: key + ' ' + m[2],
-        log: chalk.blue(m[1]) + ' ' + chalk.yellow(m[2]),
-        tag: 'if'
-      })
-      group.push('begin' + i + m[1])
-    } else {
-      m = line.match(/\+ (END_LOOP|END_IF|ELSE_IF|ELIF|AND|END_PARALLEL|END_PAR|ELSE|END)[:\s]*(.*)/)     // [+ else] Name is number
+  private async readFileContent(file: string) {
+    const fileStream = createReadStream(file);
+    const rl = readline.createInterface({
+      input: fileStream,
+      crlfDelay: Infinity
+    });
+    const roots = []
+    const fileType = DocSequence.fileTypes[extname(file).substr(1)]
+    if (!fileType) {
+      context.log(chalk.yellow(`- Not support file "${file}"`))
+      return roots
+    }
+    let cur: Comment
+    const pt = new RegExp(`^(\\s*)${fileType.commentTag}\\s?(\\s*)(.+)`, 'm')
+    let space = ''
+    for await (let line of rl) {
+      let m = line.match(pt)
       if (m) {
-        m[1] = m[1]?.trim()
-        m[2] = m[2]?.trim()
-        group.pop('end' + m[1])
-        const key = !m[1].includes('END') ? 'ELSE' : 'END'
-        group.steps.push({
-          args,
-          tab: group.tab,
-          des: key + ' ' + m[2],
-          log: chalk.blue(m[1]) + ' ' + chalk.yellow(m[2]),
-          tag: m[1]
-        })
-        if (key !== 'END') {
-          group.push(m[1] + i)
-        }
-      } else {
-        m = line.match(/\+ (NOTE_RIGHT|NOTE_LEFT|NOTE_OVER|NOTE)\s*([^\:]+)?[:\s]*(.*)/)     // [+ else] Name is number
-        if (m) {
-          m[1] = m[1]?.trim()
-          m[2] = m[2]?.trim()
-          m[3] = m[3]?.trim()
-          let key = ''
-          if (m[1] === 'NOTE') {
-            key = 'RIGHT OF ' + group.ctx
-          } else {
-            key = m[1] === 'NOTE_LEFT' ? 'LEFT OF' : m[1] === 'NOTE_RIGHT' ? 'RIGHT OF' : 'OVER'
-          }
-          group.steps.push({
-            args,
-            tab: group.tab,
-            des: 'NOTE ' + key + ' ' + (m[2] || '') + ': ' + m[3],
-            log: `${chalk.yellow.bold('NOTE')} ` + chalk.green(m[3]),
-            tag: m[1]
-          })
+        if (!space) space = m[1]
+        m[1] += (m[2] || '')
+        const startC = m[1].length
+        const cnt = m[3].trim()
+        const Clazz = Comment.getType(cnt) as typeof Comment
+        const newOne = new Clazz(cnt, startC)
+        newOne.root = this
+        if (!cur || newOne.startC === space.length) {
+          newOne.init(true)
+          if (!newOne.ctx) newOne.ctx = 'app'
+          cur = newOne
+          roots.push(newOne)
         } else {
-          m = line.match(/\- ([\w\$]+)\s*([x\->=<x\)\(]+)?\s*([\w\$]*)?:(.*)/i)     // - Service -> UserService: Get something here
-          if (m) {
-            m[1] = m[1]?.trim()
-            m[2] = m[2]?.trim()
-            m[3] = m[3]?.trim()
-            m[4] = m[4]?.trim()
-            let dir = '->>'
-            let isBack = false
-            if (m[2] === '->') {
-              dir = '-->>'
-            } else if (m[2] === '<-') {
-              dir = '<<--'
-              isBack = true
-            } else if (m[2] === '>') {
-              dir = '->>'
-            } else if (m[2] === '<') {
-              dir = '<<--'
-              isBack = true
-            } else if (m[2] === '=>') {
-              dir = '-)'
-            } else if (m[2] === '<=') {
-              dir = '(--'
-              isBack = true
-            } else if (m[2] === 'x>') {
-              dir = '-x'
-            } else if (m[2] === '<x') {
-              dir = '--x'
-              isBack = true
-            }
-            if (m[3]) {
-              group.steps.push({
-                args,
-                tab: group.tab,
-                des: `${m[1]} ${dir} ${m[3]}: ${m[4]}`,
-                log: `${chalk.magenta(m[1])} ${chalk[isBack ? 'red' : 'green'](m[2])} ${chalk.magenta(m[3])}: ${m[4]}`,
-                tag: ''
-              })
-            } else {
-              group.steps.push({
-                args,
-                tab: group.tab,
-                des: `${m[1]} ${dir} ${m[1]}: ${m[4]}`,
-                log: `${chalk.magenta(m[1])}: ${m[4]}`,
-                tag: ''
-              })
-            }
+          newOne.init(false)
+          const level = newOne.getLevel(cur)
+          if (level === 'child') {
+            newOne.parent = cur
+            newOne.ctx = newOne.parent.ctx
+            cur.childs.push(newOne)
+          } else if (level === 'parent') {
+            let parent = cur.parent
+            new Array((cur.startC - newOne.startC) / space.length).fill(null).forEach(() => {
+              parent = parent.parent
+            })
+            newOne.parent = parent
+            newOne.parent.childs.push(newOne)
+            newOne.ctx = newOne.parent.ctx
           } else {
-            m = line.match(/\-\s+(.+)/i)     // - Service -> UserService: Get something here
-            if (m) {
-              m[1] = m[1].trim()
-              if (m[1]) {
-                group.steps.push({
-                  args,
-                  tab: group.tab,
-                  des: `$this ->> $this: ${m[1]}`,
-                  log: `${chalk.magenta('$this')}: ${m[1]}`,
-                  tag: ''
-                })
-              }
-            }
+            newOne.parent = cur.parent
+            newOne.ctx = newOne.parent.ctx
+            cur.parent.childs.push(newOne)
           }
+          cur = newOne
         }
       }
     }
-    return !!m
-  }
-
-  private _scan(file: string) {
-    return new Promise((resolve, reject) => {
-      try {
-        const rl = createInterface({ input: createReadStream(file) });
-        let group: Group
-        let ns = ''
-        const commentType = this.handleCommentFile(file)
-        let i = 0
-        rl.on('line', (line) => {
-          i++
-          let m = commentType.getMatch(line)
-          if (!m || !m[1]) return
-          line = m[1].trim()
-          m = line.match(/^>\s?([^\$]*)(\$(\w+))?/i) // > functionName
-          if (m) {
-            // group
-            m[1] = m[1]?.trim()
-            m[3] = m[3]?.trim()
-            if (m[1]) {
-              if (group) throw new Error(`Not end function "${group.key}" yet`)
-              if (m[1][0] === '>') {            // >> startup functionName
-                m[1] = m[1].substr(1).trim()
-                const isRunIt = m[1][0] === '>'
-                if (isRunIt) {
-                  m[1] = m[1].substr(1).trim()
-                }
-                group = new Group(ns, m[1], '', true)
-                group.ctx = m[3]
-                // group.push('open' + i + m[1])
-                if (isRunIt) {
-                  this.runSomeCases.push(group.key)
-                }
-              } else {
-                group = new Group(ns, m[1], '')
-                // group.ctx = m[3]
-              }
-            } else {                            // > End function
-              // if (group.isHead) group.pop('close' + i + m[1])
-              if (DocSequence.all[group.key]) throw new Error(`Duplicate group ${group?.key}`)
-              DocSequence.all[group.key] = group
-              group = undefined
-            }
-          } else {
-            m = line.match(/^< ([^\(\$)]+)(\$(\w+))?(\(.*?\))?/i)     // [< functionName] Call functionName
-            if (m) {
-              // ref
-              m[1] = m[1]?.trim()
-              m[3] = m[3]?.trim()
-              m[4] = m[4]?.trim()
-              group.steps.push({
-                tab: group.tab,
-                des: '',
-                ctx: m[3],
-                args: m[4],
-                ref: m[1],
-                tag: '<'
-              })
-              // group.push(m[1])
-            } else {
-              m = line.match(/# (.+)/i)
-              if (m) {
-                ns = m[1].trim()
-              } else {
-                m = line.match(/([\+\-]) (\(\w+\))(.*)/i)
-                let ns = undefined
-                if (m) {
-                  ns = m[2].trim() || undefined
-                  line = `${m[1]} ${m[3].trim()}`
-                }
-                this.handleMMDSequence(line, group, ns, i)
-              }
-            }
-          }
-        })
-        rl.on('close', () => {
-          resolve(undefined)
-        })
-      } catch (err) {
-        reject(err)
-      }
-    })
-  }
-
-  private done() {
-    let heads: Group[] = Object.keys(DocSequence.all).map(k => DocSequence.all[k]).filter(e => e.isHead)
-    function applyRef(h: Group) {
-      h.steps
-        .filter(step => step.ref && !step.group)
-        .forEach(step => {
-          step.group = cloneDeep(DocSequence.all[step.ref] || DocSequence.all[h.ns + step.ref])
-          if (!step.group) {
-            throw new Error('Could not found ref ' + step.ref)
-          } else {
-            step.group.ctx = step.ctx
-            step.group.args = step.args
-            step.group.tab = step.tab + h.tab
-            step.group.steps = step.group.steps.filter(s => step.group.args === undefined || s.args === undefined || step.group.args === s.args)
-            step.group.steps.forEach(s => {
-              if (!s.ctx) s.ctx = step.group.ctx
-            })
-            applyRef(step.group)
-          }
-        })
-    }
-    if (this.runSomeCases.length) {
-      heads = heads.filter(g => this.runSomeCases.includes(g.key))
-    }
-    heads.forEach(applyRef)
-    return heads
+    return roots
   }
 
   print() {
-    const outGroup = (h: Group, writer: WriteStream, step: { des?: string, log?: string }, tab = '') => {
-      if (!h.ctx) h.ctx = 'Service'
-      const msg = this.preText(step?.log || h.name, h)
-      tab = tab + h.tab
-      if (msg) {
-        if (!this.slient) context.log(chalk.gray(tab.replace(/\s\s/g, '| ') + '▸ ') + msg)
-        if (writer) {
-          const msg = this.format(this.preFileText(step.des, h))
-          writer?.write(tab + msg + '\r\n')
-        }
-      } else {
-        writer?.write('\r\n' + tab + '  %% > ' + h.key + '\r\n')
-      }
-      h.steps?.forEach(step => {
-        if (step.group) {
-          if (!step.group.ctx) step.group.ctx = h.ctx
-          outGroup(step.group, writer, step, tab)
-        } else {
-          const tab1 = tab + '  ' + step.tab
-          if (!step.ctx) step.ctx = h.ctx
-          const msg = this.preText(step.log, step)
-          if (!this.slient) context.log(chalk.gray(tab1.replace(/\s\s/g, '| ') + '▸ ') + msg)
-          if (writer) {
-            const msg = this.format(this.preFileText(step.des, step))
-            writer.write(tab1 + msg + '\r\n')
-          }
-        }
-      })
-      writer?.write(tab + '  %% < ' + h.key + '\r\n\r\n')
-      // context.groupEnd()
-    }
-    this.group.forEach(g => {
-      const fileSave = this.saveTo ? join(this.saveTo, g.key.replace('$', '.') + '.mmd') : undefined
-      if (fileSave) context.log(`${chalk.bold[!this.runSomeCases.length ? 'green' : 'red']('- %s')} ${chalk.gray('%s')}`, g.key, fileSave)
+    this.roots.forEach(root => {
+      const fileSave = this.saveTo ? join(this.saveTo, root.name.replace(/\W/g, '_') + '.mmd') : undefined
+      if (fileSave) context.log(`${chalk.green('%s')}`, fileSave)
       const writer = fileSave ? createWriteStream(fileSave) : null
       writer?.write('sequenceDiagram\r\n')
-      outGroup(g, writer, undefined)
+      root.print(writer, 0, undefined)
       writer?.close()
       context.log()
     })

@@ -297,7 +297,7 @@ export class Api extends Tag {
             args: ['${$.response.statusText}', v['StatusText']]
           })
         } else {
-          vl.init(undefined)
+          vl.init(v)
         }
         return vl
       })

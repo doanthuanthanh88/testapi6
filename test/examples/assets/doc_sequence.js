@@ -1,97 +1,69 @@
-const EventEmitter = require("node:events")
+const EventEmitter = require("events")
+import { LogService } from './LogService'
 
-// # HttpUser
 class HttpUser {
-  
-  // > getUser
-  getUser(id) {
-    // + (admin) IF: admin
-    // - (admin) Only for admin cases
-    // + (admin) END_IF
 
-    // + (user) IF: user
-    // - (user) Only for user cases
-    // + (user) END_IF
+  /// [HttpUser.getUser]
+  async getUser(id, role) {
+    /// IF is admin
+    if (role === 'admin') {
+      /// print the role to screen
+      console.log('admin')
+    }
+    /// ELSE is not admin
+    else {
+      /// {} => {LogService}: Add log to server
+      await LogService.logToServer(id, role)
+    }
 
-    // + IF: user or admin
-    // - For all case
-    // + END_IF
+    /// LOOP in 10 times
+    for (let i = 0; i < 10; i++) {
+      /// print index to screen
+      console.log(i)
+    }
 
-    // + IF: id > 0
-    if (id > 0)    
-      // - Return {name}
-      return { name: 'thanh' }
-    // + ELSE: Return null         
-    return null           
-    // + END_IF      
   }
-  // >
-  
-  // > getCompany
-  getCompany() {
-    // - Service -> Redis: Hello
-    new EventEmitter().emit('redis', 'hello')    
-    // - Service => RabbitMQ: hello                 
-    new EventEmitter().emit('rabbitmq', 'hello') 
-    // - Kafka <= Service: HEllo              
-    new EventEmitter().emit('kafka', 'hello')    
+
+  /// [HttpUser.getCompany]
+  async getCompany() {
+    /// {} -> {Redis}: Publish hello
+    new EventEmitter().emit('redis', 'hello')
+    /// {} => {LogService}: Make a request to add log
+    await LogService.logToServer(1, 'fake_user')
+    /// {} <- {RabbitMQ}: Comsume event              
+    new EventEmitter().on('kafka', 'hello')
   }
-  // >
-  
-  // >> workerRun
+
+  // Run with context is worker
+  /// [workerRun]{Worker} Start a worker
   workerRun() {
-    // + LOOP: Forever
-    while(true) {
-      // - Log ok
-      console.log('ok') 
+    /// Loop infinity
+    while (true) {
+      /// Print ok to screen
+      console.log('ok')
     }
-    // + END_LOOP
-    
+
   }
-  // >
-  
-  // >>> userController
-  // - Client => Service: Add something
+
+  // Run with context is app
+  /// [] Begin write sequence diagram from here
   userController() {
-    // + PARALLEL: Run worker                            
-    // < workerRun
+    /// {Client} => {}: Request to run worker
+    /// [workerRun]
     this.workerRun()
-    // + END_PARALLEL
 
-    // + NOTE: Case ADMIN
-    // < getUser(admin)
-    const user = this.getUser('case admin')
+    /// note right of {Client}: Note client here
+    /// parallel
+    const [user, company] = await Promise.all([
+      /// [HttpUser.getUser] Get user
+      this.getUser('case admin'),
+      /// [HttpUser.getCompany] Get company
+      this.getCompany(),
+    ])
 
-    // + NOTE: Case USER
-    // < getUser(user)
-    const user = this.getUser('case user')         
+    /// {Client} <= {}: Response "OK"
+    return "OK"
 
-    // + NOTE: Case ADMIN & USER
-    // < getUser
-    const user = this.getUser('case all')  
-
-    // < getCompany
-    const company = this.getCompany()   
-    // + IF: Not user
-    if (!user) {                       
-      // - Log user 
-      console.log(user)                 
-      // + LOOP: i in 10
-      for (const i = 0; i < 10; i++) {  
-        // - Log i
-        console.log(i)                  
-      }                 
-      // + END_LOOP                
-    } else {                   
-      // + ELSE: return user         
-      return user                       
-    }
-    // + END_IF
-    // + NOTE: Here
   }
-  // - Client <= Service: Return user
-  // >
-  
-  
 
 }

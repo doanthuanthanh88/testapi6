@@ -1,8 +1,7 @@
 - DocSequence:
     title: Read log in file then generate to file (Support mermaid sequence diagram)
-    ext: ['.ts', '.js', '.go', '.py', '.yaml', '.java']
+    ext: [".ts", ".js", ".go", ".py", ".yaml", ".java"]
     excludes: ["node_modules"]
-    # slient: true
-    src: assets/
-    auto: true
+    slient: true
+    src: assets/doc_sequence.ts
     saveTo: assets
