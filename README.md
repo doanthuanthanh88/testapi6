@@ -9,6 +9,7 @@ Quick unit test and export document APIs base on scenario file (yaml)
 5. Easy to extends for specific project
 6. Load external library () and create tags by yourself
 7. Support run benchmark via wrk
+8. Auto generate sequence diagram from any file base on comment
 
 # External modules
 1. [Redis](https://github.com/doanthuanthanh88/testapi6-redis): _Execute redis commands_
