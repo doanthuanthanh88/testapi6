@@ -1,17 +1,18 @@
-# Should use extension "aaron-bond.better-comments" to change comment text color to make the source code more clearly
-# Copy these lines to settings.json to set color to comment line
-# "better-comments.tags": [
-#   {
-#     "tag": "/",
-#     "color": "#4a4a4a55",
-#     "color1": "#ff0000",
-#     "strikethrough": false,
-#     "underline": false,
-#     "backgroundColor": "transparent",
-#     "bold": false,
-#     "italic": true
-#   }
-# ]
+# 1. Should use the extension "aaron-bond.better-comments" to change comment text color to make the source code more clearly
+#   Copy these lines to settings.json to set color to comment line
+#   "better-comments.tags": [
+#     {
+#       "tag": "/",
+#       "color": "#4a4a4a55",
+#       "color1": "#ff0000",
+#       "strikethrough": false,
+#       "underline": false,
+#       "backgroundColor": "transparent",
+#       "bold": false,
+#       "italic": true
+#     }
+#   ]
+# 2. Use the extension "tomoyukim.vscode-mermaid-editor" to view sequence diagram on the result files
 
 - DocSequence:
     title: Read log in file then generate to file (Support mermaid sequence diagram)
