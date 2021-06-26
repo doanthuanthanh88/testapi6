@@ -364,11 +364,11 @@ export class DocSequence extends Tag {
     },
     py: {
       excludes: ['__pycache__'],
-      commentTag: '###'
+      commentTag: '#/'
     },
     yaml: {
       excludes: [],
-      commentTag: '###'
+      commentTag: '#/'
     }
   }
 
