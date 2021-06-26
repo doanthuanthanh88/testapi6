@@ -1,6 +1,5 @@
 import chalk from 'chalk'
 import { createReadStream, createWriteStream, readdirSync, statSync } from 'fs'
-import { cloneDeep } from 'lodash'
 import { extname, join } from 'path'
 import * as readline from 'readline'
 import { context } from "../../Context"
@@ -39,6 +38,10 @@ class Comment {
   cmd: string
   startC: number
   parent: Comment
+
+  clone() {
+    return Object.create(this, {})
+  }
 
   static getType(name: string) {
     const m = name.match(/^(if|else|loop|parallel|box)(\s+(.+))?/i)
@@ -93,55 +96,73 @@ class Comment {
   mmdSequence(txt: string) {
     if (/^note [^:]+:(.+)/i.test(txt)) {
       txt = txt
-    }
-    const m = txt.match(/\s*(.*?)\s(->|<-|=>|<=|x>|<x|>|<)\s(.*?):(.*)/i)     // - Service -> UserService: Get something here
-    if (m) {
-      m[1] = m[1]?.trim()
-      m[2] = m[2]?.trim()
-      m[3] = m[3]?.trim()
-      m[4] = m[4]?.trim()
-      if (m[2] === '->') {
-        txt = `${m[1]} --) ${m[3]}: ${m[4]}`
-      } else if (m[2] === '<-') {
-        txt = `${m[1]} (- ${m[3]}: ${m[4]}`
-      } else if (m[2] === '>') {
-        txt = `${m[1]} ->> ${m[3]}: ${m[4]}`
-      } else if (m[2] === '<') {
-        txt = `${m[1]} <<-- ${m[3]}: ${m[4]}`
-      } else if (m[2] === '=>') {
-        txt = `${m[1]} ->> ${m[3]}: ${m[4]}`
-      } else if (m[2] === '<=') {
-        txt = `${m[1]} <<-- ${m[3]}: ${m[4]}`
-      } else if (m[2] === 'x>') {
-        txt = `${m[1]} -x ${m[3]}: ${m[4]}`
-      } else if (m[2] === '<x') {
-        txt = `${m[1]} x-- ${m[3]}: ${m[4]}`
+    } else {
+      let m = txt.match(/\s*(.*?)\s*(->|<-|=>|<=|x>|<x|>|<)\s*(.*?):(.*)/i)
+      if (m) {
+        const [main, ...des] = txt.split(':')
+        txt = main.replace(/\{\}/g, `{${this.ctx || 'IMPOSSIBLE_ERROR'}}`) + ':' + des.join('')
+        m = txt.match(/\s*(.*?)\s*(->|<-|=>|<=|x>|<x|>|<)\s*(.*?):(.*)/i)
+
+        m[1] = m[1]?.trim()
+        m[2] = m[2]?.trim()
+        m[3] = m[3]?.trim()
+        m[4] = m[4]?.trim()
+        if (m[2] === '->') {
+          txt = `${m[1]} --) ${m[3]}: ${m[4]}`
+        } else if (m[2] === '<-') {
+          txt = `${m[1]} (- ${m[3]}: ${m[4]}`
+        } else if (m[2] === '>') {
+          txt = `${m[1]} ->> ${m[3]}: ${m[4]}`
+        } else if (m[2] === '<') {
+          txt = `${m[1]} <<-- ${m[3]}: ${m[4]}`
+        } else if (m[2] === '=>') {
+          txt = `${m[1]} ->> ${m[3]}: ${m[4]}`
+        } else if (m[2] === '<=') {
+          txt = `${m[1]} <<-- ${m[3]}: ${m[4]}`
+        } else if (m[2] === 'x>') {
+          txt = `${m[1]} -x ${m[3]}: ${m[4]}`
+        } else if (m[2] === '<x') {
+          txt = `${m[1]} x-- ${m[3]}: ${m[4]}`
+        }
+        // Parser actor
+        const action = m[2].trim()
+        const { label, dir } = Actor.getActioinName(action)
+        const actor1 = Actor.getActor(dir > 0 ? m[1].trim() : m[3].trim())
+        const actor2 = Actor.getActor(dir < 0 ? m[1].trim() : m[3].trim())
+
+        if (actor1.name !== actor2.name && actor1.name && actor2.name) {
+          if (!actor1.actions[actor2.name]) actor1.actions[actor2.name] = new Set()
+          actor1.actions[actor2.name].add(label)
+        }
+      } else {
+        txt = `{${this.ctx}} ->> {${this.ctx}}: ${txt}`
       }
-    } else if (!/(\{[\w\$]*\})\s*([x\->=<x\)\(]+)?\s*(\{[\w\$]*\})?:(.*)/i.test(txt)) {
-      return `{${this.ctx}} ->> {${this.ctx}}: ${txt}`
+      // else if (!/(\{[\w\$]*\})\s*(->|<-|=>|<=|x>|<x|>|<)?\s*(\{[\w\$]*\})?:(.*)/i.test(txt)) {
+      //   txt = `{${this.ctx}} > {${this.ctx}}: ${txt}`
+      // }
+      if (txt?.includes('<<--')) {
+        txt = txt.replace(/\s*(.*?)\s*<<--\s*(.*?)\s*:\s*(.*)/, '$2 -->> $1 : $3')
+      } else if (txt?.includes('<<-')) {
+        txt = txt.replace(/\s*(.*?)\s*<<-\s*(.*?)\s*:\s*(.*)/, '$2 ->> $1 : $3')
+      } else if (txt?.includes('(--')) {
+        txt = txt.replace(/\s*(.*?)\s*\(--\s*(.*?)\s*:\s*(.*)/, '$2 --) $1 : $3')
+      } else if (txt?.includes('(-')) {
+        txt = txt.replace(/\s*(.*?)\s*\(-\s*(.*?)\s*:\s*(.*)/, '$2 -) $1 : $3')
+      } else if (txt?.includes('x--')) {
+        txt = txt.replace(/\s*(.*?)\s*x--\s*(.*?)\s*:\s*(.*)/, '$2 --x $1 : $3')
+      } else if (txt?.includes('x-')) {
+        txt = txt.replace(/\s*(.*?)\s*x-\s*(.*?)\s*:\s*(.*)/, '$2 -x $1 : $3')
+      }
     }
-    if (txt?.includes('<<--')) {
-      txt = txt.replace(/\s*(.*?)\s*<<--\s*(.*?)\s*:\s*(.*)/, '$2 -->> $1 : $3')
-    } else if (txt?.includes('<<-')) {
-      txt = txt.replace(/\s*(.*?)\s*<<-\s*(.*?)\s*:\s*(.*)/, '$2 ->> $1 : $3')
-    } else if (txt?.includes('(--')) {
-      txt = txt.replace(/\s*(.*?)\s*\(--\s*(.*?)\s*:\s*(.*)/, '$2 --) $1 : $3')
-    } else if (txt?.includes('(-')) {
-      txt = txt.replace(/\s*(.*?)\s*\(-\s*(.*?)\s*:\s*(.*)/, '$2 -) $1 : $3')
-    } else if (txt?.includes('x--')) {
-      txt = txt.replace(/\s*(.*?)\s*x--\s*(.*?)\s*:\s*(.*)/, '$2 --x $1 : $3')
-    } else if (txt?.includes('x-')) {
-      txt = txt.replace(/\s*(.*?)\s*x-\s*(.*?)\s*:\s*(.*)/, '$2 -x $1 : $3')
-    }
-    return txt?.replace(/\{\}/, `{${this.ctx || 'IMPOSSIBLE_ERROR'}}`)
+    return txt
   }
 
   prePrint(writer, _i: number, _tab: string, mtab: string): string {
     if (!this.name) {
       if (this.key) {
-        writer.write(`${mtab}%% ${this.key}\r\n`)
+        writer?.write(`${mtab}%% ${this.key}\r\n`)
       } else {
-        writer.write(`${mtab}%% ${this.cmd || 'COMMENT'}\r\n`)
+        writer?.write(`${mtab}%% ${this.cmd || 'COMMENT'}\r\n`)
       }
     }
     if (this.name && this.childs.length) {
@@ -172,7 +193,8 @@ class Comment {
   prepare() {
     this.childs = this.childs.reduce((sum, child) => {
       if (child.refs) {
-        const newOne = cloneDeep(Comment.Comments.get(child.key))
+        // const newOne = cloneDeep(Comment.Comments.get(child.key))
+        const newOne = Comment.Comments.get(child.key).clone()
         newOne.refs = false
         newOne.parent = this
         newOne.ctx = child.ctx
@@ -205,11 +227,12 @@ class Comment {
     this.prepare()
     const mtab = tab.replace(/\W/g, ' ')
     let color = chalk.magenta
-    if (this.name.toLowerCase().startsWith('throw')) {
+    const nname = this.name.toLowerCase()
+    if (nname.startsWith('throw')) {
       color = color.red
-    } else if (this.name.toLowerCase().startsWith('return')) {
+    } else if (nname.startsWith('return')) {
       color = color.magentaBright
-    } else if (this.name.toLowerCase().startsWith('response')) {
+    } else if (nname.startsWith('response')) {
       color = color.green
     }
 
@@ -332,6 +355,69 @@ class ELSE extends IF {
 
 }
 
+class Actor {
+  static actors = {} as Actor[]
+  actions = {} as { [actor: string]: Set<string> }
+
+  constructor(public name: string) { }
+
+  static getActioinName(action: string) {
+    switch (action) {
+      case '=>':
+      case 'x>':
+      case '<x':
+      case '<=':
+        return {
+          dir: 1,
+          label: 'Request'
+        }
+      case '->':
+        return {
+          dir: 1,
+          label: 'Publish'
+        }
+      case '<-':
+        return {
+          dir: -1,
+          label: 'Consume'
+        }
+      case '>':
+      case '<':
+        return {
+          dir: 1,
+          label: 'Call'
+        }
+    }
+    return {}
+  }
+
+  static getActor(name: string) {
+    name = name.replace(/[\W]/g, '')
+    let actor: Actor = Actor.actors[name]
+    if (!actor) {
+      actor = Actor.actors[name] = new Actor(name)
+    }
+    return actor
+  }
+
+  static save(writer: any) {
+    for (const name in Actor.actors) {
+      const actor = Actor.actors[name]
+      for (const a in actor.actions) {
+        for (const action of actor.actions[a]) {
+          // const { label, dir } = Actor.getActioinName(action)
+          if (name) {
+            let actor1 = name // dir > 0 ? name : a
+            let actor2 = a // dir < 0 ? name : a
+            writer?.write(`${actor1} --${action}--> ${actor2}\r\n`)
+            context.log(`${actor1} ${action} ${actor2}`)
+          }
+        }
+      }
+    }
+  }
+}
+
 export class DocSequence extends Tag {
   /** Not scan in these paths */
   excludes?: string[]
@@ -385,6 +471,7 @@ export class DocSequence extends Tag {
   }
 
   async exec() {
+    this.roots = []
     context.group(chalk.green(this.title, this.src.join(', ')))
     context.group()
     const begin = Date.now()
@@ -398,7 +485,6 @@ export class DocSequence extends Tag {
   }
 
   async scan(folder: string) {
-    this.roots = []
     const f = statSync(folder)
     if (f.isFile()) {
       if (!this.ext?.length || this.ext.includes(extname(folder))) {
@@ -411,7 +497,11 @@ export class DocSequence extends Tag {
       if (!this.excludes || !this.excludes.find(e => folder.includes(e))) {
         const folders = readdirSync(folder)
         this.totalFiles += folders.length
-        await Promise.all(folders.map(f => this.scan(join(folder, f))))
+        for (const f of folders) {
+          await this.scan(join(folder, f))
+        }
+        // await Promise.all(folders.map(f => join(folder, f)).map(f => this.scan(f)))
+        // await Promise.all(folders.map(f => this.scan(join(folder, f))))
       }
     }
   }
@@ -476,13 +566,18 @@ export class DocSequence extends Tag {
   print() {
     this.roots.forEach(root => {
       const fileSave = this.saveTo ? join(this.saveTo, root.name.replace(/\W/g, '_') + '.mmd') : undefined
-      if (fileSave) context.log(`${chalk.green('%s')}`, fileSave)
+      if (fileSave) context.log(`${chalk.green('%s %s')}`, 'Diagram:', fileSave)
       const writer = fileSave ? createWriteStream(fileSave) : null
       writer?.write('sequenceDiagram\r\n')
       root.print(writer, 0, undefined)
       writer?.close()
-      context.log()
     })
+    const fileSave = this.saveTo ? join(this.saveTo, 'summary.mmd') : undefined
+    const writer = fileSave ? createWriteStream(fileSave) : null
+    if (fileSave) context.log(`${chalk.green('%s %s')}`, 'Overview:', fileSave)
+    writer?.write('graph LR\r\n')
+    Actor.save(writer)
+    writer?.close()
   }
 
 }
