@@ -29,6 +29,7 @@ import { Testcase } from '../Testcase'
 
 class Comment {
   static Comments = new Map<string, Comment>()
+  static Classes = new Array<Comment>()
   root: DocSequence
   key: string
   childs: Array<Comment | any>
@@ -36,8 +37,11 @@ class Comment {
   refs: boolean
   ctx: string
   cmd: string
+  type: string
   startC: number
   parent: Comment
+  relations: string[]
+  umlType: 'sequence' | 'class'
 
   clone() {
     return Object.create(this, {})
@@ -63,32 +67,64 @@ class Comment {
     return Comment
   }
 
-  constructor(public name: string, startC: number) {
+  constructor(public name: string, startC: number, firstUmlType: string) {
+    this.relations = []
     this.startC = startC
     this.childs = []
-  }
-
-  init(isRoot: boolean) {
     let m = this.name.match(/^\[(.*?)\]\s*(\{([^\}]+)\})?(.*)/)
     if (m) {
+      // template and root sequence diagram
       this.key = m[1].trim()
+      this.umlType = 'sequence'
       const ctx = m[3]?.trim()
       if (ctx) this.ctx = ctx
       this.name = m[4].trim()
+    } else {
+      m = this.name.match(/^<(.*?)>\s*(.*)/)
+      if (m) {
+        // Class diagram
+        const className = m[1].trim()
+        const des = m[2].trim()
+        this.key = className
+        this.name = des
+        this.umlType = 'class'
+        Comment.Classes.push(this)
+      } else {
+        if (!this.umlType) {
+          this.umlType = firstUmlType as any
+        }
+        if (this.umlType === 'sequence') {
+          // sequence diagram
+          m = this.name.match(/^(if|else|loop|parallel|box)(\s+(.+))?/i)
+          if (m) {
+            this.cmd = (m[1] || '').trim().toUpperCase()
+            this.name = (m[3] || '').trim()
+          }
+        } else {
+          m = this.name.match(/^\s*([^\s\:]+)([^\:]+)?(\:(.*))?/)
+          if (m) {
+            const field = m[1]?.trim() || ''
+            const type = m[2]?.trim() || ''
+            const des = m[4]?.trim() || ''
+            this.key = field
+            this.name = des
+            this.type = type
+          }
+        }
+      }
+    }
+  }
+
+  init(isRoot: boolean) {
+    if (this.umlType === 'sequence') {
       if (isRoot) {
         if (this.key) {
           Comment.Comments.set(this.key, this)
         } else {
           this.runnable = true
         }
-      } else {
+      } else if (this.key) {
         this.refs = true
-      }
-    } else {
-      m = this.name.match(/^(if|else|loop|parallel|box)(\s+(.+))?/i)
-      if (m) {
-        this.cmd = (m[1] || '').trim().toUpperCase()
-        this.name = (m[3] || '').trim()
       }
     }
   }
@@ -194,9 +230,11 @@ class Comment {
     this.childs = this.childs.reduce((sum, child) => {
       if (child.refs) {
         // const newOne = cloneDeep(Comment.Comments.get(child.key))
+        if (!Comment.Comments.get(child.key)) debugger
         const newOne = Comment.Comments.get(child.key).clone()
         newOne.refs = false
         newOne.parent = this
+        newOne.umlType = this.umlType
         newOne.ctx = child.ctx
         newOne.startC = child.startC
         if (child.name) newOne.name = child.name
@@ -252,6 +290,59 @@ class Comment {
 
     const postText = this.postPrint(writer, _i, tab, mtab)
     if (postText) writer?.write(mtab + postText + '\r\n')
+  }
+
+  printClass(writer, _i: number, tab = '  ') {
+    this.prepare()
+    const mtab = tab.replace(/\W/g, ' ')
+    if (!this.type) {
+      if (!this.root.slient) console.log(chalk.yellow(`${tab}class ${chalk.bold(this.key)}`))
+      writer.write(`${mtab}class ${this.key} {\r\n`)
+      writer.write(`${mtab}<<${this.name}>>\r\n`)
+    } else {
+      const m = this.type.match(/([^\[]+)(\[\])?/)
+      if (!this.root.slient) console.log(`${tab}${chalk.cyan(this.key)} ${chalk.green('<' + this.type + '>')} ${chalk.gray(this.name)}`)
+      if (m) {
+        let clazzType = m[2]?.trim() || ''
+        let relation = ''
+        const [clazz, prop] = m[1].split('.')
+        const typeModel = Comment.Classes.find(k => k.key === clazz)
+        if (typeModel) {
+          const typeProp = prop ? typeModel.childs.find(k => k.key === prop) : null
+          if (!typeProp) {
+            this.type = typeModel.type
+          } else {
+            this.type = typeProp.type
+          }
+          if (!this.type) {
+            this.type = typeModel.key
+            relation = '..'
+          }
+          this.type += clazzType
+          if (clazzType === '[]') {
+            if (!relation) relation = '"1" --* "1..*"'
+            this.parent.relations.push(`${this.parent.key} ${relation} ${clazz}: ${this.key}`)
+          } else {
+            if (!relation) relation = '"1" --|> "1"'
+            this.parent.relations.push(`${this.parent.key} ${relation} ${clazz}: ${this.key}`)
+          }
+        }
+      }
+      let preKey = ''
+      let parent = this.parent
+      while (parent && parent.type) {
+        preKey = ' ..' + ' ' + preKey
+        parent = parent.parent
+      }
+      writer.write(`${mtab}+${preKey}${this.key} ~${this.type}~ : ${this.name?.replace(/\W/g, '_') || this.key}\r\n`)
+    }
+    this.childs.forEach((child, i) => {
+      child.printClass(writer, i, tab + '  ')
+    })
+    if (!this.type) {
+      writer.write(`${mtab}}\r\n`)
+      writer.write(`${this.relations.join('\r\n')}\r\n`)
+    }
   }
 }
 
@@ -356,6 +447,7 @@ class ELSE extends IF {
 }
 
 class Actor {
+  static slient: boolean
   static actors = {} as Actor[]
   actions = {} as { [actor: string]: Set<string> }
 
@@ -410,7 +502,7 @@ class Actor {
             let actor1 = name // dir > 0 ? name : a
             let actor2 = a // dir < 0 ? name : a
             writer?.write(`${actor1} --${action}--> ${actor2}\r\n`)
-            context.log(`${actor1} ${action} ${actor2}`)
+            if (!Actor.slient) context.log(`${chalk.gray('-')} ${chalk.magenta(actor1)} ${chalk.blue(action)} ${chalk.magenta(actor2)}`)
           }
         }
       }
@@ -521,6 +613,7 @@ export class DocSequence extends Tag {
     let cur: Comment
     const pt = new RegExp(`^(\\s*)${fileType.commentTag}\\s?(\\s*)(.+)`, 'm')
     let space = ''
+    let first: Comment
     for await (let line of rl) {
       let m = line.match(pt)
       if (m) {
@@ -529,13 +622,14 @@ export class DocSequence extends Tag {
         const startC = m[1].length
         const cnt = m[3].trim()
         const Clazz = Comment.getType(cnt) as typeof Comment
-        const newOne = new Clazz(cnt, startC)
+        const newOne = new Clazz(cnt, startC, first?.umlType)
         newOne.root = this
-        if (!cur || newOne.startC === space.length) {
+        if (!first || first.startC === newOne.startC || first.umlType !== newOne.umlType) {
           newOne.init(true)
           if (!newOne.ctx) newOne.ctx = 'app'
+          first = newOne
           cur = newOne
-          roots.push(newOne)
+          if (newOne.umlType === 'sequence') roots.push(newOne)
         } else {
           newOne.init(false)
           const level = newOne.getLevel(cur)
@@ -563,21 +657,48 @@ export class DocSequence extends Tag {
     return roots
   }
 
-  print() {
+  private printSummary() {
+    if (!Object.keys(Actor.actors).length) return
+    const fileSave = this.saveTo ? join(this.saveTo, 'Summary.mmd') : undefined
+    const writer = fileSave ? createWriteStream(fileSave) : null
+    if (fileSave) context.group(`${chalk.green('%s %s')}`, 'Overview:', fileSave)
+    writer?.write('graph LR\r\n')
+    Actor.slient = this.slient
+    Actor.save(writer)
+    writer?.close()
+    if (fileSave) context.groupEnd()
+  }
+
+  private printSequence() {
+    if (!this.roots.length) return
     this.roots.forEach(root => {
-      const fileSave = this.saveTo ? join(this.saveTo, root.name.replace(/\W/g, '_') + '.mmd') : undefined
-      if (fileSave) context.log(`${chalk.green('%s %s')}`, 'Diagram:', fileSave)
+      const fileSave = this.saveTo ? join(this.saveTo, root.name.replace(/\W/g, '_') + '.seq.mmd') : undefined
+      if (fileSave) context.group(`${chalk.green('%s %s')}`, 'Diagram:', fileSave)
       const writer = fileSave ? createWriteStream(fileSave) : null
       writer?.write('sequenceDiagram\r\n')
       root.print(writer, 0, undefined)
       writer?.close()
+      if (fileSave) context.groupEnd()
     })
-    const fileSave = this.saveTo ? join(this.saveTo, 'summary.mmd') : undefined
+  }
+
+  private printClasses() {
+    if (!Comment.Classes.length) return
+    const fileSave = this.saveTo ? join(this.saveTo, 'DataModel.mmd') : undefined
+    if (fileSave) context.group(`${chalk.green('%s %s')}`, 'Data model:', fileSave)
     const writer = fileSave ? createWriteStream(fileSave) : null
-    if (fileSave) context.log(`${chalk.green('%s %s')}`, 'Overview:', fileSave)
-    writer?.write('graph LR\r\n')
-    Actor.save(writer)
+    writer?.write('classDiagram\r\n')
+    Comment.Classes.forEach(root => {
+      root.printClass(writer, 0, undefined)
+    })
     writer?.close()
+    if (fileSave) context.groupEnd()
+  }
+
+  print() {
+    this.printSequence()
+    this.printClasses()
+    this.printSummary()
   }
 
 }

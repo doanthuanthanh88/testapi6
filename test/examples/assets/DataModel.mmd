@@ -1,0 +1,21 @@
+classDiagram
+  class User {
+  <<User model in Database>>
+    +id ~number~ : id
+    +name ~string~ : user_name
+    +birth ~object~ : birthday
+      + .. day ~number~ : day_of_month
+      + .. month ~number~ : month_of_year
+      + .. year ~number~ : full_year
+      + .. timezone ~object~ : Time_zone_here
+        + ..  .. name ~string~ : time_zone_name
+  }
+
+  class Room {
+  <<Room model>>
+    +name ~string~ : Room_name
+    +user_ids ~number[]~ : List_user_in_room
+    +creator_id ~number~ : First_user_create_the_room
+  }
+Room "1" --* "1..*" User: user_ids
+Room "1" --|> "1" User: creator_id

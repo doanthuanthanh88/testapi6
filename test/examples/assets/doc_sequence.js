@@ -1,6 +1,38 @@
 const EventEmitter = require("events")
 import { LogService } from './LogService'
 
+/// <User> User model in Database
+class User {
+  /// id number
+  id: number
+  /// name string: user name 
+  name: string
+  /// birth object: birthday
+  birth: {
+    /// day number: day of month
+    day: number,
+    /// month number: month of year
+    month: number,
+    /// year number: full year
+    year: number,
+    /// timezone object: Time zone here
+    timezone: {
+      /// name string: time zone name
+      name: string
+    }
+  }
+}
+
+/// <Room> Room model
+class Room {
+  /// name string: Room name
+  name: string
+  /// user_ids User.id[]: List user in room
+  user_ids: number[]
+  /// creator_id User.id: First user create the room
+  creator_id: number
+}
+
 class HttpUser {
 
   /// [HttpUser.getUser]
