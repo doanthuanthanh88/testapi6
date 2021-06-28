@@ -22,93 +22,95 @@ templates:
             - bearerAuth: []
 steps:
   ########## Core modules
-- Import: 
-    title: testcase.yaml
-    src: examples/testcase.yaml
-- Import: 
-    title: load_dynamic_modules.yaml
-    src: examples/load_dynamic_modules.yaml
-- Import: 
-    title: input_keyboard.yaml
-    src: examples/input_keyboard.yaml
-- Import: 
-    title: loop.yaml
-    src: examples/loop.yaml
-- Import: 
-    title: common.yaml
-    src: examples/common.yaml
-- Import: 
-    title: validate.yaml
-    src: examples/validate.yaml
-- Import: 
-    title: utils.yaml
-    src: examples/utils.yaml
-- Import: 
-    title: output.yaml
-    src: examples/output.yaml
-- Import: 
-    title: crawler.yaml
-    src: examples/crawler.yaml
-- Import: 
-    title: print.yaml
-    src: examples/print.yaml
-- Import: 
-    title: event.yaml
-    src: examples/event.yaml
-- Import: 
-    title: request.yaml
-    src: examples/request.yaml
-- Import: 
-    title: load_data.yaml
-    src: examples/load_data.yaml
-- Import: 
-    title: benchmark.yaml
-    src: examples/benchmark.yaml
-- Import: 
-    title: generate_doc.yaml
-    src: examples/generate_doc.yaml
-- Import: 
-    title: specific_test.yaml
-    src: examples/specific_test.yaml
-- Import: 
-    title: overide_remove_item.yaml
-    src: examples/overide_remove_item.yaml
-- Import:
-    title: comment_tracer.yaml
-    src: examples/comment_tracer.yaml
+  - Import:
+      title: testcase.yaml
+      src: examples/testcase.yaml
+  - Import:
+      title: load_dynamic_modules.yaml
+      src: examples/load_dynamic_modules.yaml
+  - Import:
+      title: input_keyboard.yaml
+      src: examples/input_keyboard.yaml
+  - Import:
+      title: loop.yaml
+      src: examples/loop.yaml
+  - Import:
+      title: common.yaml
+      src: examples/common.yaml
+  - Import:
+      title: validate.yaml
+      src: examples/validate.yaml
+  - Import:
+      title: utils.yaml
+      src: examples/utils.yaml
+  - Import:
+      title: output.yaml
+      src: examples/output.yaml
+  - Import:
+      title: crawler.yaml
+      src: examples/crawler.yaml
+  - Import:
+      title: doc_sequence.yaml
+      src: examples/doc_sequence.yaml
+  - Import:
+      title: print.yaml
+      src: examples/print.yaml
+  - Import:
+      title: event.yaml
+      src: examples/event.yaml
+  - Import:
+      title: request.yaml
+      src: examples/request.yaml
+  - Import:
+      title: load_data.yaml
+      src: examples/load_data.yaml
+  - Import:
+      title: benchmark.yaml
+      src: examples/benchmark.yaml
+  - Import:
+      title: generate_doc.yaml
+      src: examples/generate_doc.yaml
+  - Import:
+      title: specific_test.yaml
+      src: examples/specific_test.yaml
+  - Import:
+      title: overide_remove_item.yaml
+      src: examples/overide_remove_item.yaml
+  - Import:
+      title: comment_tracer.yaml
+      src: examples/comment_tracer.yaml
 
-########## External modules
-# Mock data
-- Import: 
-    title: mock_data.yaml
-    src: examples/external-modules/mock_data.yaml
-# Mongo
-- Import: 
-    title: mongo.yaml
-    src: examples/external-modules/mongo.yaml
-# Redis
-- Import: 
-    title: redis.yaml
-    src: examples/external-modules/redis.yaml
-# RabbitMQ
-- Import: 
-    title: routingkey_consumer.yaml
-    src: examples/external-modules/rabbitmq/routingkey_consumer.yaml
-- Import: 
-    title: routingkey_publisher.yaml
-    src: examples/external-modules/rabbitmq/routingkey_publisher.yaml
-# Sql
-- Import: 
-    title: mysql.yaml
-    src: examples/external-modules/mysql.yaml
-- Import: 
-    title: postgre_sql.yaml
-    src: examples/external-modules/postgre_sql.yaml
-# gRPC
-- Import: 
-    title: grpc_server.yaml
-    src: examples/external-modules/grpc/grpc_server.yaml
-- Import: 
-    title: grpc_client.yaml
-    src: examples/external-modules/grpc/grpc_client.yaml
-
+  ########## External modules
+  # Mock data
+  - Import:
+      title: mock_data.yaml
+      src: examples/external-modules/mock_data.yaml
+  # Mongo
+  - Import:
+      title: mongo.yaml
+      src: examples/external-modules/mongo.yaml
+  # Redis
+  - Import:
+      title: redis.yaml
+      src: examples/external-modules/redis.yaml
+  # RabbitMQ
+  - Import:
+      title: routingkey_consumer.yaml
+      src: examples/external-modules/rabbitmq/routingkey_consumer.yaml
+  - Import:
+      title: routingkey_publisher.yaml
+      src: examples/external-modules/rabbitmq/routingkey_publisher.yaml
+  # Sql
+  - Import:
+      title: mysql.yaml
+      src: examples/external-modules/mysql.yaml
+  - Import:
+      title: postgre_sql.yaml
+      src: examples/external-modules/postgre_sql.yaml
+  # gRPC
+  - Import:
+      title: grpc_server.yaml
+      src: examples/external-modules/grpc/grpc_server.yaml
+  - Import:
+      title: grpc_client.yaml
+      src: examples/external-modules/grpc/grpc_client.yaml

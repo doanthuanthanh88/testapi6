@@ -12,12 +12,12 @@
 #       "italic": true
 #     }
 #   ]
-# 2. Use the extension "tomoyukim.vscode-mermaid-editor" to view sequence diagram on the result files
+# 2. Use the extension "bierner.markdown-mermaid" to view diagrams in markdown document
 
 - DocSequence:
-    title: Read log in file then generate to file (Support mermaid sequence diagram)
-    ext: [".ts", ".js", ".go", ".py", ".yaml", ".java"]
-    excludes: ["node_modules"]
-    # slient: true
-    src: assets/doc_sequence.js
-    saveTo: assets
+    title: Test service # Document title
+    ext: [".ts", ".js", ".go", ".py", ".yaml", ".java"] # Files extension which contains comments
+    excludes: ["node_modules"] # Ignore scan files in these folders
+    # slient: true  # Disabled log
+    src: assets/doc_sequence.js # Source folder (or file) which includes the files
+    saveTo: assets # Output folder. After done, we get the README.md file in this
