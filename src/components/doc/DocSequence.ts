@@ -31,20 +31,28 @@ class Comment {
   static Comments = new Map<string, Comment>()
   static Classes = new Array<Comment>()
   docSequence: DocSequence
-  root: Comment
   src: string
   key: string
   childs: Array<Comment | any>
   outputName: string
   title: string
   refs: boolean
-  ctx: string
   cmd: string
   type: string
   startC: number
   parent: Comment
   relations: string[]
   umlType: 'sequence' | 'class'
+
+  private _ctx: string
+
+  set ctx(ctx: string) {
+    this._ctx = ctx
+  }
+
+  get ctx() {
+    return this._ctx || this.parent?.ctx
+  }
 
   clone(): Comment {
     return Object.create(this, {})
@@ -136,6 +144,9 @@ class Comment {
         } else {
           this.title = this.name
           this.outputName = this.name.replace(/\W/g, '_')
+          if (!this.ctx) {
+            this.ctx = 'app'
+          }
           // const newNote = this.cloneNew()
           // newNote.name = `NOTE RIGHT OF {}: ${this.name}`
           // this.childs.push(newNote)
@@ -150,14 +161,14 @@ class Comment {
   mmdSequence(txt: string) {
     if (/^note [^:]+:(.+)/i.test(txt)) {
       const [main, ...des] = txt.split(':')
-      const { name } = Actor.getActor(`{{${this.root.ctx || 'IMPOSSIBLE_ERROR'}}}`, true)
+      const { name } = Actor.getActor(`{{${this.ctx || 'IMPOSSIBLE_ERROR'}}}`, true)
       txt = main.replace(/\{\}/g, name) + ':' + des.join('')
       txt = txt
     } else {
       let m = txt.match(/\s*(.*?)\s*(->|<-|=>|<=|x>|<x|>|<)\s*(.*?):(.*)/i)
       if (m) {
         const [main, ...des] = txt.split(':')
-        txt = main.replace(/\{\}/g, `{{${this.root.ctx || 'IMPOSSIBLE_ERROR'}}}`) + ':' + des.join('')
+        txt = main.replace(/\{\}/g, `{{${this.ctx || 'IMPOSSIBLE_ERROR'}}}`) + ':' + des.join('')
         m = txt.match(/\s*(.*?)\s*(->|<-|=>|<=|x>|<x|>|<)\s*(.*?):(.*)/i)
 
         m[1] = m[1]?.trim()
@@ -173,7 +184,7 @@ class Comment {
 
         if (actor1.name !== actor2.name && actor1.name && actor2.name) {
           if (!actor1.actions[actor2.name]) actor1.actions[actor2.name] = new Set()
-          actor1.actions[actor2.name].add(label)
+          if (label) actor1.actions[actor2.name].add(label)
         }
 
         m[1] = dir > 0 ? actor1.name : actor2.name
@@ -197,7 +208,7 @@ class Comment {
           txt = `${m[1]} x-- ${m[3]}: ${m[4]}`
         }
       } else {
-        txt = `${this.root.ctx} ->> ${this.root.ctx}: ${txt}`
+        txt = `${this.ctx} ->> ${this.ctx}: ${txt}`
       }
       // else if (!/(\{[\w\$]*\})\s*(->|<-|=>|<=|x>|<x|>|<)?\s*(\{[\w\$]*\})?:(.*)/i.test(txt)) {
       //   txt = `{${this.ctx}} > {${this.ctx}}: ${txt}`
@@ -255,18 +266,20 @@ class Comment {
   prepare() {
     this.childs = this.childs.reduce((sum, child) => {
       if (child.refs) {
-        // const newOne = cloneDeep(Comment.Comments.get(child.key))
-        if (!Comment.Comments.get(child.key)) debugger
-        const newOne = Comment.Comments.get(child.key).clone()
+        let newOne = Comment.Comments.get(child.key)
+        if (!newOne) throw new Error(`Could not found refs "${child.key}"`)
+        newOne = newOne.clone()
         newOne.refs = false
         newOne.parent = this
+        if (child._ctx) newOne._ctx = child._ctx
         newOne.umlType = this.umlType
-        newOne.ctx = this.root.ctx
         newOne.startC = child.startC
         if (child.name) newOne.name = child.name
         newOne.prepare()
         sum.push(newOne)
       } else {
+        child.umlType = this.umlType
+        child.parent = this
         child.prepare()
         sum.push(child)
       }
@@ -324,8 +337,9 @@ class Comment {
     if (!this.type) {
       if (!this.docSequence.slient) console.log(chalk.yellow(`${tab}class ${chalk.bold(this.key)}`))
       writer.write(`${mtab}class ${this.key} {\r\n`)
-      writer.write(`${mtab}<<${this.name}>>\r\n`)
+      writer.write(`${mtab}${this.name ? `<<${this.name}>>` : ''}\r\n`)
     } else {
+      // const m = this.type.match(/([^\[]+)((\[\])|(\{\}))?/)
       const m = this.type.match(/([^\[]+)(\[\])?/)
       if (!this.docSequence.slient) console.log(`${tab}${chalk.cyan(this.key)} ${chalk.green('<' + this.type + '>')} ${chalk.gray(this.name)}`)
       if (m) {
@@ -340,17 +354,19 @@ class Comment {
           } else {
             this.type = typeProp.type
           }
+          let isRefType = false
           if (!this.type) {
+            isRefType = true
             this.type = typeModel.key
-            relation = '..'
+            relation = `..`
           }
           this.type += clazzType
           if (clazzType === '[]') {
-            if (!relation) relation = '"1" --* "1..*"'
-            this.parent.relations.push(`${this.parent.key} ${relation} ${clazz}: ${this.key}`)
+            if (!relation) relation = `"${this.key}" --* "${prop}"`
+            this.parent.relations.push(`${this.parent.key} ${relation} ${clazz}: ${isRefType ? `${this.key}` : '1..n'}`)
           } else {
-            if (!relation) relation = '"1" --|> "1"'
-            this.parent.relations.push(`${this.parent.key} ${relation} ${clazz}: ${this.key}`)
+            if (!relation) relation = `"${this.key}" --|> "${prop}"`
+            this.parent.relations.push(`${this.parent.key} ${relation} ${clazz}: ${isRefType ? `${this.key}` : '1..1'}`)
           }
         }
       }
@@ -488,12 +504,12 @@ class Actor {
           dir: 1,
           label: '-->|' + des.replace(/"/g, "'") + '|'
         }
-      // case '<x':
-      // case '<=':
-      //   return {
-      //     dir: 1,
-      //     label: '-->|' + 'Request' + '|'
-      //   }
+      case '<x':
+      case '<=':
+        return {
+          dir: -1,
+          label: ''
+        }
       case '->':
         return {
           dir: 1,
@@ -627,7 +643,7 @@ export class DocSequence extends Tag {
     context.log(`- Scaned ${this.totalFiles} files in ${Date.now() - begin}ms`)
     context.log()
     context.groupEnd()
-    this.print()
+    await this.print()
     context.groupEnd()
   }
 
@@ -682,17 +698,15 @@ export class DocSequence extends Tag {
         newOne.docSequence = this
         if (!first || first.startC === newOne.startC || first.umlType !== newOne.umlType) {
           newOne.init(true)
-          if (!newOne.ctx) newOne.ctx = 'app'
           first = newOne
           cur = newOne
-          newOne.root = first
+          // newOne.root = first
           if (newOne.umlType === 'sequence') roots.push(newOne)
         } else {
           newOne.init(false)
-          newOne.root = first
+          // newOne.root = cur.root
           const level = newOne.getLevel(cur)
           if (level === 'child') {
-            if (newOne.name.includes('User API to get list available question templates')) debugger
             let empty: Comment = cur
             const childLevel = (newOne.startC - cur.startC) / space.length
             new Array(childLevel - 1).fill(null).forEach((_, i) => {
@@ -700,6 +714,7 @@ export class DocSequence extends Tag {
               newEmpty.startC = newOne.startC - (space.length * (i + 1))
               empty.childs.push(newEmpty)
               empty = newEmpty
+              // empty.root = empty.parent.root
             })
             newOne.parent = empty
             // newOne.ctx = newOne.parent.ctx
@@ -745,87 +760,110 @@ export class DocSequence extends Tag {
       Actor.save(writer)
       writer.write('```')
       writer.close()
-      if (fileSave) {
-        this.result.overview = fileSave
-        context.groupEnd()
-      }
-    }
-  }
-
-  private printSequence() {
-    if (!this.roots.length) return
-    this.roots.forEach(root => {
-      const fileSave = this.saveTo ? join(Testcase.getPathFromRoot(this.saveTo), root.outputName + '.sequence.md') : undefined
-      if (fileSave) context.group(`${chalk.green('%s %s')}`, 'Diagram:', fileSave)
-      const writer = fileSave ? createWriteStream(fileSave) : null
-      if (writer) {
-        writer.write(`## ${root.title}\r\n`)
-        writer.write('```mermaid\r\n')
-        writer.write('sequenceDiagram\r\n')
-        root.print(writer, 0, undefined)
-        root.src = fileSave
-        writer.write('```')
-        writer.close()
-        context.groupEnd()
-      }
-    })
-    const fileSave = this.saveTo ? join(Testcase.getPathFromRoot(this.saveTo), 'sequence.md') : undefined
-    if (fileSave) context.group(`${chalk.green('%s %s')}`, 'Sequence diagram:', fileSave)
-    const writer = fileSave ? createWriteStream(fileSave) : null
-    if (writer) {
-      writer.write(`## Sequence diagram\r\n`)
-      writer.write(`_Describe business logic flows in each of APIs, workers... in the service_\r\n`)
-      this.roots.forEach((root, i) => {
-        writer.write(`${i + 1}. [${root.title}](${relative(this.saveTo, root.src)})\r\n`)
-      })
-      writer.write('\r\n')
-      this.result.sequence = fileSave
-      writer.close()
+      this.result.overview = fileSave
       context.groupEnd()
     }
   }
 
-  private printClasses() {
+  private async printSequence() {
+    if (!this.roots.length) return
+    for (const root of this.roots) {
+      const fileSave = this.saveTo ? join(Testcase.getPathFromRoot(this.saveTo), root.outputName + '.sequence.md') : undefined
+      if (fileSave) context.group(`${chalk.green('%s %s')}`, 'Diagram:', fileSave)
+      const writer = fileSave ? createWriteStream(fileSave) : null
+      if (writer) {
+        await new Promise((resolve, reject) => {
+          writer.once('close', resolve)
+          writer.once('error', reject)
+          writer.write(`## ${root.title}\r\n`)
+          writer.write('```mermaid\r\n')
+          writer.write('sequenceDiagram\r\n')
+          root.print(writer, 0, undefined)
+          root.src = fileSave
+          writer.write('```')
+          writer.close()
+          context.groupEnd()
+        })
+      }
+    }
+    const fileSave = this.saveTo ? join(Testcase.getPathFromRoot(this.saveTo), 'sequence.md') : undefined
+    if (fileSave) context.group(`${chalk.green('%s %s')}`, 'Sequence diagram:', fileSave)
+    const writer = fileSave ? createWriteStream(fileSave) : null
+    if (writer) {
+      await new Promise((resolve, reject) => {
+        writer.once('close', resolve)
+        writer.once('error', reject)
+        writer.write(`## Sequence diagram\r\n`)
+        writer.write(`_Describe business logic flows in each of APIs, workers... in the service_\r\n`)
+        this.roots.forEach((root, i) => {
+          writer.write(`${i + 1}. [${root.title}](${relative(this.saveTo, root.src)})\r\n`)
+        })
+        writer.write('\r\n')
+        this.result.sequence = fileSave
+        writer.close()
+        context.groupEnd()
+      })
+    }
+  }
+
+  private async printClasses() {
     if (!Comment.Classes.length) return
     const fileSave = this.saveTo ? join(this.saveTo, 'data_model.md') : undefined
     if (fileSave) context.group(`${chalk.green('%s %s')}`, 'Data model:', fileSave)
     const writer = fileSave ? createWriteStream(fileSave) : null
     if (writer) {
-      writer.write(`## Data model\r\n`)
-      writer.write(`_Show data structure and relations between them in the service_\r\n`)
-      writer.write('```mermaid\r\n')
-      writer.write('classDiagram\r\n')
-      Comment.Classes.forEach((root) => {
-        root.printClass(writer, 0, undefined)
-      })
-      writer.write('```')
-      writer.close()
-      if (fileSave) {
+      await new Promise((resolve, reject) => {
+        writer.once('close', resolve)
+        writer.once('error', reject)
+        writer.write(`## Data model\r\n`)
+        writer.write(`_Show data structure and relations between them in the service_\r\n`)
+        writer.write('```mermaid\r\n')
+        writer.write('classDiagram\r\n')
+        Comment.Classes.forEach((root) => {
+          root.printClass(writer, 0, undefined)
+        })
+        writer.write('```')
+        writer.close()
         this.result.clazz = fileSave
         context.groupEnd()
-      }
+      })
     }
   }
 
-  private printMarkdown() {
+  private async printMarkdown() {
     const fileSave = this.saveTo ? join(Testcase.getPathFromRoot(this.saveTo), 'README.md') : undefined
     if (fileSave) context.group(`${chalk.green('%s %s')}`, 'Readme:', fileSave)
     const writer = fileSave ? createWriteStream(fileSave) : null
     if (writer) {
-      writer.write(`# ${this.title}\r\n`)
-      writer.write(readFileSync(this.result.overview).toString() + '\r\n')
-      writer.write(readFileSync(this.result.clazz).toString() + '\r\n')
-      writer.write(readFileSync(this.result.sequence).toString() + '\r\n')
+      await new Promise((resolve, reject) => {
+        writer.once('close', resolve)
+        writer.once('error', reject)
+        writer.write(`# ${this.title}\r\n`)
+        if (this.result.overview) {
+          writer.write(readFileSync(this.result.overview))
+          writer.write('\r\n')
+        }
+        if (this.result.clazz) {
+          writer.write(readFileSync(this.result.clazz))
+          writer.write('\r\n')
+        }
+        if (this.result.sequence) {
+          writer.write(readFileSync(this.result.sequence))
+          writer.write('\r\n')
+        }
+        writer.close()
+        context.groupEnd()
+      })
     }
-    writer?.close()
-    if (fileSave) context.groupEnd()
   }
 
-  print() {
-    this.printSequence()
-    this.printClasses()
-    this.printOverview()
-    this.printMarkdown()
+  async print() {
+    await Promise.all([
+      this.printSequence(),
+      this.printClasses(),
+      this.printOverview(),
+    ])
+    await this.printMarkdown()
   }
 
 }

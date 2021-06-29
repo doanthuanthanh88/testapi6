@@ -28,9 +28,9 @@ class Room {
   /// name string: Room name
   name: string
   /// user_ids User.id[]: List user in room
-  user_ids: number[]
+  user_ids: User.id[]
   /// creator_id User.id: First user create the room
-  creator_id: number
+  creator_id: User.id
 }
 
 class HttpUser {

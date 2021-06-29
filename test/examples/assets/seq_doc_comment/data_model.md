@@ -1,3 +1,6 @@
+## Data model
+_Show data structure and relations between them in the service_
+```mermaid
 classDiagram
   class User {
   <<User model in Database>>
@@ -17,5 +20,6 @@ classDiagram
     +user_ids ~number[]~ : List_user_in_room
     +creator_id ~number~ : First_user_create_the_room
   }
-Room "1" --* "1..*" User: user_ids
-Room "1" --|> "1" User: creator_id
+Room "user_ids" --* "id" User: 1..n
+Room "creator_id" --|> "id" User: 1..1
+```
