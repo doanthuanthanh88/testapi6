@@ -1,10 +1,13 @@
 import chalk from 'chalk'
 import { createReadStream, createWriteStream, readdirSync, readFileSync, statSync } from 'fs'
+import mkdirp from 'mkdirp'
 import { extname, join, relative } from 'path'
 import * as readline from 'readline'
 import { context } from "../../Context"
+import { Exec } from '../external/Exec'
 import { Tag } from '../Tag'
 import { Testcase } from '../Testcase'
+
 /**
  * Example
     /// box rgb(0, 255, 0)
@@ -39,7 +42,7 @@ class Comment {
   refs: boolean
   cmd: string
   type: string
-  startC: number
+  _startC: number
   parent: Comment
   relations: string[]
   umlType: 'sequence' | 'class'
@@ -52,6 +55,20 @@ class Comment {
 
   get ctx() {
     return this._ctx || this.parent?.ctx
+  }
+
+  set startC(c: number) {
+    if (this._startC !== undefined && this._startC !== c) {
+      const addMore = c - this._startC
+      this.childs.forEach((child: Comment) => {
+        child.startC = child.startC + addMore
+      })
+    }
+    this._startC = c
+  }
+
+  get startC() {
+    return this._startC
   }
 
   clone(): Comment {
@@ -161,14 +178,14 @@ class Comment {
   mmdSequence(txt: string) {
     if (/^note [^:]+:(.+)/i.test(txt)) {
       const [main, ...des] = txt.split(':')
-      const { name } = Actor.getActor(`{{${this.ctx || 'IMPOSSIBLE_ERROR'}}}`, true)
+      const { name } = Actor.getActor(`{${this.ctx || 'IMPOSSIBLE_ERROR'}}`, true)
       txt = main.replace(/\{\}/g, name) + ':' + des.join('')
       txt = txt
     } else {
       let m = txt.match(/\s*(.*?)\s*(->|<-|=>|<=|x>|<x|>|<)\s*(.*?):(.*)/i)
       if (m) {
         const [main, ...des] = txt.split(':')
-        txt = main.replace(/\{\}/g, `{{${this.ctx || 'IMPOSSIBLE_ERROR'}}}`) + ':' + des.join('')
+        txt = main.replace(/\{\}/g, `{${this.ctx || 'IMPOSSIBLE_ERROR'}}`) + ':' + des.join('')
         m = txt.match(/\s*(.*?)\s*(->|<-|=>|<=|x>|<x|>|<)\s*(.*?):(.*)/i)
 
         m[1] = m[1]?.trim()
@@ -178,30 +195,42 @@ class Comment {
 
         // Parser actor
         let action = m[2].trim()
-        const { label, dir } = Actor.getActionName(action, m[4])
+        const { label, dir, seqDir } = Actor.getActionName(action, m[4])
         const actor1 = Actor.getActor(dir > 0 ? m[1].trim() : m[3].trim())
         const actor2 = Actor.getActor(dir < 0 ? m[1].trim() : m[3].trim())
 
         if (actor1.name !== actor2.name && actor1.name && actor2.name) {
-          if (!actor1.actions[actor2.name]) actor1.actions[actor2.name] = new Set()
-          if (label) actor1.actions[actor2.name].add(label)
+          if (!actor1.actions[actor2.name]) {
+            actor1.actions[actor2.name] = new Set()
+          }
+          if (label) {
+            actor1.actions[actor2.name].add(label)
+          }
         }
 
-        m[1] = dir > 0 ? actor1.name : actor2.name
-        m[3] = dir < 0 ? actor1.name : actor2.name
+        m[1] = dir > 0 ? `${actor1.name}` : `${actor2.name}`
+        m[3] = dir < 0 ? `${actor1.name}` : `${actor2.name}`
+        if (actor2.sign) {
+          if (seqDir > 0) m[3] = actor2.sign + m[3]
+          else m[1] = actor2.sign + m[1]
+        } else if (actor1.sign) {
+          if (seqDir > 0) m[3] = actor1.sign + m[3]
+          else m[1] = actor1.sign + m[1]
+        }
+
 
         if (m[2] === '->') {
           txt = `${m[1]} --) ${m[3]}: ${m[4]}`
         } else if (m[2] === '<-') {
-          txt = `${m[1]} (-- ${m[3]}: ${m[4]}`
+          txt = `${m[1]} (- ${m[3]}: ${m[4]}`
         } else if (m[2] === '>') {
-          txt = `${m[1]} ->> ${m[3]}: ${m[4]}`
+          txt = `${m[1]} ->> ${this.docSequence._stackFrom}${m[3]}: ${m[4]}`
         } else if (m[2] === '<') {
-          txt = `${m[1]} <<-- ${m[3]}: ${m[4]}`
+          txt = `${this.docSequence._stackTo}${m[1]} <<-- ${m[3]}: ${m[4]}`
         } else if (m[2] === '=>') {
-          txt = `${m[1]} ->> ${m[3]}: ${m[4]}`
+          txt = `${m[1]} ->> ${this.docSequence._stackFrom}${m[3]}: ${m[4]}`
         } else if (m[2] === '<=') {
-          txt = `${m[1]} <<-- ${m[3]}: ${m[4]}`
+          txt = `${this.docSequence._stackTo}${m[1]} <<-- ${m[3]}: ${m[4]}`
         } else if (m[2] === 'x>') {
           txt = `${m[1]} -x ${m[3]}: ${m[4]}`
         } else if (m[2] === '<x') {
@@ -239,7 +268,7 @@ class Comment {
       }
     }
     if (this.name && this.childs.length) {
-      return `ALT ${this.name}`
+      return `OPT ${this.name}`
     }
     return ''
   }
@@ -266,9 +295,9 @@ class Comment {
   prepare() {
     this.childs = this.childs.reduce((sum, child) => {
       if (child.refs) {
-        let newOne = Comment.Comments.get(child.key)
-        if (!newOne) throw new Error(`Could not found refs "${child.key}"`)
-        newOne = newOne.clone()
+        let newOneRef = Comment.Comments.get(child.key)
+        if (!newOneRef) throw new Error(`Could not found refs "${child.key}"`)
+        const newOne = newOneRef.clone()
         newOne.refs = false
         newOne.parent = this
         if (child._ctx) newOne._ctx = child._ctx
@@ -335,13 +364,13 @@ class Comment {
     this.prepare()
     const mtab = tab.replace(/\W/g, ' ')
     if (!this.type) {
-      if (!this.docSequence.slient) console.log(chalk.yellow(`${tab}class ${chalk.bold(this.key)}`))
+      if (!this.docSequence.slient) context.log(chalk.yellow(`${tab}class ${chalk.bold(this.key)}`))
       writer.write(`${mtab}class ${this.key} {\r\n`)
       writer.write(`${mtab}${this.name ? `<<${this.name}>>` : ''}\r\n`)
     } else {
       // const m = this.type.match(/([^\[]+)((\[\])|(\{\}))?/)
       const m = this.type.match(/([^\[]+)(\[\])?/)
-      if (!this.docSequence.slient) console.log(`${tab}${chalk.cyan(this.key)} ${chalk.green('<' + this.type + '>')} ${chalk.gray(this.name)}`)
+      if (!this.docSequence.slient) context.log(`${tab}${chalk.cyan(this.key)} ${chalk.green('<' + this.type + '>')} ${chalk.gray(this.name)}`)
       if (m) {
         let clazzType = m[2]?.trim() || ''
         let relation = ''
@@ -493,6 +522,7 @@ class Actor {
   static actors = {} as Actor[]
   static declare = new Set()
   actions = {} as { [actor: string]: Set<string> }
+  sign: '+' | '-' | ''
 
   constructor(public name: string) { }
 
@@ -501,28 +531,38 @@ class Actor {
       case '=>':
       case 'x>':
         return {
+          seqDir: 1,
           dir: 1,
           label: '-->|' + des.replace(/"/g, "'") + '|'
         }
       case '<x':
       case '<=':
         return {
+          seqDir: -1,
           dir: -1,
           label: ''
         }
       case '->':
         return {
+          seqDir: 1,
           dir: 1,
           label: '-.->|' + des.replace(/"/g, "'") + '|'
         }
       case '<-':
         return {
+          seqDir: -1,
           dir: -1,
           label: '-.->|' + des.replace(/"/g, "'") + '|'
         }
       case '>':
+        return {
+          seqDir: 1,
+          dir: 1,
+          label: '---'
+        }
       case '<':
         return {
+          seqDir: -1,
           dir: 1,
           label: '---'
         }
@@ -532,29 +572,37 @@ class Actor {
 
   static getActor(name: string, onlyGet = false) {
     const m = name.match(/\s*([\(\[<\{})]{1,2})?([^\(\[<\)\]\{\}>)]+)([\)\]\}>)]{1,2})?/)
+    let sign = ''
     if (m) {
       name = m[2]
+      const m1 = m[2].match(/^([\+\-])?(.+)/)
+      name = m1[2].trim()
+      sign = (m1[1] || '')
       if (!onlyGet) {
         if (m[1] && m[3]) {
-          if (m[1] === '((' && m[3] === '))') {
-            Actor.declare.add(`${name}((${m[2]}))`)
-          } else if (m[1] === '{{' && m[3] === '}}') {
-            Actor.declare.add(`${name}{{${m[2]}}}`)
-          } else if (m[1] === '{' && m[3] === '}') {
+          // if (m[1] === '((' && m[3] === '))') {
+          //   Actor.declare.add(`${name}((${m[2]}))`)
+          // }
+          // if (m[1] === '[[' && m[3] === ']]') {
+          //   Actor.declare.add(`${name}[[${m[2]}]]`)
+          // } else 
+          if (m[1] === '{' && m[3] === '}') {
             Actor.declare.add(`${name}`)
-          } else if (m[1] === '(' && m[3] === ')') {
-            Actor.declare.add(`${name}[(${m[2]})]`)
           } else if (m[1] === '[' && m[3] === ']') {
+            Actor.declare.add(`${name}[(${m[2]})]`)
+          } else if (m[1] === '(' && m[3] === ')') {
             Actor.declare.add(`${name}((${m[2]}))`)
+          } else {
+            Actor.declare.add(`${name}${m[1]}${m[2]}${m[3]}`)
           }
         }
       }
     }
-    name = name.replace(/[\W]/g, '')
     let actor: Actor = Actor.actors[name]
     if (!actor) {
       actor = Actor.actors[name] = new Actor(name)
     }
+    actor.sign = sign as any
     return actor
   }
 
@@ -585,6 +633,12 @@ export class DocSequence extends Tag {
   src: string[]
   /** Export sequence diagram to this path */
   saveTo: string
+  /** Auto generate number in sequence diagram */
+  autoNumber: boolean
+  /** Activations can be stacked for same actor */
+  stack: boolean
+  _stackFrom: string
+  _stackTo: string
 
   private totalFiles = 0
   private roots = [] as Comment[]
@@ -594,7 +648,7 @@ export class DocSequence extends Tag {
     sequence: ''
   }
 
-  static readonly fileTypes = {
+  fileTypes = {
     js: {
       excludes: ['node_modules', 'dist'],
       commentTag: '///'
@@ -623,8 +677,12 @@ export class DocSequence extends Tag {
 
   init(attrs: any) {
     super.init(attrs)
-    if (!this.ext) this.ext = Object.keys(DocSequence.fileTypes).map(e => `.${e}`)
+    if (!this.ext) this.ext = Object.keys(this.fileTypes).map(e => `.${e}`)
     if (!this.excludes) this.excludes = ['node_modules']
+    if (this.autoNumber === undefined) this.autoNumber = false
+    if (this.stack === undefined) this.stack = false
+    this._stackFrom = this.stack ? '+' : ''
+    this._stackTo = this.stack ? '-' : ''
     if (!Array.isArray(attrs.src)) this.src = [attrs.src]
     this.src = this.src.map(src => Testcase.getPathFromRoot(src))
     if (!this.title) this.title = 'Comment sequence diagram'
@@ -676,13 +734,13 @@ export class DocSequence extends Tag {
       crlfDelay: Infinity
     });
     const roots = []
-    const fileType = DocSequence.fileTypes[extname(file).substr(1)]
+    const fileType = this.fileTypes[extname(file).substr(1)]
     if (!fileType) {
       context.log(chalk.yellow(`- Not support file "${file}"`))
       return roots
     }
     let cur: Comment
-    const pt = new RegExp(`^(\\s*)${fileType.commentTag}\\s?(\\s*)(.+)`, 'm')
+    const pt = new RegExp(`^(\\s*)${fileType.commentTag}\\s?(\\s*)(.*)`, 'm')
     const ptSpace = new RegExp(`^(\\s*)`, 'm')
     let space = ''
     let first: Comment
@@ -694,7 +752,7 @@ export class DocSequence extends Tag {
         const startC = m[1].length
         const cnt = m[3].trim()
         const Clazz = Comment.getType(cnt) as typeof Comment
-        const newOne = new Clazz(cnt, startC, first?.umlType)
+        let newOne = new Clazz(cnt, startC, first?.umlType)
         newOne.docSequence = this
         if (!first || first.startC === newOne.startC || first.umlType !== newOne.umlType) {
           newOne.init(true)
@@ -710,7 +768,9 @@ export class DocSequence extends Tag {
             let empty: Comment = cur
             const childLevel = (newOne.startC - cur.startC) / space.length
             new Array(childLevel - 1).fill(null).forEach((_, i) => {
-              const newEmpty = empty.cloneNew() as Comment
+              const newEmpty = new Comment('', empty.startC, empty.umlType)
+              newEmpty.parent = empty
+              newEmpty.docSequence = empty.docSequence
               newEmpty.startC = newOne.startC - (space.length * (i + 1))
               empty.childs.push(newEmpty)
               empty = newEmpty
@@ -731,139 +791,213 @@ export class DocSequence extends Tag {
             newOne.parent = cur.parent
             cur.parent.childs.push(newOne)
           }
+          if (newOne.name && !newOne.childs.length) {
+            const m = newOne.name.match(/^([^<]+)((<>)|(<=>))([^:]+)([^;]+);?(.*)/)
+            if (m) {
+              const nextOne = newOne.clone()
+              if (m[3]) {
+                newOne.name = `${m[1]}>${m[5]}:${m[6]}`
+                nextOne.name = `${m[1]}<${m[5]}:${m[7] || 'Return'}`
+              } else if (m[4]) {
+                newOne.name = `${m[1]}=>${m[5]}:${m[6]}`
+                nextOne.name = `${m[1]}<=${m[5]}:${m[7] || 'Return'}`
+              }
+              newOne.parent.childs.push(nextOne)
+              newOne = nextOne
+            }
+          }
           cur = newOne
         }
-      } else if (first) {
-        if (!space) {
-          const m = line.match(ptSpace)
-          if (m) {
-            space = m[1]
-          }
+      } else if (!space) {
+        const m = line.match(ptSpace)
+        if (m) {
+          space = m[1]
         }
       }
     }
     return roots
   }
 
-  private printOverview() {
+  private async printOverview(_mdFolder: string, mmdFolder: string, svgFolder: string) {
     if (!Object.keys(Actor.actors).length) return
-    const fileSave = this.saveTo ? join(Testcase.getPathFromRoot(this.saveTo), 'overview.md') : undefined
-    const writer = fileSave ? createWriteStream(fileSave) : null
-    if (fileSave) context.group(`${chalk.green('%s %s')}`, 'Overview:', fileSave)
-    if (writer) {
-      writer.write(`## Service overview\r\n`)
-      writer.write(`_Show all of components in the service and describe the ways they connect to each others_\r\n`)
-      writer.write('```mermaid\r\n')
-      writer?.write('graph LR\r\n')
-      if (Actor.declare.size) writer.write(Array.from(Actor.declare).join('\r\n') + '\r\n')
-      Actor.slient = this.slient
-      Actor.save(writer)
-      writer.write('```')
-      writer.close()
-      this.result.overview = fileSave
-      context.groupEnd()
-    }
-  }
-
-  private async printSequence() {
-    if (!this.roots.length) return
-    for (const root of this.roots) {
-      const fileSave = this.saveTo ? join(Testcase.getPathFromRoot(this.saveTo), root.outputName + '.sequence.md') : undefined
-      if (fileSave) context.group(`${chalk.green('%s %s')}`, 'Diagram:', fileSave)
-      const writer = fileSave ? createWriteStream(fileSave) : null
-      if (writer) {
-        await new Promise((resolve, reject) => {
-          writer.once('close', resolve)
-          writer.once('error', reject)
-          writer.write(`## ${root.title}\r\n`)
-          writer.write('```mermaid\r\n')
-          writer.write('sequenceDiagram\r\n')
-          root.print(writer, 0, undefined)
-          root.src = fileSave
-          writer.write('```')
-          writer.close()
-          context.groupEnd()
-        })
-      }
-    }
-    const fileSave = this.saveTo ? join(Testcase.getPathFromRoot(this.saveTo), 'sequence.md') : undefined
-    if (fileSave) context.group(`${chalk.green('%s %s')}`, 'Sequence diagram:', fileSave)
-    const writer = fileSave ? createWriteStream(fileSave) : null
-    if (writer) {
-      await new Promise((resolve, reject) => {
+    const fileSave = join(this.saveTo, 'overview.md')
+    const fileMMDSave = join(mmdFolder, 'overview.mmd')
+    const fileImageSave = join(svgFolder, 'overview.svg')
+    context.group(`${chalk.green('%s %s')}`, 'Overview:', fileSave)
+    await Promise.all([
+      // Write mmd
+      new Promise((resolve, reject) => {
+        const writer = createWriteStream(fileMMDSave)
         writer.once('close', resolve)
         writer.once('error', reject)
-        writer.write(`## Sequence diagram\r\n`)
-        writer.write(`_Describe business logic flows in each of APIs, workers... in the service_\r\n`)
-        this.roots.forEach((root, i) => {
-          writer.write(`${i + 1}. [${root.title}](${relative(this.saveTo, root.src)})\r\n`)
-        })
-        writer.write('\r\n')
-        this.result.sequence = fileSave
+        writer?.write('graph LR\r\n')
+        if (Actor.declare.size) writer.write(Array.from(Actor.declare).join('\r\n') + '\r\n')
+        Actor.slient = this.slient
+        Actor.save(writer)
+        writer.close()
+        this.result.overview = fileSave
+      }),
+      // Write md
+      new Promise((resolve, reject) => {
+        const writer = createWriteStream(fileSave)
+        writer.once('close', resolve)
+        writer.once('error', reject)
+        writer.write(`## Service overview\r\n`)
+        writer.write(`_Show all of components in the service and describe the ways they connect to each others_\r\n`)
+        writer.write(`![](${relative(this.saveTo, fileImageSave)})\r\n`)
         writer.close()
         context.groupEnd()
       })
-    }
+    ])
+    // Generate image
+    const genImage = new Exec()
+    await genImage.init({
+      slient: true,
+      args: ['node_modules/.bin/mmdc', '-i', fileMMDSave, '-o', fileImageSave]
+    })
+    await genImage.exec()
   }
 
-  private async printClasses() {
+  private async printSequence(mdFolder: string, mmdFolder: string, svgFolder: string) {
+    if (!this.roots.length) return
+    for (const root of this.roots) {
+      const fileSave = join(mdFolder, root.outputName + '.sequence.md')
+      const fileMMDSave = join(mmdFolder, root.outputName + '.mmd')
+      const fileImageSave = join(svgFolder, root.outputName + '.svg')
+      context.group(`${chalk.green('%s %s')}`, 'Diagram:', fileSave)
+      await Promise.all([
+        // Write mmd
+        new Promise((resolve, reject) => {
+          const writer = createWriteStream(fileMMDSave)
+          writer.once('close', resolve)
+          writer.once('error', reject)
+          writer.write('sequenceDiagram\r\n')
+          if (this.autoNumber) writer.write('autonumber\r\n')
+          root.print(writer, 0, undefined)
+          writer.close()
+        }),
+        // Write md
+        new Promise(async (resolve, reject) => {
+          const writer = createWriteStream(fileSave)
+          writer.once('close', resolve)
+          writer.once('error', reject)
+          writer.write(`## ${root.title}\r\n`)
+          writer.write(`![](${relative(mdFolder, fileImageSave)})\r\n`)
+          // writer.write('```mermaid\r\n')
+          // writer.write(readFileSync(root.src))
+          // writer.write('\r\n')
+          root.src = fileSave
+          // writer.write('```')
+          writer.close()
+          context.groupEnd()
+        })
+      ])
+      // Generate image
+      const genImage = new Exec()
+      await genImage.init({
+        slient: true,
+        args: ['node_modules/.bin/mmdc', '-i', fileMMDSave, '-o', fileImageSave]
+      })
+      await genImage.exec()
+    }
+    const fileSave = join(this.saveTo, 'sequence.md')
+    context.group(`${chalk.green('%s %s')}`, 'Sequence diagram:', fileSave)
+    await new Promise((resolve, reject) => {
+      const writer = createWriteStream(fileSave)
+      writer.once('close', resolve)
+      writer.once('error', reject)
+      writer.write(`## Sequence diagram\r\n`)
+      writer.write(`_Describe business logic flows in each of APIs, workers... in the service_\r\n`)
+      this.roots.forEach((root, i) => {
+        writer.write(`${i + 1}. [${root.title}](${relative(this.saveTo, root.src)})\r\n`)
+      })
+      writer.write('\r\n')
+      this.result.sequence = fileSave
+      writer.close()
+      context.groupEnd()
+    })
+  }
+
+  private async printClasses(_mdFolder: string, mmdFolder: string, svgFolder: string) {
     if (!Comment.Classes.length) return
-    const fileSave = this.saveTo ? join(this.saveTo, 'data_model.md') : undefined
-    if (fileSave) context.group(`${chalk.green('%s %s')}`, 'Data model:', fileSave)
-    const writer = fileSave ? createWriteStream(fileSave) : null
-    if (writer) {
-      await new Promise((resolve, reject) => {
+    const fileSave = join(this.saveTo, 'data_model.md')
+    const fileMMDSave = join(mmdFolder, 'data_model.mmd')
+    const fileImageSave = join(svgFolder, 'data_model.svg')
+    context.group(`${chalk.green('%s %s')}`, 'Data model:', fileSave)
+    await Promise.all([
+      /// Write mmd
+      new Promise((resolve, reject) => {
+        const writer = createWriteStream(fileMMDSave)
         writer.once('close', resolve)
         writer.once('error', reject)
-        writer.write(`## Data model\r\n`)
-        writer.write(`_Show data structure and relations between them in the service_\r\n`)
-        writer.write('```mermaid\r\n')
         writer.write('classDiagram\r\n')
         Comment.Classes.forEach((root) => {
           root.printClass(writer, 0, undefined)
         })
-        writer.write('```')
+        writer.close()
+      }),
+      // Write md
+      new Promise((resolve, reject) => {
+        const writer = fileSave ? createWriteStream(fileSave) : null
+        writer.once('close', resolve)
+        writer.once('error', reject)
+        writer.write(`## Data model\r\n`)
+        writer.write(`_Show data structure and relations between them in the service_\r\n`)
+        writer.write(`![](${relative(this.saveTo, fileImageSave)})\r\n`)
         writer.close()
         this.result.clazz = fileSave
         context.groupEnd()
-      })
-    }
+      }),
+    ])
+    // Generate image
+    const genImage = new Exec()
+    await genImage.init({
+      slient: true,
+      args: ['node_modules/.bin/mmdc', '-i', fileMMDSave, '-o', fileImageSave]
+    })
+    await genImage.exec()
   }
 
-  private async printMarkdown() {
-    const fileSave = this.saveTo ? join(Testcase.getPathFromRoot(this.saveTo), 'README.md') : undefined
-    if (fileSave) context.group(`${chalk.green('%s %s')}`, 'Readme:', fileSave)
-    const writer = fileSave ? createWriteStream(fileSave) : null
-    if (writer) {
-      await new Promise((resolve, reject) => {
-        writer.once('close', resolve)
-        writer.once('error', reject)
-        writer.write(`# ${this.title}\r\n`)
-        if (this.result.overview) {
-          writer.write(readFileSync(this.result.overview))
-          writer.write('\r\n')
-        }
-        if (this.result.clazz) {
-          writer.write(readFileSync(this.result.clazz))
-          writer.write('\r\n')
-        }
-        if (this.result.sequence) {
-          writer.write(readFileSync(this.result.sequence))
-          writer.write('\r\n')
-        }
-        writer.close()
-        context.groupEnd()
-      })
-    }
+  private async printMarkdown(_mdFolder: string, _mmdFolder: string, _svgFolder: string) {
+    const fileSave = join(this.saveTo, 'README.md')
+    context.group(`${chalk.green('%s %s')}`, 'Readme:', fileSave)
+    await new Promise((resolve, reject) => {
+      const writer = createWriteStream(fileSave)
+      writer.once('close', resolve)
+      writer.once('error', reject)
+      writer.write(`# ${this.title}\r\n`)
+      if (this.result.overview) {
+        writer.write(readFileSync(this.result.overview))
+        writer.write('\r\n')
+      }
+      if (this.result.clazz) {
+        writer.write(readFileSync(this.result.clazz))
+        writer.write('\r\n')
+      }
+      if (this.result.sequence) {
+        writer.write(readFileSync(this.result.sequence))
+        writer.write('\r\n')
+      }
+      writer.close()
+      context.groupEnd()
+    })
   }
 
   async print() {
+    if (!this.saveTo) return
+    const mdFolder = join(this.saveTo, 'md')
+    const mmdFolder = join(this.saveTo, 'mmd')
+    const svgFolder = join(this.saveTo, 'svg')
     await Promise.all([
-      this.printSequence(),
-      this.printClasses(),
-      this.printOverview(),
+      mkdirp(this.saveTo),
+      mkdirp(mdFolder),
+      mkdirp(mmdFolder),
+      mkdirp(svgFolder),
     ])
-    await this.printMarkdown()
+    await this.printSequence(mdFolder, mmdFolder, svgFolder)
+    await this.printClasses(mdFolder, mmdFolder, svgFolder)
+    await this.printOverview(mdFolder, mmdFolder, svgFolder)
+    await this.printMarkdown(mdFolder, mmdFolder, svgFolder)
   }
 
 }

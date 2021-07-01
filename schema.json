@@ -187,9 +187,14 @@
             {
               "type": "object",
               "properties": {
-                "auto": {
+                "autoNumber": {
                   "type": "boolean",
-                  "description": "Auto detect function",
+                  "description": "Auto write number for each steps",
+                  "default": false
+                },
+                "stack": {
+                  "type": "boolean",
+                  "description": "Activations can be stacked for same actor",
                   "default": false
                 },
                 "saveTo": {
@@ -197,16 +202,6 @@
                   "description": "Output mermaid file (.mmd)",
                   "examples": [
                     "/test.mmd"
-                  ]
-                },
-                "type": {
-                  "description": "Type generate support mermaid sequence",
-                  "type": [
-                    "string",
-                    "null"
-                  ],
-                  "enum": [
-                    "mmd:sequence"
                   ]
                 },
                 "src": {

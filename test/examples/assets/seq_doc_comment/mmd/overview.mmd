@@ -1,0 +1,11 @@
+graph LR
+Client
+app
+LogService
+Redis
+RabbitMQ
+Client -->|Request to run worker| app
+app -->|Add log to server| LogService
+app -->|Make a request to add log| LogService
+app -.->|Publish hello| Redis
+RabbitMQ -.->|Comsume event| app

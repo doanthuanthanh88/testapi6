@@ -1,55 +1,102 @@
 # testapi6
-Quick unit test and export document APIs base on scenario file (yaml)
+Utility tools for dev which run base on scenario yaml files
 
 # Features
-1. Test APIs base on scenario files
+1. Test APIs base on scenario files `*.yaml`
 2. Validate response data, response headers...
 3. Re-use variable after each steps
 4. Split a big testcases to many smaller testcases which make easy testing for large project
 5. Easy to extends for specific project
-6. Load external library () and create tags by yourself
+6. [Load external modules (mysql, postgreSQL, mongo, redis, grpc, rabbitmq...)](guide/external_module/README.md) or create tags by yourself
 7. Support run benchmark via wrk
-8. Auto generate sequence diagram from any file base on comment
+8. [Auto generate sequence diagram from any file base on comment](guide/doc_sequence/README.md)
 
-# External modules
-1. [Redis](https://github.com/doanthuanthanh88/testapi6-redis): _Execute redis commands_
-2. [Sql](https://github.com/doanthuanthanh88/testapi6-sql): _Execute mysql, postgres... query_
-2. [Mongo](https://github.com/doanthuanthanh88/testapi6-mongo): _Execute mongo query command_
-3. [MockApi](https://github.com/doanthuanthanh88/testapi6-mockapi) _Create mocking api and serve static files_
-3. [gRPC](https://github.com/doanthuanthanh88/testapi6-grpc) _Create a gRPC server to mock data and gRPC client to call others_
 
 # Practice
 - See [examples](./test)
 - Read [document details](https://doanthuanthanh88.github.io/testapi6/)
 
-# How to use
+# Installation
 
-## Use via CLI
-```javascript
-// install via npm
+### Visual code
+- Install extension `doanthuanthanh88.testapi6`
+
+### CLI
+```sh
+# install via npm
 npm install -g testapi6
-// OR install via yarn
+```
+```sh
+# install via yarn
 yarn global add testapi6 --prefix /usr/local
 ```
-## Use in Visual Code
-- Search extension `testapi6` then install
-- After installed, open .yaml file then `ctr+shift+t` or `command+option+t`
 
-### Run test
+### Docker
 ```sh
-testapi6 \"$PWD/$PATH_OF_SCENARIO_YAML_FILE\"
+  docker pull doanthuanthanh88/testapi6
 ```
 
-### Env variable
-The environment variables always only overide `vars` in Testcase file
 
-### Scenario
+# How to run
+
+## Visual code extension
+1. Create a scenario files `*.yaml`
+2. Open the scenario file 
+3. Press `ctr+shift+t` or `cmd+opt+t`
+
+## CLI
+```sh
+  testapi6 ${PATH_TO_SCENARIO_FILE}
+```
+
+## Docker
+
+1. Run with `local scenario files`
+```sh
+  docker run --rm \
+    -v $PWD/scenario_file.yaml:/test/index.yaml \
+    -e {var_name_1}={value} \
+    -e URL=http://urlhere... \
+    doanthuanthanh88/testapi6
+```
+
+2. Run with `http scenario files`
+```sh
+  docker run --rm \
+    -e {var_name_1}={value} \
+    -e URL=http://urlhere... \
+    doanthuanthanh88/testapi6 \
+    http://.../scenario_file.yaml
+```
+
+3. Run with `scenario encrypted files` which need a password to decrypted before run
+```sh
+  docker run --rm \
+    -v $PWD/scenario_file.yaml.encrypt:/test/index.yaml.encrypt \
+    -e {var_name_1}={value} \
+    -e URL=http://urlhere... \
+    doanthuanthanh88/testapi6 \
+    http://.../scenario_file.yaml \
+    $PASSWORD
+```
+
+4. Run with some external modules
+```sh
+  docker run --rm \
+  -v $PWD/test/examples/mock_data.yaml:/test/index.yaml \
+  -e MODULES="testapi6-mockapi testapi6-sql" \
+  doanthuanthanh88/testapi6
+```
+
+> The environment variables always override all of `vars` in Testcase file
+
+# Scenario file example
 ```yaml
 title:                      # Document title
 description:                # Document description
 developer: email@gmail.com  # Author
 version: 1.0.0              # Document version
-servers:                  # Example server in document
+servers:                    # Example server in document
   production: https://prod.abc.vn/my-service/v1.0
   staging: https://staging.abc.vn/my-service/v1.0
   development: http://localhost:3001
@@ -102,30 +149,4 @@ steps:
   ...
 ```
 
-### Scenario schema
-[Ref to schema](./schema.json)
-
-### Example
-
-[Examples](./test)
-
-### Run with docker
-
-```sh
-  # Always pull new image
-  docker pull doanthuanthanh88/testapi6
-
-  # Run test without password
-  docker run --rm -v $PWD/benchmark.yaml:/test/index.yaml \
-    -e {var_name_1}={value} \ # This variable will overide vars which is declared in testcase/vars
-    -e URL=http://urlhere... \
-    doanthuanthanh88/testapi6
-  # Run test with password
-  docker run --rm -v $PWD/benchmark.yaml.encrypt:/test/index.yaml.encrypt \
-    -e {var_name_1}={value} \ # This variable will overide vars which is declared in testcase/vars
-    -e URL=http://urlhere... \
-    doanthuanthanh88/testapi6 \
-    {password_here}
-  # Run with external libraries
-  docker run --rm -it -e MODULES="testapi6-mockapi testapi6-sql" -v $PWD/test/examples/mock_data.yaml:/test/index.yaml doanthuanthanh88/testapi6
-```
+# [Examples](./test)

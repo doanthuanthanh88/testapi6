@@ -1,8 +1,6 @@
-## Begin write sequence diagram from here
-```mermaid
 sequenceDiagram
   %% COMMENT
-    Client ->> +app: Request to run worker
+    Client ->> app: Request to run worker
     OPT Start a worker
       LOOP infinity
         Worker ->> Worker: Print ok to screen
@@ -14,7 +12,7 @@ sequenceDiagram
         ALT is admin
           app ->> app: print the role to screen
         ELSE is not admin
-          app ->> +LogService: Add log to server
+          app ->> LogService: Add log to server
         END
         LOOP in 10 times
           app ->> app: print index to screen
@@ -22,8 +20,7 @@ sequenceDiagram
     AND Get company
       %% HttpUser.getCompany
         app --) Redis: Publish hello
-        app ->> +LogService: Make a request to add log
+        app ->> LogService: Make a request to add log
         RabbitMQ -) app : Comsume event
     END
-    app -->> -Client : Response "OK"
-```
+    app -->> Client : Response "OK"
