@@ -1,5 +1,4 @@
 import { context } from "@/Context";
-import { omit } from 'lodash';
 import { Tag } from "./Tag";
 
 /**
@@ -15,9 +14,11 @@ import { Tag } from "./Tag";
  */
 export class Vars extends Tag {
   [key: string]: any
+  private _ignoreProps = new Set(['$$', 'tc', 'context'])
 
   prepare() {
-    for (let k in omit(this, ['$$', 'tc', 'context'])) {
+    for (let k in this) {
+      if (this._ignoreProps.has(k)) continue
       context.Vars[k] = this.replaceVars(this[k], { ...context.Vars, Vars: context.Vars, $: this, $$: this.$$, Utils: context.Utils, Result: context.Result })
     }
   }

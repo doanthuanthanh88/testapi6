@@ -3,7 +3,7 @@ import { Group } from '@/components/Group'
 import { replaceVars } from '@/components/Tag'
 import { loadConfig } from '@/config'
 import chalk from 'chalk'
-import { merge, omit, pick } from 'lodash'
+import { merge } from 'lodash'
 import { join, resolve } from 'path'
 import { context } from '../Context'
 
@@ -12,6 +12,7 @@ context
     if (e.title) context.group(e.title, `(${e.version})`, ':', e.description)
   })
   .on('log:testcase:end', (e: Testcase) => {
+    e.ram.done = Math.round(process.memoryUsage().heapUsed / 1024 / 1024 * 100) / 100
     context.log()
     if (e.title) context.groupEnd()
     context.log()
@@ -20,6 +21,12 @@ context
       context.log('- %s: %d', chalk.green('Passed'), e.result.passed)
       context.log('- %s: %d', chalk.red('Failed'), e.result.failed)
       context.log('- %s: %d', 'Totals', e.result.totals)
+
+      context.group(chalk.bgRed.bold('Ram Used'))
+      context.log('- %s: %d MB', 'Begin -> Setup: ', e.ram.setup - e.ram.begin)
+      context.log('- %s: %d MB', 'Setup -> Done : ', e.ram.done - e.ram.setup)
+      context.log('- %s: %d MB', 'Begin -> Done : ', e.ram.done - e.ram.begin)
+
       context.groupEnd()
     } else {
       context.group(chalk.red('- %s: %s'), 'Error', e.error.message)
@@ -93,12 +100,17 @@ export class Testcase {
    */
   encryptPassword?: string
   decryptPassword?: string
+  ram = {
+    begin: 0,
+    setup: 0,
+    done: 0
+  }
 
   constructor(root: any) {
-    const t = pick(root, ['title', 'version', 'servers', 'developer', 'debug', 'description', 'vars', 'group', 'encryptPassword'])
-    const g = omit(root, ['title', 'version', 'servers', 'developer', 'debug', 'description', 'vars', 'group', 'encryptPassword'])
-    merge(this, { title: '', version: '', description: '', servers: {}, endpoints: {} }, t)
-    merge(context.Vars, replaceVars(root.vars))
+    this.ram.begin = Math.round(process.memoryUsage().heapUsed / 1024 / 1024 * 100) / 100
+    const { title = '', version = '', servers = {}, endpoints = {}, developer, debug, description = '', vars, encryptPassword, ...g } = root
+    Object.assign(this, { title, version, servers, developer, debug, description, encryptPassword })
+    merge(context.Vars, replaceVars(vars))
     this.group = new Group()
     this.group.init(g)
     this.group.tagName = 'Root'
@@ -120,6 +132,7 @@ export class Testcase {
     context.Vars = loadConfig(context.Vars, Testcase.getPathFromRoot('.env'))
     this.state = 'init'
     await this.group.setup(this)
+    this.ram.setup = Math.round(process.memoryUsage().heapUsed / 1024 / 1024 * 100) / 100
   }
 
   async exec() {

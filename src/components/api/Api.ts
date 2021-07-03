@@ -3,7 +3,7 @@ import chalk from 'chalk'
 import { CurlGenerator } from "curl-generator"
 import FormData from 'form-data'
 import { createWriteStream } from "fs"
-import { merge, pick } from 'lodash'
+import { merge } from 'lodash'
 import pako from 'pako'
 import { parse, stringify } from 'querystring'
 import { URLSearchParams } from "url"
@@ -93,13 +93,22 @@ export class URL {
   }
 
   async prepare() {
-    this.url = this.$.replaceVars(this.url, { $params: this.toParams() }, undefined)
-    this.url = this.$.replaceVars(this.url, { ...context.Vars, Vars: context.Vars, $: this.$, $$: this.$.$$, Utils: context.Utils, Result: context.Result }, undefined)
+    this.url = this.$.replaceVars(this.url, {
+      $params: this.toParams()
+    }, undefined)
+    this.url = this.$.replaceVars(this.url, {
+      ...context.Vars,
+      Vars: context.Vars,
+      $: this.$,
+      $$: this.$.$$,
+      Utils: context.Utils,
+      Result: context.Result
+    }, undefined)
 
     const [_url, queries = ''] = this.url.split('?')
     this.url = _url
 
-    const q = merge(parse(queries), this.query)
+    const q = Object.assign(parse(queries), this.query)
     for (const _k in q) {
       const vl = q[_k]
       const required = _k.includes('*')
@@ -250,18 +259,15 @@ export class Api extends Tag {
 
   init(attrs: Api) {
     super.init(attrs)
-    merge(this, merge({ headers: {} }, this))
     if (this.curl) {
       const meta = CURLParser.parse(this.curl)
       const { method, url, headers, query, body, baseURL } = meta
-      merge(this, merge({
-        method: method.toUpperCase(),
-        baseURL,
-        url: url.replace(/["']/g, ''),
-        headers: headers,
-        body: body?.data,
-        query: query
-      }, this))
+      if (!this.method) this.method = method.toUpperCase()
+      if (!this.baseURL) this.baseURL = baseURL
+      if (!this.url) this.url = url.replace(/["']/g, '')
+      if (!this.headers) this.headers = headers
+      if (!this.body) this.body = body?.data
+      if (!this.query) this.query = query
     }
     if (this.benchmark?.wrk) {
       this._benchmark = new Wrk()
@@ -271,6 +277,7 @@ export class Api extends Tag {
     if (!this.url) this.url = ''
     if (!this.debug) this.debug = this.tc?.debug
     if (!this.method) this.method = Method.GET
+    if (!this.headers) this.headers = {}
   }
 
   async prepare() {
@@ -447,18 +454,12 @@ export class Api extends Tag {
       if (this.docs) {
         this.docs = this.replaceVars(this.docs, { ...context.Vars, Vars: context.Vars, $: this, $$: this.$$, Utils: context.Utils, Result: context.Result })
       }
-    } catch (err) {
-      err = pick(err, 'config', 'response', 'status', 'statusText')
-      if (err.config) {
-        err.config = pick(err.config, 'url', 'method', 'headers', 'params', 'baseURL', 'timeout', 'withCredentials', 'fullUrl', 'contentType', 'data')
-      }
-      if (err.request) {
-        delete err.request
-      }
-      if (err.response) {
-        err.response = pick(err.response, 'headers', 'data')
-      }
-      this.error = err
+    } catch (error: Error & any) {
+      const { status, statusText, config = {}, response = {} } = error
+      const { url, method, headers, params, baseURL, timeout, withCredentials, fullUrl, contentType, data } = config
+      this.error = { status, statusText }
+      this.error.config = { url, method, headers, params, baseURL, timeout, withCredentials, fullUrl, contentType, data }
+      this.error.response = { headers: response.headers, data: response.data }
     } finally {
       this.time = Date.now() - begin
       context.emit('log:api:done', this)

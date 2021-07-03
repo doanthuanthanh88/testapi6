@@ -45,7 +45,6 @@ export class Group extends Tag {
   /** Value in the loop */
   loopValue: any
 
-  _shadow: this
   _isStop: boolean
 
   init(attrs: any) {
@@ -59,8 +58,8 @@ export class Group extends Tag {
   async setup(tc: Testcase) {
     this.tc = tc
     await Import(this.templates, tc)
+    this.templates = undefined
     this.steps = await Import(this.steps, tc) || []
-    if (this.loop) this._shadow = cloneDeep(this)
     if (!this.testIt) {
       const someSteps = this.steps.filter(e => e.testIt)
       this.testIt = !!someSteps.length
@@ -73,8 +72,10 @@ export class Group extends Tag {
     return this
   }
 
-  prepare(scope?: any) {
-    return super.prepare(scope, ['loop', 'loopKey', 'loopValue'])
+  async prepare(scope?: any) {
+    if (!this.loop) {
+      await super.prepare(scope, ['loop', 'loopKey', 'loopValue'])
+    }
   }
 
   async exec() {
@@ -83,15 +84,16 @@ export class Group extends Tag {
       context.once('app:stop', async () => {
         await this.stop()
       })
+      const vars = { ...context.Vars, Vars: context.Vars, $: this, $$: this.$$, Utils: context.Utils, Result: context.Result }
       if (this.loop) {
-        let arrs = this.replaceVars(this.loop, { ...context.Vars, Vars: context.Vars, $: this, $$: this.$$, Utils: context.Utils, Result: context.Result }, ['steps'])
+        const loop = cloneDeep(this.loop)
+        let arrs = this.replaceVars(loop, vars, ['steps'])
         if (this.async) {
           if (typeof arrs === 'object') {
             const proms = []
             for (let k in arrs) {
               if (this._isStop) return
-              const step = cloneDeep(this._shadow) as Group
-              step.tc = this.tc
+              const step = this.clone()
               step.loopKey = k
               step.loopValue = arrs[k]
               proms.push((async (step) => {
@@ -110,19 +112,17 @@ export class Group extends Tag {
             let i = 0
             while (arrs) {
               if (this._isStop) return
-              const step = cloneDeep(this._shadow) as Group
-              step.tc = this.tc
+              const step = this.clone()
               step.loopKey = i
               step.loopValue = arrs
               await step.prepare()
               await step.each()
-              arrs = this.replaceVars(this.loop, { ...context.Vars, Vars: context.Vars, $: this, $$: this.$$, Utils: context.Utils, Result: context.Result }, ['steps'])
+              arrs = this.replaceVars(loop, vars, ['steps'])
             }
           } else {
             for (let k in arrs) {
               if (this._isStop) return
-              const step = cloneDeep(this._shadow) as Group
-              step.tc = this.tc
+              const step = this.clone()
               step.loopKey = k
               step.loopValue = arrs[k]
               await step.prepare()
@@ -134,6 +134,10 @@ export class Group extends Tag {
         await this.each()
       }
     }
+  }
+
+  clone() {
+    return super.clone('loop', 'templates', 'loop', 'loopKey', 'loopValue')
   }
 
   async _each(step: Tag) {

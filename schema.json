@@ -186,7 +186,20 @@
             },
             {
               "type": "object",
+              "required": [
+                "src"
+              ],
               "properties": {
+                "theme": {
+                  "type": "string",
+                  "enum": [
+                    "default",
+                    "forest",
+                    "dark",
+                    "neutral"
+                  ],
+                  "default": "default"
+                },
                 "autoNumber": {
                   "type": "boolean",
                   "description": "Auto write number for each steps",

@@ -3,7 +3,7 @@
     "module": "commonjs",
     "target": "esnext",
     "lib": [
-      "es6"
+      "ESNext"
     ],
     "declaration": true,
     "removeComments": true,

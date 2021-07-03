@@ -1,6 +1,6 @@
 import { Testcase } from '@/components/Testcase'
 import { Replacement } from '@/Replacement'
-import { cloneDeep, flatten, merge, mergeWith, omit } from 'lodash'
+import { cloneDeep, merge, mergeWith, omit } from 'lodash'
 import { context } from '../Context'
 
 export const REMOVE_CHARACTER = null
@@ -8,7 +8,7 @@ export const REMOVE_CHARACTER = null
 export async function Import(arrs: any[], tc: Testcase) {
   if (arrs && arrs.length > 0) {
     const tags = []
-    for (const t of flatten(arrs).filter(e => e)) { //  { [tag: string]: any }
+    for (const t of arrs.flat().filter(e => e)) { //  { [tag: string]: any }
       if (Object.keys(t).length !== 1) throw new Error(`Format tag is not valid "${Object.keys(t).join(',')}"`)
       const tagName = Object.keys(t)[0]
       try {
@@ -79,22 +79,39 @@ export abstract class Tag {
       attrs = typeof attrs === 'object' ? attrs : { [attrName]: attrs }
     }
     if (attrs) {
-      const { Templates } = require('.')
-      const ext = ((attrs['<-'] && !Array.isArray(attrs['<-'])) ? (attrs['<-'] as string).split(',').map(e => e.trim()) : attrs['<-']) as string[]
-      ext?.forEach(key => {
+      const _extends = typeof attrs['<-'] === 'string' ? attrs['<-'].split(',').map(e => e.trim()) : attrs['<-']
+      const _expose = typeof attrs['->'] === 'string' ? attrs['->'].split(',').map(e => e.trim()) : attrs['->']
+
+      _extends?.forEach(key => {
+        const { Templates } = require('.')
         merge(base, cloneDeep(Templates.Templates.get(key) || {}))
         base['<--'].push(key)
       })
 
       merge(base, omit(attrs, ['<-', '->']))
 
-      const exp = ((attrs['->'] && !Array.isArray(attrs['->'])) ? attrs['->'].split(',').map(e => e.trim()) : attrs['->']) as string[]
-      exp?.forEach(key => {
+      _expose?.forEach(key => {
+        const { Templates } = require('.')
         Templates.Templates.set(key, cloneDeep(base) as any)
         base['-->'].push(key)
       })
     }
     merge(this, base)
+  }
+
+  clone(..._ignoreClone: string[]) {
+    // console.time('default')
+    // const ig = new Set(['vars', '$$', 'tc', 'error', ...ignoreClone])
+    // let self = cloneDeepWith(this, (vl, k: any) => {
+    //   if (!ig.has(k)) {
+    //     return vl
+    //   }
+    //   return vl
+    // })
+    // console.timeEnd('default')
+    // console.time('clone')
+    return cloneDeep(this)
+    // console.timeEnd('clone')
   }
 
   get context() {
@@ -139,7 +156,7 @@ export abstract class Tag {
 }
 
 export function replaceVars(obj: any, ctx = context.Vars, ignores = []) {
-  ignores.push('tc', 'group', 'attrs', '$$', 'context', 'steps', 'templates', '_shadow')
+  ignores.push('tc', 'group', 'attrs', '$$', 'context', 'steps', 'templates')
   return _replaceVars(obj, ctx, ignores)
 }
 
@@ -219,7 +236,8 @@ function _merge(a, ...b) {
   return mergeWith(a, ...b.map(b => {
     const flat = b['...']
     if (!flat) return b
-    delete b['...']
+    // delete b['...']
+    b['...'] = undefined
     if (Array.isArray(flat)) {
       let obj = {}
       for (const a of flat) {

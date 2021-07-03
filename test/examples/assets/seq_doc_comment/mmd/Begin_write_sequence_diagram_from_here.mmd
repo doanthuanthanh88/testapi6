@@ -6,7 +6,8 @@ sequenceDiagram
         Worker ->> Worker: Print ok to screen
       END
     END
-    note right of {Client}: Note client here
+    NOTE RIGHT OF Client: Note right of client
+    NOTE LEFT OF Client: Note left of client
     PAR Get user
       %% HttpUser.getUser
         ALT is admin
@@ -23,4 +24,5 @@ sequenceDiagram
         app ->> LogService: Make a request to add log
         RabbitMQ -) app : Comsume event
     END
+    NOTE OVER Client, RabbitMQ: Message over here
     app -->> Client : Response "OK"

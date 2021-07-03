@@ -84,7 +84,8 @@ class HttpUser {
     /// [workerRun]
     this.workerRun()
 
-    /// note right of {Client}: Note client here
+    /// note right of Client: Note right of client
+    /// note left of Client: Note left of client
     /// parallel
     const [user, company] = await Promise.all([
       /// [HttpUser.getUser] Get user
@@ -93,6 +94,7 @@ class HttpUser {
       this.getCompany(),
     ])
 
+    /// note over {Client}, {RabbitMQ}: Message over here
     /// {Client} <= {}: Response "OK"
     return "OK"
 

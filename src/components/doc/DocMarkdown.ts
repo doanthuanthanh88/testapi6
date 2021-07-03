@@ -35,13 +35,13 @@ export class DocMarkdown extends OutputFile {
 
   async exec() {
     let menu = []
-    this.raw = merge({}, this.tc, this.raw)
+    const { title, description, version = '', developer = '', servers } = this.tc
+    this.raw = merge({ title, description, version, developer, servers }, this.raw)
     menu.push(`# ${this.raw.title || this.tc.title || ''}`)
     menu.push(`_${this.raw.description || this.tc.description || ''}_`)
     menu.push('')
     menu.push('')
     menu.push(`> Version \`${this.raw.version || this.tc.version || ''}\``)
-    const developer = this.raw?.developer || this.tc.developer || ''
     if (developer) {
       menu.push('')
       menu.push(`> [**Contact ${developer.split('@')[0]}**](mailto:${developer})`)
@@ -154,7 +154,6 @@ export class DocMarkdown extends OutputFile {
     // menu.splice(importIndex, 0, `| No.<a name='ANCHOR_-1'></a> | List APIs | [Import](${Api.toImportLink(testItems)}) |`)
     menu = menu.concat(menus)
 
-    const servers = this.raw?.servers || this.tc.servers
     if (servers) {
       menu.push('## Servers')
       menu = menu.concat(Object.keys(servers).map(des => `- **${servers[des]}** - _${des}_`))

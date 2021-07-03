@@ -24,6 +24,7 @@ _Auto generate diagrams from any file which base on comment line_
       - .ts
     excludes:                 # Ignore scan these folders
       - node_modules
+    theme: default            # Default color in diagrams ("default", "forest", "dark", "neutral")
     slient: true              # Disable log
     src: ../../src            # Source path which includes code files
     saveTo: ./mmd             # Target path which includes the output document

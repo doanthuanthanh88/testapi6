@@ -1,6 +1,5 @@
 import { context } from "@/Context";
 import chalk from "chalk";
-import { merge } from "lodash";
 import { Tag } from "../Tag";
 
 /**
@@ -21,7 +20,7 @@ export class Echo extends Tag {
 
   init(attrs: any) {
     super.init(attrs, 'msg')
-    merge(this, merge({ color: 'yellow' }, this))
+    if (!this.color) this.color = 'yellow'
   }
 
   async exec() {

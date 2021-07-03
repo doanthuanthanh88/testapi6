@@ -72,11 +72,11 @@ class Comment {
   }
 
   clone(): Comment {
-    return Object.create(this, {})
+    return Object.create(this)
   }
 
   cloneNew(): Comment {
-    const newEmpty = Object.create(this, {})
+    const newEmpty = Object.create(this)
     newEmpty.parent = this
     newEmpty.childs = []
     newEmpty.name = ''
@@ -160,9 +160,11 @@ class Comment {
           Comment.Comments.set(this.key, this)
         } else {
           this.title = this.name
-          this.outputName = this.name.replace(/\W/g, '_')
+          this.outputName = this.name.replace(/\W/g, '_').replace(/_+/g, '_')
           if (!this.ctx) {
             this.ctx = 'app'
+          } else {
+            this.ctx = this.ctx.split(',').map(e => e.trim()).join(' / ')
           }
           // const newNote = this.cloneNew()
           // newNote.name = `NOTE RIGHT OF {}: ${this.name}`
@@ -177,10 +179,16 @@ class Comment {
 
   mmdSequence(txt: string) {
     if (/^note [^:]+:(.+)/i.test(txt)) {
-      const [main, ...des] = txt.split(':')
-      const { name } = Actor.getActor(`{${this.ctx || 'IMPOSSIBLE_ERROR'}}`, true)
-      txt = main.replace(/\{\}/g, name) + ':' + des.join('')
-      txt = txt
+      let m = txt.match(/^\s*note\s((right of)|(left of)|(over))\s+([^,\:]+)\s*(,\s*(.*?))?(\:.+)/i)
+      if (m) {
+        if (m[2] || m[3]) {
+          m[5] = Actor.getActor(m[5].replace(/\{\}/g, `{${this.ctx || 'IMPOSSIBLE_ERROR'}}`), true).name
+        } else if (m[4] && m[7]) {
+          m[5] = Actor.getActor(m[5].replace(/\{\}/g, `{${this.ctx || 'IMPOSSIBLE_ERROR'}}`), true).name
+          m[7] = Actor.getActor(m[7].replace(/\{\}/g, `{${this.ctx || 'IMPOSSIBLE_ERROR'}}`), true).name
+        }
+      }
+      txt = `NOTE ${m[1].toUpperCase()} ${m[5]}${m[7] ? `, ${m[7]}` : ''}${m[8]}`
     } else {
       let m = txt.match(/\s*(.*?)\s*(->|<-|=>|<=|x>|<x|>|<)\s*(.*?):(.*)/i)
       if (m) {
@@ -262,9 +270,9 @@ class Comment {
   prePrint(writer, _i: number, _tab: string, mtab: string): string {
     if (!this.name) {
       if (this.key) {
-        writer?.write(`${mtab}%% ${this.key}\r\n`)
+        writer.write(`${mtab}%% ${this.key}\r\n`)
       } else {
-        writer?.write(`${mtab}%% ${this.cmd || 'COMMENT'}\r\n`)
+        writer.write(`${mtab}%% ${this.cmd || 'COMMENT'}\r\n`)
       }
     }
     if (this.name && this.childs.length) {
@@ -350,14 +358,14 @@ class Comment {
     if (txt && !this.key && !this.docSequence.slient) context.log(chalk.gray(tab) + color(raw))
 
     const preText = this.prePrint(writer, _i, tab, mtab)
-    if (preText) writer?.write(mtab + preText + '\r\n')
+    if (preText) writer.write(mtab + preText + '\r\n')
 
-    if (txt) writer?.write(mtab + txt + '\r\n')
+    if (txt) writer.write(mtab + txt + '\r\n')
 
     this.printChild(writer, _i, tab, mtab)
 
     const postText = this.postPrint(writer, _i, tab, mtab)
-    if (postText) writer?.write(mtab + postText + '\r\n')
+    if (postText) writer.write(mtab + postText + '\r\n')
   }
 
   printClass(writer, _i: number, tab = '  ') {
@@ -417,6 +425,10 @@ class Comment {
   }
 }
 
+class EMPTY extends Comment {
+
+}
+
 class PARALLEL extends Comment {
 
   override prePrint() {
@@ -440,7 +452,7 @@ class PARALLEL extends Comment {
           name = child.name
           child.name = ''
         }
-        writer?.write(mtab + `AND ${name}` + '\r\n')
+        writer.write(mtab + `AND ${name}` + '\r\n')
       }
       child.print(writer, i, tab.replace(/-/g, ' ') + '|-')
     })
@@ -587,13 +599,13 @@ class Actor {
           //   Actor.declare.add(`${name}[[${m[2]}]]`)
           // } else 
           if (m[1] === '{' && m[3] === '}') {
-            Actor.declare.add(`${name}`)
+            name.split('/').forEach(name => Actor.declare.add(`${name.trim()}`))
           } else if (m[1] === '[' && m[3] === ']') {
-            Actor.declare.add(`${name}[(${m[2]})]`)
+            name.split('/').forEach(name => Actor.declare.add(`${name.trim()}[(${m[2]})]`))
           } else if (m[1] === '(' && m[3] === ')') {
-            Actor.declare.add(`${name}((${m[2]}))`)
+            name.split('/').forEach(name => Actor.declare.add(`${name.trim()}((${m[2]}))`))
           } else {
-            Actor.declare.add(`${name}${m[1]}${m[2]}${m[3]}`)
+            name.split('/').forEach(name => Actor.declare.add(`${name.trim()}${m[1]}${m[2]}${m[3]}`))
           }
         }
       }
@@ -615,7 +627,11 @@ class Actor {
           if (name) {
             let actor1 = name // dir > 0 ? name : a
             let actor2 = a // dir < 0 ? name : a
-            writer?.write(`${actor1} ${action} ${actor2}\r\n`)
+            actor1.split('/').forEach(actor1 => {
+              actor2.split('/').forEach(actor2 => {
+                writer.write(`${actor1.trim()} ${action} ${actor2.trim()}\r\n`)
+              })
+            })
             if (!Actor.slient) context.log(`${chalk.gray('-')} ${chalk.magenta(actor1)} ${chalk.blue(action)} ${chalk.magenta(actor2)}`)
           }
         }
@@ -637,8 +653,11 @@ export class DocSequence extends Tag {
   autoNumber: boolean
   /** Activations can be stacked for same actor */
   stack: boolean
+  theme: 'default' | 'forest' | 'dark' | 'neutral'
   _stackFrom: string
   _stackTo: string
+  _nodeModulePath: string
+  _genImages: Promise<any>[]
 
   private totalFiles = 0
   private roots = [] as Comment[]
@@ -647,7 +666,6 @@ export class DocSequence extends Tag {
     overview: '',
     sequence: ''
   }
-
   fileTypes = {
     js: {
       excludes: ['node_modules', 'dist'],
@@ -677,6 +695,9 @@ export class DocSequence extends Tag {
 
   init(attrs: any) {
     super.init(attrs)
+    this._genImages = []
+    this._nodeModulePath = require.resolve('.bin/mmdc').split('@mermaid-js')[0]
+    if (!this.theme) this.theme = 'default'
     if (!this.ext) this.ext = Object.keys(this.fileTypes).map(e => `.${e}`)
     if (!this.excludes) this.excludes = ['node_modules']
     if (this.autoNumber === undefined) this.autoNumber = false
@@ -765,10 +786,10 @@ export class DocSequence extends Tag {
           // newOne.root = cur.root
           const level = newOne.getLevel(cur)
           if (level === 'child') {
-            let empty: Comment = cur
+            let empty: EMPTY = cur
             const childLevel = (newOne.startC - cur.startC) / space.length
             new Array(childLevel - 1).fill(null).forEach((_, i) => {
-              const newEmpty = new Comment('', empty.startC, empty.umlType)
+              const newEmpty = new EMPTY('', empty.startC, empty.umlType)
               newEmpty.parent = empty
               newEmpty.docSequence = empty.docSequence
               newEmpty.startC = newOne.startC - (space.length * (i + 1))
@@ -807,6 +828,9 @@ export class DocSequence extends Tag {
             }
           }
           cur = newOne
+          while (cur.constructor.name === 'Comment' && newOne.umlType === 'sequence' && cur.parent) {
+            cur = cur.parent
+          }
         }
       } else if (!space) {
         const m = line.match(ptSpace)
@@ -830,7 +854,7 @@ export class DocSequence extends Tag {
         const writer = createWriteStream(fileMMDSave)
         writer.once('close', resolve)
         writer.once('error', reject)
-        writer?.write('graph LR\r\n')
+        writer.write('graph LR\r\n')
         if (Actor.declare.size) writer.write(Array.from(Actor.declare).join('\r\n') + '\r\n')
         Actor.slient = this.slient
         Actor.save(writer)
@@ -850,12 +874,18 @@ export class DocSequence extends Tag {
       })
     ])
     // Generate image
+    await this.genImage(fileMMDSave, fileImageSave)
+  }
+
+  private async genImage(mmdFile: string, svgFile: string) {
     const genImage = new Exec()
-    await genImage.init({
+    genImage.init({
+      shell: true,
+      detached: true,
       slient: true,
-      args: ['node_modules/.bin/mmdc', '-i', fileMMDSave, '-o', fileImageSave]
+      args: [this._nodeModulePath + '.bin/mmdc', '-i', mmdFile, '-o', svgFile, '-t', this.theme]
     })
-    await genImage.exec()
+    this._genImages.push(genImage.exec())
   }
 
   private async printSequence(mdFolder: string, mmdFolder: string, svgFolder: string) {
@@ -893,12 +923,7 @@ export class DocSequence extends Tag {
         })
       ])
       // Generate image
-      const genImage = new Exec()
-      await genImage.init({
-        slient: true,
-        args: ['node_modules/.bin/mmdc', '-i', fileMMDSave, '-o', fileImageSave]
-      })
-      await genImage.exec()
+      await this.genImage(fileMMDSave, fileImageSave)
     }
     const fileSave = join(this.saveTo, 'sequence.md')
     context.group(`${chalk.green('%s %s')}`, 'Sequence diagram:', fileSave)
@@ -950,12 +975,7 @@ export class DocSequence extends Tag {
       }),
     ])
     // Generate image
-    const genImage = new Exec()
-    await genImage.init({
-      slient: true,
-      args: ['node_modules/.bin/mmdc', '-i', fileMMDSave, '-o', fileImageSave]
-    })
-    await genImage.exec()
+    await this.genImage(fileMMDSave, fileImageSave)
   }
 
   private async printMarkdown(_mdFolder: string, _mmdFolder: string, _svgFolder: string) {
@@ -989,7 +1009,6 @@ export class DocSequence extends Tag {
     const mmdFolder = join(this.saveTo, 'mmd')
     const svgFolder = join(this.saveTo, 'svg')
     await Promise.all([
-      mkdirp(this.saveTo),
       mkdirp(mdFolder),
       mkdirp(mmdFolder),
       mkdirp(svgFolder),
@@ -997,7 +1016,10 @@ export class DocSequence extends Tag {
     await this.printSequence(mdFolder, mmdFolder, svgFolder)
     await this.printClasses(mdFolder, mmdFolder, svgFolder)
     await this.printOverview(mdFolder, mmdFolder, svgFolder)
-    await this.printMarkdown(mdFolder, mmdFolder, svgFolder)
+    await Promise.all([
+      this.printMarkdown(mdFolder, mmdFolder, svgFolder),
+      ...this._genImages
+    ])
   }
 
 }

@@ -1,5 +1,4 @@
 import { context } from '@/Context';
-import { merge } from 'lodash';
 import prompts from 'prompts';
 import { Tag } from "../Tag";
 
@@ -40,12 +39,15 @@ export class Input extends Tag {
     }
   }
 
+  get message() {
+    return this.title || 'Enter'
+  }
+
+  name = 'value'
+
   async question() {
-    const self = this
-    const opts = merge({ type: 'text' }, self)
-    opts['message'] = self.title || 'Enter'
-    opts['name'] = 'value'
-    this._prmpt = await prompts(opts);
+    if (!this.type) this.type = 'text'
+    this._prmpt = await prompts(this)
     return this._prmpt?.value
   }
 

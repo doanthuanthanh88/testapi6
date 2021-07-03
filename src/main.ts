@@ -3,7 +3,7 @@ import '@/components/Utils';
 import axios from 'axios';
 import { createWriteStream, existsSync, lstatSync } from 'fs';
 import { safeLoad } from "js-yaml";
-import { flatten, merge } from "lodash";
+import { merge } from "lodash";
 import { tmpdir } from "os";
 import { basename, dirname, join, resolve } from 'path';
 import { SCHEMA } from "./components";
@@ -71,7 +71,7 @@ export async function load(inp: InputYamlFile | InputYamlText, decryptPassword?:
       steps: root
     }
   }
-  if (root.steps) root.steps = flatten(root.steps)
+  if (root.steps) root.steps = root.steps.flat()
   if (decryptPassword) root.decryptPassword = decryptPassword
   return new Testcase(root)
 }

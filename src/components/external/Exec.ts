@@ -23,6 +23,8 @@ export class Exec extends Tag {
   /** Log content */
   log: string[]
   prc: ChildProcessWithoutNullStreams
+  detached: boolean
+  shell: boolean | string
 
   init(attrs) {
     super.init(attrs)
@@ -35,10 +37,13 @@ export class Exec extends Tag {
 
   exec() {
     const [cmd, ...args] = this.args
-    if (this.title !== null) {
+    if (this.title !== null && !this.slient) {
       context.log(this.title || `> ${cmd} ${args.map(e => `"${e}"`).join(" ")}`)
     }
-    this.prc = spawn(cmd, args)
+    this.prc = spawn(cmd, args, {
+      shell: this.shell,
+      detached: !!this.detached
+    })
 
     // Listen to force stop
     context.once('app:stop', async () => {
@@ -46,9 +51,9 @@ export class Exec extends Tag {
     })
 
     return new Promise((resolve) => {
-      this.prc.on('message', msg => this.onMessage(msg))
+      if (!this.slient) this.prc.on('message', msg => this.onMessage(msg))
       this.prc.on('error', err => this.onError(err))
-      this.prc.stdout.on('data', msg => this.onMessage(msg))
+      if (!this.slient) this.prc.stdout.on('data', msg => this.onMessage(msg))
       this.prc.stderr.on('data', err => this.onError(err))
       this.prc.on('close', code => {
         this.onDone(code)
