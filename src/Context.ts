@@ -1,11 +1,6 @@
 import { Testcase } from '@/components/Testcase';
-import crypto from 'crypto';
 import { EventEmitter } from 'events';
-import { safeDump } from 'js-yaml';
-import { Validator } from 'jsonschema';
-import * as lodash from 'lodash';
 import { inspect } from 'util';
-import { toJsonSchema } from "./components/doc/DocUtils";
 
 process.setMaxListeners(0)
 
@@ -14,7 +9,6 @@ export class Context {
   ExternalLibraries = {}
   /** Test case */
   tc: Testcase
-  space = []
   /** Test result */
   get Result() {
     return this.tc?.result
@@ -27,6 +21,7 @@ export class Context {
     crypto: {
       /** Encrypt AES data */
       encryptAES(text: string, salt: string) {
+        const crypto = require('crypto')
         const hash = crypto.createHash("sha1")
         hash.update(salt);
         const key = hash.digest().slice(0, 16);
@@ -37,6 +32,7 @@ export class Context {
       },
       /** Decrypt AES data */
       decryptAES(text: string, salt: string) {
+        const crypto = require('crypto')
         const hash = crypto.createHash("sha1")
         hash.update(salt);
         const key = hash.digest().slice(0, 16);
@@ -58,12 +54,14 @@ export class Context {
     /** Format data to yaml */
     yaml(obj: any) {
       if (typeof obj !== null && typeof obj === 'object') {
+        const { safeDump } = require('js-yaml')
         return safeDump(obj)
       }
       return obj
     },
     /** Get object schema */
     schema(obj: any, opts: any) {
+      const { toJsonSchema } = require('./components/doc/DocUtils')
       return toJsonSchema(obj, opts)
     },
     /** Get base64 string */
@@ -72,7 +70,11 @@ export class Context {
     },
     /** Get md5 string */
     md5(txt: string) {
-      return txt && crypto.createHash('md5').update(txt).digest('hex')
+      if (txt) {
+        const crypto = require('crypto')
+        txt = crypto.createHash('md5').update(txt).digest('hex')
+      }
+      return txt
     },
     /** Show sign number */
     sign(vl: string | number) {
@@ -81,15 +83,19 @@ export class Context {
     },
     /** Get random string */
     random() {
+      const crypto = require('crypto')
       return crypto.randomBytes(4).readUInt32LE(0)
     },
     /** Get lodash object */
-    lodash,
+    get lodash() {
+      return require('lodash')
+    }
   }
   /** Global validator */
   Validate = {
     /** Validate object schema */
     schema(data, schema, opts) {
+      const { Validator } = require('jsonschema')
       var v = new Validator()
       const rs = v.validate(data, schema, opts)
       if (!rs.valid) {
@@ -115,7 +121,8 @@ export class Context {
     },
     /** Match 2 objects */
     match(a, b) {
-      if (!lodash.isEqual(a, b)) throw {
+      const { isEqual } = require('lodash')
+      if (!isEqual(a, b)) throw {
         message: 'Data not match',
         actual: a,
         expected: b
@@ -171,17 +178,14 @@ export class Context {
   }
   /** Print without any spaces */
   print(...args: any[]) {
-    // this._event.emit('log', format(fm, ...args))
     console.log(...args.map(a => typeof a === 'object' ? inspect(a, { depth: null }) : a))
   }
   /** Clear screen */
   clear() {
-    // this._event.emit('clear')
     console.clear()
   }
   /** Print log with space in group */
   log(...args) {
-    // this._event.emit('log', this.space.join('') + format(fm, ...args))
     console.log(...args.map(a => typeof a === 'object' ? inspect(a, { depth: null }) : a))
   }
   /** Print table */
@@ -190,18 +194,14 @@ export class Context {
   }
   /** Print error with space in group */
   error(...args) {
-    // this._event.emit('log', this.space.join('') + format(fm, ...args), true)
     console.log(...args.map(a => typeof a === 'object' ? inspect(a, { depth: null }) : a))
   }
   /** Add spaces before log */
   group(...args: any[]) {
     console.group(...args)
-    // this.log(fm, ...args)
-    // this.space.push('  ')
   }
   /** Remove spaces */
   groupEnd() {
-    // this.space.splice(0, 1)
     console.groupEnd()
   }
 }

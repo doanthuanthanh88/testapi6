@@ -697,9 +697,9 @@ export class DocSequence extends Tag {
     super.init(attrs)
     this._genImages = []
     try {
-      this._nodeModulePath = require.resolve('@mermaid-js/mermaid-cli/index.bundle')
+      this._nodeModulePath = require.resolve('@mermaid-js/mermaid-cli/index.bundle.js')
     } catch {
-      this._nodeModulePath = require.resolve('@mermaid-js/mermaid-cli/index')
+      this._nodeModulePath = require.resolve('@mermaid-js/mermaid-cli/index.js')
     }
     if (!this.theme) this.theme = 'default'
     if (!this.ext) this.ext = Object.keys(this.fileTypes).map(e => `.${e}`)
@@ -886,7 +886,7 @@ export class DocSequence extends Tag {
     genImage.init({
       shell: true,
       detached: true,
-      slient: true,
+      slient: this.slient,
       args: [this._nodeModulePath, '-i', mmdFile, '-o', svgFile, '-t', this.theme]
     })
     this._genImages.push(genImage.exec())

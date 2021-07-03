@@ -1,18 +1,10 @@
-import '@/components/data_handler/Validate';
-import '@/components/Utils';
-import axios from 'axios';
-import { createWriteStream, existsSync, lstatSync } from 'fs';
-import { safeLoad } from "js-yaml";
+import { existsSync, lstatSync } from 'fs';
 import { merge } from "lodash";
-import { tmpdir } from "os";
 import { basename, dirname, join, resolve } from 'path';
-import { SCHEMA } from "./components";
-import { Api } from "./components/api/Api";
-import { includeComment, loadContent } from "./components/Import";
-import { Tag } from './components/Tag';
-import { Templates } from "./components/Templates";
-import { Testcase } from "./components/Testcase";
 import { context } from "./Context";
+import { SCHEMA } from './components'
+import { includeComment, loadContent } from './components/Import'
+import { Testcase } from './components/Testcase'
 
 export class InputYamlFile {
   constructor(public yamlFile: string) { }
@@ -23,8 +15,11 @@ export class InputYamlText {
 
 export async function handleHttpFile(yamlFile: string, decryptPassword?: string) {
   if (yamlFile?.startsWith('http://') || yamlFile?.startsWith('https://')) {
+    const axios = require('axios')
     const response = await axios.get(yamlFile, { responseType: 'stream' });
+    const { tmpdir } = require('os')
     yamlFile = join(tmpdir(), `${context.Utils.random()}.yaml` + (decryptPassword ? '.encrypt' : ''))
+    const { createWriteStream } = require('fs')
     const writer = createWriteStream(yamlFile)
     response.data.pipe(writer)
     return new Promise<string>((resolve, reject) => {
@@ -45,18 +40,13 @@ export async function load(inp: InputYamlFile | InputYamlText, decryptPassword?:
   } catch (err) {
     throw new Error(`Could not found scenario file at "${yamlFile}"`)
   }
-  // Reset
   Testcase.RootDir = dirname(yamlFile)
-  Templates.Templates = new Map()
-  Testcase.APIs = []
-  Tag.Cached.clear()
-  Api.Index = 0
-
   let content: string
   if (inp instanceof InputYamlFile) {
     // load from file
     root = loadContent(yamlFile, '\0\0\0', decryptPassword)
   } else if (inp instanceof InputYamlText) {
+    const { safeLoad } = require('js-yaml')
     // load from text content then set yaml file
     content = includeComment(inp.yamlText)
     root = safeLoad(content, { schema: SCHEMA })

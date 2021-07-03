@@ -1,10 +1,8 @@
 import chalk from "chalk";
-import { readFileSync, writeFileSync } from 'fs';
 import { safeLoad } from 'js-yaml';
 import { extname } from "path";
 import { SCHEMA } from ".";
 import { context } from "../Context";
-import { handleHttpFile } from '../main';
 import { Tag } from "./Tag";
 import { Testcase } from "./Testcase";
 
@@ -13,6 +11,7 @@ export function includeComment(cnt: string) {
     const m = e.match(/^([\t|\s]*)#\s*Includes\s*:\s*(.+)/)
     if (m) {
       const file = m[2].trim()
+      const { readFileSync } = require('fs')
       let cnt = readFileSync(Testcase.getPathFromRoot(file), 'utf8').toString()
       return sum.concat(cnt.split('\n').map(e => `${m[1]}${e}`))
     } else {
@@ -29,6 +28,7 @@ export function loadContent(file, encryptPassword: string, decryptPassword: stri
       file += '.encrypt'
     }
   }
+  const { readFileSync } = require('fs')
   let cnt = readFileSync(file, 'utf8').toString()
   if (decryptPassword) {
     cnt = context.Utils.crypto.decryptAES(cnt, decryptPassword)
@@ -64,6 +64,7 @@ export function loadContent(file, encryptPassword: string, decryptPassword: stri
     }
     if (encryptPassword) {
       // Generate encrypt file
+      const { writeFileSync } = require('fs')
       writeFileSync(file + (!file.endsWith('.encrypt') ? '.encrypt' : ''), context.Utils.crypto.encryptAES(cnt.replace(/^(password\s*\:.+)$/m, `# Decrypted!`), encryptPassword.toString()))
     }
   }
@@ -91,6 +92,7 @@ export class Import extends Tag {
   async setup(tc: Testcase) {
     this.tc = tc
     if (this.src?.startsWith('http://') || this.src?.startsWith('https://')) {
+      const { handleHttpFile } = require('../main')
       this.src = await handleHttpFile(this.src)
     }
     const root = loadContent(Testcase.getPathFromRoot(this.src), tc.encryptPassword, tc.decryptPassword)

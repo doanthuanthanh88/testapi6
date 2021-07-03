@@ -2,15 +2,11 @@
   "compilerOptions": {
     "module": "commonjs",
     "target": "esnext",
-    "lib": [
-      "ESNext"
-    ],
     "declaration": true,
     "removeComments": true,
     "esModuleInterop": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "experimentalDecorators": true,
     "sourceMap": true,
     "typeRoots": [
       "node_modules/@types",

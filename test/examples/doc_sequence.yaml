@@ -18,6 +18,6 @@
     title: Test service # Document title
     ext: [".ts", ".js", ".go", ".py", ".yaml", ".java"] # Files extension which contains comments
     excludes: ["node_modules"] # Ignore scan files in these folders
-    # slient: true  # Disabled log
+    slient: true # Disabled log
     src: assets/doc_sequence.js # Source folder (or file) which includes the files
     saveTo: assets/seq_doc_comment # Output folder. After done, we get the README.md file in this

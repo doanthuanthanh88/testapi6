@@ -73,66 +73,110 @@ export const SCHEMA = Schema.create([
   keep
 ])
 
-/**
- * Api
- */
-export * from './api/Api'
-export * from './api/Delete'
-export * from './api/Get'
-export * from './api/Head'
-export * from './api/Patch'
-export * from './api/Post'
-export * from './api/Put'
-/**
- * Benchmark API
- */
-export { IWrk } from './benchmark/Wrk'
-/**
- * Data handler
- */
-export * from './data_handler/Regex'
-export * from './data_handler/Validate'
-/**
- * Documentation
- */
-export * from './doc/DocMarkdown'
-export * from './doc/DocSequence'
-// export * from './doc/DocMermaid'
-export * from './doc/DocSwagger'
-/**
- * External
- */
-export * from './external/Exec'
-export * from './external/PreExec'
-/**
- * Common
- */
-export * from './Group'
-export * from './Import'
-/**
- * Input
- */
-export * from './input/Input'
-export * from './input/Load'
-/**
- * Output
- */
-export * from './output/Clear'
-export * from './output/Echo'
-export * from './output/OutputFile'
-export * from './output/Schema'
-export * from './Pause'
-export * from './Require'
-export * from './Script'
-export * from './Templates'
-export * from './Utils'
-export * from './Validator'
-export * from './Vars'
+export const Components = {
+  // Http Request
+  get Api() {
+    return getComponent('Api', './api/Api')
+  },
+  get Delete() {
+    return getComponent('Delete', './api/Delete')
+  },
+  get Get() {
+    return getComponent('Get', './api/Get')
+  },
+  get Head() {
+    return getComponent('Head', './api/Head')
+  },
+  get Patch() {
+    return getComponent('Patch', './api/Patch')
+  },
+  get Post() {
+    return getComponent('Post', './api/Post')
+  },
+  get Put() {
+    return getComponent('Put', './api/Put')
+  },
+  // Benchmark Http API
+  get IWrk() {
+    return getComponent('Wrk', './benchmark/Wrk')
+  },
+  // Data handler
+  get Regex() {
+    return getComponent('Regex', './data_handler/Regex')
+  },
+  get Validate() {
+    return getComponent('Validate', './data_handler/Validate')
+  },
+  // Documentation
+  get DocMarkdown() {
+    return getComponent('DocMarkdown', './doc/DocMarkdown')
+  },
+  get DocSequence() {
+    return getComponent('DocSequence', './doc/DocSequence')
+  },
+  get DocMermaid() {
+    return getComponent('DocMermaid', './doc/DocMermaid')
+  },
+  get DocSwagger() {
+    return getComponent('DocSwagger', './doc/DocSwagger')
+  },
+  // External
+  get Exec() {
+    return getComponent('Exec', './external/Exec')
+  },
+  get PreExec() {
+    return getComponent('PreExec', './external/PreExec')
+  },
+  // Common
+  get Group() {
+    return getComponent('Group', './Group')
+  },
+  get Import() {
+    return getComponent('Import', './Import')
+  },
+  // Input
+  get Input() {
+    return getComponent('Input', './input/Input')
+  },
+  get Load() {
+    return getComponent('Load', './input/Load')
+  },
+  // Output
+  get Clear() {
+    return getComponent('Clear', './output/Clear')
+  },
+  get Echo() {
+    return getComponent('Echo', './output/Echo')
+  },
+  get OutputFile() {
+    return getComponent('OutputFile', './output/OutputFile')
+  },
+  get Schema() {
+    return getComponent('Schema', './output/Schema')
+  },
+  get Pause() {
+    return getComponent('Pause', './Pause')
+  },
+  get Require() {
+    return getComponent('Require', './Require')
+  },
+  get Script() {
+    return getComponent('Script', './Script')
+  },
+  get Templates() {
+    return getComponent('Templates', './Templates')
+  },
+  get Utils() {
+    return getComponent('Utils', './Utils')
+  },
+  get Validator() {
+    return getComponent('Validator', './Validator')
+  },
+  get Vars() {
+    return getComponent('Vars', './Vars')
+  },
+}
 
-
-
-
-
-
-
-
+export function getComponent(name: string, path: string) {
+  return require(path)[name]
+}

@@ -1,11 +1,12 @@
 import { Api } from '@/components/api/Api'
 import { Group } from '@/components/Group'
-import { replaceVars } from '@/components/Tag'
+import { replaceVars, Tag } from '@/components/Tag'
 import { loadConfig } from '@/config'
 import chalk from 'chalk'
 import { merge } from 'lodash'
 import { join, resolve } from 'path'
 import { context } from '../Context'
+import { Templates } from './Templates'
 
 context
   .on('log:testcase:begin', (e: Testcase) => {
@@ -44,11 +45,6 @@ export class Testcase {
 
   static getPathFromRoot(str: string) {
     return str.startsWith('/') ? resolve(str) : join(Testcase.RootDir, str)
-  }
-
-  static async Stop() {
-    context.log(chalk.red('>>> Force stop <<<'))
-    context.emit('app:stop')
   }
 
   /** Result after run all of test */
@@ -107,6 +103,11 @@ export class Testcase {
   }
 
   constructor(root: any) {
+    Templates.Templates = new Map()
+    Testcase.APIs = []
+    Tag.Cached.clear()
+    Api.Index = 0
+
     this.ram.begin = Math.round(process.memoryUsage().heapUsed / 1024 / 1024 * 100) / 100
     const { title = '', version = '', servers = {}, endpoints = {}, developer, debug, description = '', vars, encryptPassword, ...g } = root
     Object.assign(this, { title, version, servers, developer, debug, description, encryptPassword })
@@ -115,13 +116,13 @@ export class Testcase {
     this.group.init(g)
     this.group.tagName = 'Root'
     this.group.tc = this
-    if (root.script) eval(root.script)
 
     let isForceStop
     process.on('SIGINT', async () => {
       if (!isForceStop) {
         isForceStop = true
-        await Testcase.Stop()
+        context.log(chalk.red('>>> Force stop <<<'))
+        context.emit('app:stop')
       } else {
         process.exit()
       }

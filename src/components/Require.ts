@@ -1,7 +1,6 @@
 import { Tag } from '@/components/Tag'
 import { Testcase } from '@/components/Testcase'
 import chalk from 'chalk'
-import { npm, yarn } from 'global-dirs'
 import { join } from 'path'
 import { context } from '../Context'
 import { ContentScript } from './Script'
@@ -58,6 +57,7 @@ export class Require extends Tag {
         try {
           obj = require(p)
         } catch (err) {
+          const { npm, yarn } = require('global-dirs')
           const libPaths = []
           if (!this.root || this.root === 'yarn') {
             libPaths.push(yarn.packages, yarn.prefix, yarn.binaries)

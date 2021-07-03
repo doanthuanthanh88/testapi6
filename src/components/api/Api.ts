@@ -1,10 +1,6 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, CancelTokenSource } from 'axios'
 import chalk from 'chalk'
-import { CurlGenerator } from "curl-generator"
-import FormData from 'form-data'
-import { createWriteStream } from "fs"
 import { merge } from 'lodash'
-import pako from 'pako'
 import { parse, stringify } from 'querystring'
 import { URLSearchParams } from "url"
 import { context } from '../../Context'
@@ -345,6 +341,7 @@ export class Api extends Tag {
             this._axiosData.data.append(k, this.body[k])
           }
         } else if (this._axiosData.headers['content-type']?.includes('multipart/form-data')) {
+          const FormData = require('form-data')
           this._axiosData.data = new FormData()
           for (let k in this.body) {
             this._axiosData.data.append(k, this.body[k])
@@ -388,6 +385,7 @@ export class Api extends Tag {
   private async download(req: any) {
     this.saveTo = Testcase.getPathFromRoot(this.saveTo)
     const res = await this._axios.request({ ...req, responseType: 'stream' })
+    const { createWriteStream } = require('fs')
     const writer = createWriteStream(this.saveTo);
     res.data.pipe(writer);
     return new Promise<AxiosResponse>((resolve, reject) => {
@@ -528,6 +526,7 @@ export class Api extends Tag {
   }
 
   toCUrl() {
+    const { CurlGenerator } = require('curl-generator')
     return CurlGenerator({
       method: this.method as any,
       headers: Object.keys(this.headers || {}).reduce((sum, e) => {
@@ -577,7 +576,7 @@ export class Api extends Tag {
 
   toTestLink(link?: string) {
     const item = this.toTestObject(link)
-
+    const pako = require('pako')
     const str = pako.deflate(JSON.stringify(item), { level: 9 });
     const sdatas = Buffer.from(str).toString('base64')
     const links = `http://test.onapis.com/Test/${sdatas}`
@@ -585,6 +584,7 @@ export class Api extends Tag {
   }
 
   static toImportLink(items: any[]) {
+    const pako = require('pako')
     const str = pako.deflate(JSON.stringify(items), { level: 9 });
     const sdatas = Buffer.from(str).toString('base64')
     const links = `http://test.onapis.com/Test/${sdatas}`

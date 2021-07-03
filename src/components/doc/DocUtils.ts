@@ -1,5 +1,4 @@
 import { merge } from "lodash"
-const convert = require('to-json-schema')
 
 export function mergeData(data) {
   if (Array.isArray(data)) {
@@ -35,5 +34,6 @@ export function toJsonSchema(data = null, opts = {
   strings: { detectFormat: false },
   // required: true
 }) {
+  const convert = require('to-json-schema')
   return convert(mergeData(data), opts)
 }

@@ -1,6 +1,5 @@
-import { createReadStream } from 'fs'
+import { createReadStream, ReadStream } from 'fs'
 import { Type } from 'js-yaml'
-import { ReadStream } from 'tty'
 import { Testcase } from '../Testcase'
 
 export const upload = new Type('!upload', {

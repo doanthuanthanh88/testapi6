@@ -2,6 +2,7 @@ import { Testcase } from '@/components/Testcase'
 import { Replacement } from '@/Replacement'
 import { cloneDeep, merge, mergeWith, omit } from 'lodash'
 import { context } from '../Context'
+import { Components } from './index'
 
 export const REMOVE_CHARACTER = null
 
@@ -12,7 +13,7 @@ export async function Import(arrs: any[], tc: Testcase) {
       if (Object.keys(t).length !== 1) throw new Error(`Format tag is not valid "${Object.keys(t).join(',')}"`)
       const tagName = Object.keys(t)[0]
       try {
-        let TagClass = require('.')[tagName]
+        let TagClass = Components[tagName]
         if (!TagClass) {
           TagClass = context.ExternalLibraries[tagName]
           if (!TagClass) {
@@ -83,7 +84,7 @@ export abstract class Tag {
       const _expose = typeof attrs['->'] === 'string' ? attrs['->'].split(',').map(e => e.trim()) : attrs['->']
 
       _extends?.forEach(key => {
-        const { Templates } = require('.')
+        const { Templates } = require('./Templates')
         merge(base, cloneDeep(Templates.Templates.get(key) || {}))
         base['<--'].push(key)
       })
@@ -91,7 +92,7 @@ export abstract class Tag {
       merge(base, omit(attrs, ['<-', '->']))
 
       _expose?.forEach(key => {
-        const { Templates } = require('.')
+        const { Templates } = require('./Templates')
         Templates.Templates.set(key, cloneDeep(base) as any)
         base['-->'].push(key)
       })
