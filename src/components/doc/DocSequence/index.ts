@@ -923,7 +923,7 @@ export class DocSequence extends Tag {
         writer.once('error', reject)
         writer.write(`## Service overview\r\n`)
         writer.write(`_Show all of components in the service and describe the ways they connect to each others_\r\n`)
-        writer.write(`![](${relative(this.saveTo, fileImageSave)})\r\n`)
+        writer.write(`![Service overview](${relative(this.saveTo, fileImageSave)})\r\n`)
         writer.close()
         context.groupEnd()
       })
@@ -981,7 +981,7 @@ export class DocSequence extends Tag {
           writer.once('close', resolve)
           writer.once('error', reject)
           writer.write(`## ${root.title}\r\n`)
-          writer.write(`![](${relative(mdFolder, fileImageSave)})\r\n`)
+          writer.write(`![${root.title}](${relative(mdFolder, fileImageSave)})\r\n`)
           // writer.write('```mermaid\r\n')
           // writer.write(readFileSync(root.src))
           // writer.write('\r\n')
@@ -1003,7 +1003,7 @@ export class DocSequence extends Tag {
       writer.write(`## Sequence diagram\r\n`)
       writer.write(`_Describe business logic flows in each of APIs, workers... in the service_\r\n`)
       this.roots.forEach((root, i) => {
-        writer.write(`${i + 1}. [${root.title}](${relative(this.saveTo, root.src)})\r\n`)
+        writer.write(`${i + 1}. [${root.title}](${relative(this.saveTo, root.src).replace(/\.md$/, '')})\r\n`)
       })
       writer.write('\r\n')
       this.result.sequence = fileSave
@@ -1037,7 +1037,7 @@ export class DocSequence extends Tag {
         writer.once('error', reject)
         writer.write(`## Data model\r\n`)
         writer.write(`_Show data structure and relations between them in the service_\r\n`)
-        writer.write(`![](${relative(this.saveTo, fileImageSave)})\r\n`)
+        writer.write(`![Data model](${relative(this.saveTo, fileImageSave)})\r\n`)
         writer.close()
         this.result.clazz = fileSave
         context.groupEnd()
