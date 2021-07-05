@@ -3,10 +3,10 @@ import { createReadStream, createWriteStream, readdirSync, readFileSync, statSyn
 import mkdirp from 'mkdirp'
 import { extname, join, relative } from 'path'
 import * as readline from 'readline'
-import { context } from "../../Context"
-import { Exec } from '../external/Exec'
-import { Tag } from '../Tag'
-import { Testcase } from '../Testcase'
+import { context } from "@/Context"
+import { Exec } from '@/components/external/Exec'
+import { Tag } from '@/components/Tag'
+import { Testcase } from '@/components/Testcase'
 
 /**
  * Example
@@ -86,7 +86,7 @@ class Comment {
   }
 
   static getType(name: string) {
-    const m = name.match(/^(if|else|loop|parallel|box)(\s+(.+))?/i)
+    const m = name.match(/^(if|else|loop|parallel|box|group)(\s+(.+))?/i)
     if (m) {
       const clazz = (m[1] || '').trim().toUpperCase()
       switch (clazz) {
@@ -100,6 +100,8 @@ class Comment {
           return BOX
         case 'PARALLEL':
           return PARALLEL
+        case 'GROUP':
+          return GROUP
       }
     }
     return Comment
@@ -133,7 +135,7 @@ class Comment {
         }
         if (this.umlType === 'sequence') {
           // sequence diagram
-          m = this.name.match(/^(if|else|loop|parallel|box)(\s+(.+))?/i)
+          m = this.name.match(/^(if|else|loop|parallel|box|group)(\s+(.+))?/i)
           if (m) {
             this.cmd = (m[1] || '').trim().toUpperCase()
             this.name = (m[3] || '').trim()
@@ -206,14 +208,20 @@ class Comment {
         const { label, dir, seqDir } = Actor.getActionName(action, m[4])
         const actor1 = Actor.getActor(dir > 0 ? m[1].trim() : m[3].trim())
         const actor2 = Actor.getActor(dir < 0 ? m[1].trim() : m[3].trim())
-
         if (actor1.name !== actor2.name && actor1.name && actor2.name) {
-          if (!actor1.actions[actor2.name]) {
-            actor1.actions[actor2.name] = new Set()
-          }
-          if (label) {
-            actor1.actions[actor2.name].add(label)
-          }
+          actor1.name.split('/').map(e => e.trim()).forEach(name1 => {
+            name1 = name1.trim()
+            const actor1 = Actor.getActor(name1, true)
+            actor2.name.split('/').map(e => e.trim()).forEach(name2 => {
+              name2 = name2.trim()
+              if (!actor1.actions[name2]) {
+                actor1.actions[name2] = new Set()
+              }
+              if (label) {
+                actor1.actions[name2].add(label)
+              }
+            })
+          })
         }
 
         m[1] = dir > 0 ? `${actor1.name}` : `${actor2.name}`
@@ -425,6 +433,27 @@ class Comment {
   }
 }
 
+class GROUP extends Comment {
+  override prePrint() {
+    if (!this.name) return ''
+    return `OPT ${this.name}`
+  }
+
+  override postPrint(_writer, _i: number, _tab: string, _mtab: string) {
+    if (!this.name) return ''
+    const idx = this.parent.childs.findIndex(child => child === this)
+    if (this.parent.childs[idx + 1] instanceof ELSE) {
+      return ''
+    }
+    return 'END'
+  }
+
+  override printTagName() {
+    if (!this.name) return `${chalk.blue('GROUP')}`
+    return `${chalk.blue('OPT')} ${this.name}`
+  }
+}
+
 class EMPTY extends Comment {
 
 }
@@ -615,6 +644,12 @@ class Actor {
       actor = Actor.actors[name] = new Actor(name)
     }
     actor.sign = sign as any
+    name.split('/').map(e => e.trim()).forEach(name => {
+      if (!Actor.actors[name]) {
+        Actor.actors[name] = new Actor(name)
+        Actor.actors[name].sign = sign
+      }
+    })
     return actor
   }
 
@@ -628,8 +663,10 @@ class Actor {
             let actor1 = name // dir > 0 ? name : a
             let actor2 = a // dir < 0 ? name : a
             actor1.split('/').forEach(actor1 => {
+              actor1 = actor1.trim()
               actor2.split('/').forEach(actor2 => {
-                writer.write(`${actor1.trim()} ${action} ${actor2.trim()}\r\n`)
+                actor2 = actor2.trim()
+                writer.write(`${actor1} ${action} ${actor2}\r\n`)
               })
             })
             if (!Actor.slient) context.log(`${chalk.gray('-')} ${chalk.magenta(actor1)} ${chalk.blue(action)} ${chalk.magenta(actor2)}`)
@@ -650,14 +687,29 @@ export class DocSequence extends Tag {
   /** Export sequence diagram to this path */
   saveTo: string
   /** Auto generate number in sequence diagram */
-  autoNumber: boolean
+  autoNumber?: boolean
   /** Activations can be stacked for same actor */
   stack: boolean
+  /** Space code */
+  space?: number
+  /** Chart background color. (Not support .svg) */
+  backgroundColor?: string
+  /** Chart width */
+  width: number
+  /** Chart height */
+  height: number
+  /** JSON config file for mermaid */
+  configFile: string
+  /** CSS file for the page */
+  cssFile: string
+  /** JSON configuration file for puppeteer */
+  puppeteerConfigFile: string
+  /** Theme */
   theme: 'default' | 'forest' | 'dark' | 'neutral'
   _stackFrom: string
   _stackTo: string
   _nodeModulePath: string
-  _genImages: Promise<any>[]
+  _genImages: { input: string, output: string }[]
 
   private totalFiles = 0
   private roots = [] as Comment[]
@@ -696,16 +748,15 @@ export class DocSequence extends Tag {
   init(attrs: any) {
     super.init(attrs)
     this._genImages = []
+    if (!this.space) this.space = 0
     try {
-      this._nodeModulePath = require.resolve('@mermaid-js/mermaid-cli/index.bundle.js')
+      // this._nodeModulePath = require.resolve('@mermaid-js/mermaid-cli/index.bundle.js')
+      this._nodeModulePath = __dirname + '/mmdc.js'
     } catch {
       this._nodeModulePath = require.resolve('@mermaid-js/mermaid-cli/index.js')
     }
-    if (!this.theme) this.theme = 'default'
     if (!this.ext) this.ext = Object.keys(this.fileTypes).map(e => `.${e}`)
     if (!this.excludes) this.excludes = ['node_modules']
-    if (this.autoNumber === undefined) this.autoNumber = false
-    if (this.stack === undefined) this.stack = false
     this._stackFrom = this.stack ? '+' : ''
     this._stackTo = this.stack ? '-' : ''
     if (!Array.isArray(attrs.src)) this.src = [attrs.src]
@@ -767,7 +818,7 @@ export class DocSequence extends Tag {
     let cur: Comment
     const pt = new RegExp(`^(\\s*)${fileType.commentTag}\\s?(\\s*)(.*)`, 'm')
     const ptSpace = new RegExp(`^(\\s*)`, 'm')
-    let space = ''
+    let space = new Array(this.space).fill(' ').join('')
     let first: Comment
     for await (let line of rl) {
       let m = line.match(pt)
@@ -878,24 +929,38 @@ export class DocSequence extends Tag {
       })
     ])
     // Generate image
-    await this.genImage(fileMMDSave, fileImageSave)
+    this.addImage(fileMMDSave, fileImageSave)
   }
 
-  private async genImage(mmdFile: string, svgFile: string) {
+  private async addImage(mmdFile: string, svgFile: string) {
+    this._genImages.push({ input: mmdFile, output: svgFile })
+  }
+
+  private async genImage() {
     const genImage = new Exec()
+    const inputs = this._genImages.map(e => e.input).join(',')
+    const outputs = this._genImages.map(e => e.output).join(',')
+    const args = [this._nodeModulePath, '--input', inputs, '--output', outputs]
+    if (this.theme) args.push('--theme', this.theme)
+    if (this.backgroundColor) args.push('--backgroundColor', this.backgroundColor)
+    if (this.width) args.push('--width', this.width.toString())
+    if (this.height) args.push('--height', this.height.toString())
+    if (this.configFile) args.push('--configFile', Testcase.getPathFromRoot(this.configFile))
+    if (this.cssFile) args.push('--cssFile', Testcase.getPathFromRoot(this.cssFile))
+    if (this.puppeteerConfigFile) args.push('--puppeteerConfigFile', Testcase.getPathFromRoot(this.puppeteerConfigFile))
     genImage.init({
-      shell: true,
-      detached: true,
+      // shell: true,
+      // detached: true,
       slient: this.slient,
-      args: [this._nodeModulePath, '-i', mmdFile, '-o', svgFile, '-t', this.theme]
+      args
     })
-    this._genImages.push(genImage.exec())
+    await genImage.exec()
   }
 
   private async printSequence(mdFolder: string, mmdFolder: string, svgFolder: string) {
     if (!this.roots.length) return
     for (const root of this.roots) {
-      const fileSave = join(mdFolder, root.outputName + '.sequence.md')
+      const fileSave = join(mdFolder, root.outputName + '.md')
       const fileMMDSave = join(mmdFolder, root.outputName + '.mmd')
       const fileImageSave = join(svgFolder, root.outputName + '.svg')
       context.group(`${chalk.green('%s %s')}`, 'Diagram:', fileSave)
@@ -927,7 +992,7 @@ export class DocSequence extends Tag {
         })
       ])
       // Generate image
-      await this.genImage(fileMMDSave, fileImageSave)
+      this.addImage(fileMMDSave, fileImageSave)
     }
     const fileSave = join(this.saveTo, 'sequence.md')
     context.group(`${chalk.green('%s %s')}`, 'Sequence diagram:', fileSave)
@@ -979,7 +1044,7 @@ export class DocSequence extends Tag {
       }),
     ])
     // Generate image
-    await this.genImage(fileMMDSave, fileImageSave)
+    this.addImage(fileMMDSave, fileImageSave)
   }
 
   private async printMarkdown(_mdFolder: string, _mmdFolder: string, _svgFolder: string) {
@@ -1009,9 +1074,9 @@ export class DocSequence extends Tag {
 
   async print() {
     if (!this.saveTo) return
-    const mdFolder = join(this.saveTo, 'md')
-    const mmdFolder = join(this.saveTo, 'mmd')
-    const svgFolder = join(this.saveTo, 'svg')
+    const mdFolder = join(this.saveTo, 'sequence_diagram')
+    const mmdFolder = join(this.saveTo, 'assets', 'mmd')
+    const svgFolder = join(this.saveTo, 'assets', 'svg')
     await Promise.all([
       mkdirp(mdFolder),
       mkdirp(mmdFolder),
@@ -1022,7 +1087,7 @@ export class DocSequence extends Tag {
     await this.printOverview(mdFolder, mmdFolder, svgFolder)
     await Promise.all([
       this.printMarkdown(mdFolder, mmdFolder, svgFolder),
-      ...this._genImages
+      this.genImage()
     ])
   }
 

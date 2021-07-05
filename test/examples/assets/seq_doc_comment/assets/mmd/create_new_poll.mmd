@@ -1,0 +1,13 @@
+sequenceDiagram
+  %% COMMENT
+    client ->> app: create new poll
+    ALT title contains violation words
+      app ->> app: validate title
+      %% COMMENT
+        app --x client : response 400
+    END
+      app ->> database: create poll
+      database -->> app : return new poll
+      app ->> database: create votes
+      database -->> app : return new votes
+    app -->> client : response 200

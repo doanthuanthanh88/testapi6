@@ -1,6 +1,6 @@
 {
   "name": "testapi6",
-  "version": "1.2.21",
+  "version": "1.2.24",
   "description": "Test and auto export document to .md or .swagger file. Support many others tasks",
   "keywords": [
     "tool",
@@ -35,10 +35,10 @@
     "docker:pub": "docker buildx build --platform linux/arm64,linux/amd64 -t doanthuanthanh88/testapi6 . --push && docker pull doanthuanthanh88/testapi6"
   },
   "dependencies": {
-    "@mermaid-js/mermaid-cli": "^8.11.0",
     "axios": "^0.21.0",
     "chai": "^4.3.3",
     "chalk": "^2.4.2",
+    "commander": "^8.0.0",
     "curl-generator": "^0.1.0",
     "form-data": "^3.0.0",
     "global-dirs": "^3.0.0",
@@ -48,6 +48,7 @@
     "mkdirp": "^1.0.4",
     "pako": "^1.0.11",
     "prompts": "^2.4.0",
+    "puppeteer": "^10.1.0",
     "to-json-schema": "^0.2.5"
   },
   "readme": "./docs/README.md",

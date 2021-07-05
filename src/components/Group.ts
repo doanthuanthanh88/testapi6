@@ -84,7 +84,7 @@ export class Group extends Tag {
       context.once('app:stop', async () => {
         await this.stop()
       })
-      const vars = { ...context.Vars, Vars: context.Vars, $: this, $$: this.$$, Utils: context.Utils, Result: context.Result }
+      const vars = this.getReplaceVarsContext()
       if (this.loop) {
         const loop = cloneDeep(this.loop)
         let arrs = this.replaceVars(loop, vars, ['steps'])

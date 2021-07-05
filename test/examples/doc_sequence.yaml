@@ -16,8 +16,18 @@
 
 - DocSequence:
     title: Test service # Document title
-    ext: [".ts", ".js", ".go", ".py", ".yaml", ".java"] # Files extension which contains comments
+    ext: [".js", ".py"] # Files extension which contains comments
     excludes: ["node_modules"] # Ignore scan files in these folders
+    # space: 4
+    # theme: forest
+    backgroundColor: red
+    fileTypes:
+      js:
+        excludes: ["node_modules", "dist"]
+        commentTag: "///"
+      py:
+        excludes: ["__pycache__"]
+        commentTag: "# /"
     slient: true # Disabled log
     src: assets/doc_sequence.js # Source folder (or file) which includes the files
     saveTo: assets/seq_doc_comment # Output folder. After done, we get the README.md file in this

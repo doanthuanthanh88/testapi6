@@ -19,18 +19,28 @@ _Auto generate diagrams from any file which base on comment line_
 1. Prepare configuration file `gen_seq_doc.yaml`
 ```yaml
 - DocSequence:
-    title: My first service   # Service name
-    ext:                      # Only scan files which file name endwiths these values
-      - .ts
-    excludes:                 # Ignore scan these folders
-      - node_modules
-    theme: default            # Default color in diagrams ("default", "forest", "dark", "neutral")
-    slient: true              # Disable log
-    src: ../../src            # Source path which includes code files
-    saveTo: ./mmd             # Target path which includes the output document
-    stack: false              # Auto generate number in sequence diagram
-    autoNumber: false         # Activations can be stacked for same actor
-    # fileTypes:
+    title: My first service                 # Service name
+    ext:                                    # Only scan files which file name endwiths these values
+      - .ts             
+    excludes:                               # Ignore scan these folders
+      - node_modules              
+    theme: default                          # Default color in diagrams ("default", "forest", "dark", "neutral")
+    slient: true                            # Disable log
+    src: ../../src                          # Source path which includes code files
+    # src: 
+    # - /path1
+    # - /path2
+    saveTo: ./mmd                           # Target path which includes the output document
+    # stack: true                           # Auto generate number in sequence diagram
+    # autoNumber: true                      # Activations can be stacked for same actor
+    # space: 4                              # Set number of spaces in each steps in code. Default "null" is auto detect
+    # backgroundColor: "#FFFFFF"            # Chart background color (Not support .svg)
+    # width: 800                            # Chart width
+    # height: 600                           # Chart height
+    # configFile: ./mermaid.json            # JSON config file for mermaid
+    # cssFile: ./mermaid.css                # CSS file for the page
+    # puppeteerConfigFile: ./pup.json       # JSON configuration file for puppeteer
+    # fileTypes:                            # Config handle for each file types
     #   js:
     #     excludes: ['node_modules', 'dist'],
     #     commentTag: '///'
@@ -67,6 +77,7 @@ _Auto generate diagrams from any file which base on comment line_
 3. Loop
 4. Parallel
 5. Box
+6. Group
 
 > __All of command always start by default `$COMMENT_LINE/`__
 You can change `$COMMENT_LINE` in file `.yaml`
@@ -267,6 +278,23 @@ There are 2 function types:
 - Example:
   ```typescript
   /// BOX (255, 0, 0)
+  ///   LOOP Infinity to test
+  while(true) {
+    ...
+  }
+  ```
+
+## Group
+- Keywords: `GROUP`
+- Syntax:
+  ```typescript
+  /// GROUP Description
+    /// Do something here
+      ...
+  ```
+- Example:
+  ```typescript
+  /// GROUP Test logic
   ///   LOOP Infinity to test
   while(true) {
     ...

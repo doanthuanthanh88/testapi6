@@ -450,7 +450,7 @@ export class Api extends Tag {
       }
       this.response.ok = this.response.status >= 200 && this.response.status < 300
       if (this.docs) {
-        this.docs = this.replaceVars(this.docs, { ...context.Vars, Vars: context.Vars, $: this, $$: this.$$, Utils: context.Utils, Result: context.Result })
+        this.docs = this.replaceVars(this.docs, this.getReplaceVarsContext())
       }
     } catch (error: Error & any) {
       const { status, statusText, config = {}, response = {} } = error

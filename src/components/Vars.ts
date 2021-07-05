@@ -17,9 +17,10 @@ export class Vars extends Tag {
   private _ignoreProps = new Set(['$$', 'tc', 'context'])
 
   prepare() {
+    const varContext = this.getReplaceVarsContext()
     for (let k in this) {
       if (this._ignoreProps.has(k)) continue
-      context.Vars[k] = this.replaceVars(this[k], { ...context.Vars, Vars: context.Vars, $: this, $$: this.$$, Utils: context.Utils, Result: context.Result })
+      varContext[k] = context.Vars[k] = this.replaceVars(this[k], varContext)
     }
   }
 

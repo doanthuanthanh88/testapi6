@@ -128,18 +128,31 @@ export abstract class Tag {
     if (typeof varName === 'string') {
       context.Vars[varName] = value
     } else {
+      const varContext = this.getReplaceVarsContext()
       for (const k in varName) {
-        context.Vars[k] = this.replaceVars(varName[k], { ...context.Vars, Vars: context.Vars, $: this, $$: this.$$, Utils: context.Utils, Result: context.Result })
+        varContext[k] = context.Vars[k] = this.replaceVars(varName[k], varContext)
       }
     }
   }
 
+  getReplaceVarsContext(scope?: any) {
+    return {
+      ...context.Vars,
+      Vars: context.Vars,
+      Utils: context.Utils,
+      Result: context.Result,
+      $: scope || this,
+      $$: (scope || this)?.$$
+    }
+  }
+
   prepare(scope?: any, ignore = []) {
+    const varContext = this.getReplaceVarsContext(scope)
     if (this.vars && !ignore.includes('vars')) {
-      this.vars = this.replaceVars(this.vars, { ...context.Vars, Vars: context.Vars, $: scope || this, $$: (scope || this)?.$$, Utils: context.Utils, Result: context.Result }, [])
+      this.vars = this.replaceVars(this.vars, varContext, [])
       merge(context.Vars, this.vars)
     }
-    this.replaceVars(this, { ...context.Vars, Vars: context.Vars, $: scope || this, $$: (scope || this)?.$$, Utils: context.Utils, Result: context.Result }, ['steps', 'var', 'vars', 'context', ...ignore])
+    this.replaceVars(this, varContext, ['steps', 'var', 'vars', 'context', ...ignore])
   }
 
   beforeExec() {
