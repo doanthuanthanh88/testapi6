@@ -47,7 +47,16 @@ class Comment {
   relations: string[]
   umlType: 'sequence' | 'class'
 
+  private _client: string
   private _ctx: string
+
+  set client(client: string) {
+    this._client = client
+  }
+
+  get client() {
+    return this._client || this.parent?.client
+  }
 
   set ctx(ctx: string) {
     this._ctx = ctx
@@ -111,14 +120,15 @@ class Comment {
     this.relations = []
     this.startC = startC
     this.childs = []
-    let m = this.name.match(/^\[(.*?)\]\s*(\{([^\}]+)\})?(.*)/)
+    let m = this.name.match(/^\[(.*?)\]\s*(\{([^\}]+)\})?(\{([^\}]+)\})?(.*)/)
     if (m) {
       // template and root sequence diagram
       this.key = m[1].trim()
       this.umlType = 'sequence'
       const ctx = m[3]?.trim()
       if (ctx) this.ctx = ctx
-      this.name = m[4].trim()
+      if (m[5]) this.client = m[5].trim()
+      this.name = m[6].trim()
     } else {
       m = this.name.match(/^<(.*?)>\s*(.*)/)
       if (m) {
@@ -164,7 +174,7 @@ class Comment {
           this.title = this.name
           this.outputName = this.name.replace(/\W/g, '_').replace(/_+/g, '_')
           if (!this.ctx) {
-            this.ctx = 'app'
+            this.ctx = 'App'
           } else {
             this.ctx = this.ctx.split(',').map(e => e.trim()).join(' / ')
           }
@@ -179,15 +189,23 @@ class Comment {
     }
   }
 
+  replaceThisAndTarget(str: string) {
+    str = str.replace(/\{\}/g, `{{${this.ctx || 'IMPOSSIBLE_ERROR'}}}`)
+    // if (this.client) {
+    str = str.replace(/\{\s*client\s*\}/gi, `{{{${this.client || 'Client'}}}}`)
+    // }
+    return str
+  }
+
   mmdSequence(txt: string) {
     if (/^note [^:]+:(.+)/i.test(txt)) {
       let m = txt.match(/^\s*note\s((right of)|(left of)|(over))\s+([^,\:]+)\s*(,\s*(.*?))?(\:.+)/i)
       if (m) {
         if (m[2] || m[3]) {
-          m[5] = Actor.getActor(m[5].replace(/\{\}/g, `{${this.ctx || 'IMPOSSIBLE_ERROR'}}`), true).name
+          m[5] = Actor.getActor(this.replaceThisAndTarget(m[5]), undefined).name
         } else if (m[4] && m[7]) {
-          m[5] = Actor.getActor(m[5].replace(/\{\}/g, `{${this.ctx || 'IMPOSSIBLE_ERROR'}}`), true).name
-          m[7] = Actor.getActor(m[7].replace(/\{\}/g, `{${this.ctx || 'IMPOSSIBLE_ERROR'}}`), true).name
+          m[5] = Actor.getActor(this.replaceThisAndTarget(m[5]), undefined).name
+          m[7] = Actor.getActor(this.replaceThisAndTarget(m[7]), undefined).name
         }
       }
       txt = `NOTE ${m[1].toUpperCase()} ${m[5]}${m[7] ? `, ${m[7]}` : ''}${m[8]}`
@@ -195,7 +213,7 @@ class Comment {
       let m = txt.match(/\s*(.*?)\s*(->|<-|=>|<=|x>|<x|>|<)\s*(.*?):(.*)/i)
       if (m) {
         const [main, ...des] = txt.split(':')
-        txt = main.replace(/\{\}/g, `{${this.ctx || 'IMPOSSIBLE_ERROR'}}`) + ':' + des.join('')
+        txt = this.replaceThisAndTarget(main) + ':' + des.join('')
         m = txt.match(/\s*(.*?)\s*(->|<-|=>|<=|x>|<x|>|<)\s*(.*?):(.*)/i)
 
         m[1] = m[1]?.trim()
@@ -205,13 +223,13 @@ class Comment {
 
         // Parser actor
         let action = m[2].trim()
-        const { label, dir, seqDir } = Actor.getActionName(action, m[4])
+        const { label, dir, seqDir } = Actor.getActionName(action, m[4], this.docSequence.showEventDetails, this.docSequence.showRequestDetails)
         const actor1 = Actor.getActor(dir > 0 ? m[1].trim() : m[3].trim())
         const actor2 = Actor.getActor(dir < 0 ? m[1].trim() : m[3].trim())
         if (actor1.name !== actor2.name && actor1.name && actor2.name) {
           actor1.name.split('/').map(e => e.trim()).forEach(name1 => {
             name1 = name1.trim()
-            const actor1 = Actor.getActor(name1, true)
+            const actor1 = Actor.getActor(name1)
             actor2.name.split('/').map(e => e.trim()).forEach(name2 => {
               name2 = name2.trim()
               if (!actor1.actions[name2]) {
@@ -561,20 +579,26 @@ class ELSE extends IF {
 class Actor {
   static slient: boolean
   static actors = {} as Actor[]
-  static declare = new Set()
+  static declare = new Map<string, string>()
   actions = {} as { [actor: string]: Set<string> }
   sign: '+' | '-' | ''
 
   constructor(public name: string) { }
 
-  static getActionName(action: string, des: string) {
+  static getActionName(action: string, des: string, showEventDetails: boolean, showRequestDetails: boolean) {
     switch (action) {
       case '=>':
       case 'x>':
-        return {
+        return showRequestDetails ? {
+          type: 'request',
           seqDir: 1,
           dir: 1,
           label: '-->|' + des.replace(/"/g, "'") + '|'
+        } : {
+          type: 'request',
+          seqDir: 1,
+          dir: 1,
+          label: '-->|Request|'
         }
       case '<x':
       case '<=':
@@ -584,16 +608,26 @@ class Actor {
           label: ''
         }
       case '->':
-        return {
+        return showEventDetails ? {
+          type: 'event',
           seqDir: 1,
           dir: 1,
           label: '-.->|' + des.replace(/"/g, "'") + '|'
+        } : {
+          seqDir: 1,
+          dir: 1,
+          label: '-.->|Publish|'
         }
       case '<-':
-        return {
+        return showEventDetails ? {
+          type: 'event',
           seqDir: -1,
           dir: -1,
           label: '-.->|' + des.replace(/"/g, "'") + '|'
+        } : {
+          seqDir: -1,
+          dir: -1,
+          label: '-.->|Consume|'
         }
       case '>':
         return {
@@ -612,7 +646,7 @@ class Actor {
   }
 
   static getActor(name: string, onlyGet = false) {
-    const m = name.match(/\s*([\(\[<\{})]{1,2})?([^\(\[<\)\]\{\}>)]+)([\)\]\}>)]{1,2})?/)
+    const m = name.match(/\s*([\(\[<\{})]{1,5})?([^\(\[<\)\]\{\}>)]+)([\)\]\}>)]{1,5})?/)
     let sign = ''
     if (m) {
       name = m[2]
@@ -627,14 +661,23 @@ class Actor {
           // if (m[1] === '[[' && m[3] === ']]') {
           //   Actor.declare.add(`${name}[[${m[2]}]]`)
           // } else 
-          if (m[1] === '{' && m[3] === '}') {
-            name.split('/').forEach(name => Actor.declare.add(`${name.trim()}`))
+          if (m[1] === '{{' && m[3] === '}}') {
+            // Context {}
+            name.split('/').forEach(name => Actor.declare.set(`${name.trim()}`, 'App'))
+          } else if (m[1] === '{{{' && m[3] === '}}}') {
+            // Client Context {Client}
+            name.split('/').forEach(name => Actor.declare.set(`${name.trim()}`, 'Client'))
+          } else if (m[1] === '{' && m[3] === '}') {
+            // Service {ServiceName}
+            name.split('/').forEach(name => Actor.declare.set(`${name.trim()}`, 'Other Services'))
           } else if (m[1] === '[' && m[3] === ']') {
-            name.split('/').forEach(name => Actor.declare.add(`${name.trim()}[(${m[2]})]`))
+            // Database [MySQL]
+            name.split('/').forEach(name => Actor.declare.set(`${name.trim()}[(${m[2]})]`, ''))
           } else if (m[1] === '(' && m[3] === ')') {
-            name.split('/').forEach(name => Actor.declare.add(`${name.trim()}((${m[2]}))`))
+            // Other (Redis) (RabbitMQ)
+            name.split('/').forEach(name => Actor.declare.set(`${name.trim()}((${m[2]}))`, ''))
           } else {
-            name.split('/').forEach(name => Actor.declare.add(`${name.trim()}${m[1]}${m[2]}${m[3]}`))
+            name.split('/').forEach(name => Actor.declare.set(`${name.trim()}${m[1]}${name.trim()}${m[3]}`, ''))
           }
         }
       }
@@ -704,6 +747,10 @@ export class DocSequence extends Tag {
   cssFile: string
   /** JSON configuration file for puppeteer */
   puppeteerConfigFile: string
+  /** Show event details */
+  showEventDetails: boolean
+  /** Show request details */
+  showRequestDetails: boolean
   /** Theme */
   theme: 'default' | 'forest' | 'dark' | 'neutral'
   _stackFrom: string
@@ -755,6 +802,8 @@ export class DocSequence extends Tag {
     } catch {
       this._nodeModulePath = require.resolve('@mermaid-js/mermaid-cli/index.js')
     }
+    if (this.showEventDetails === undefined) this.showEventDetails = true
+    if (this.showRequestDetails === undefined) this.showRequestDetails = true
     if (!this.ext) this.ext = Object.keys(this.fileTypes).map(e => `.${e}`)
     if (!this.excludes) this.excludes = ['node_modules']
     this._stackFrom = this.stack ? '+' : ''
@@ -910,7 +959,37 @@ export class DocSequence extends Tag {
         writer.once('close', resolve)
         writer.once('error', reject)
         writer.write('graph LR\r\n')
-        if (Actor.declare.size) writer.write(Array.from(Actor.declare).join('\r\n') + '\r\n')
+        if (Actor.declare.size) {
+          const df = Math.random().toString()
+          let group = {} as any
+          group[df] = []
+          Actor.declare.forEach((vl, key) => {
+            if (vl) {
+              // Got subgraph
+              if (!group[vl]) group[vl] = []
+              group[vl].push(key)
+            } else {
+              group[df].push(key)
+            }
+          })
+          for (const k in group) {
+            if (k === 'Client') {
+              writer.write(group[k].join('\r\n') + '\r\n')
+            } else if (k === 'App') {
+              group[k].forEach((k, i) => {
+                writer.write(`subgraph App ${i + 1}` + '\r\n')
+                writer.write(k + '\r\n')
+                writer.write('end' + '\r\n')
+              })
+            } else if (k === df) {
+              writer.write(group[k].join('\r\n') + '\r\n')
+            } else {
+              writer.write(`subgraph ${k}` + '\r\n')
+              writer.write(group[k].join('\r\n') + '\r\n')
+              writer.write('end' + '\r\n')
+            }
+          }
+        }
         Actor.slient = this.slient
         Actor.save(writer)
         writer.close()
@@ -1074,9 +1153,9 @@ export class DocSequence extends Tag {
 
   async print() {
     if (!this.saveTo) return
-    const mdFolder = join(this.saveTo, 'sequence_diagram')
-    const mmdFolder = join(this.saveTo, 'assets', 'mmd')
-    const svgFolder = join(this.saveTo, 'assets', 'svg')
+    const mdFolder = join(this.saveTo, 'api_sequence_diagram')
+    const mmdFolder = join(this.saveTo, 'resources', 'mmd')
+    const svgFolder = join(this.saveTo, 'resources', 'svg')
     await Promise.all([
       mkdirp(mdFolder),
       mkdirp(mmdFolder),
@@ -1085,10 +1164,8 @@ export class DocSequence extends Tag {
     await this.printSequence(mdFolder, mmdFolder, svgFolder)
     await this.printClasses(mdFolder, mmdFolder, svgFolder)
     await this.printOverview(mdFolder, mmdFolder, svgFolder)
-    await Promise.all([
-      this.printMarkdown(mdFolder, mmdFolder, svgFolder),
-      this.genImage()
-    ])
+    await this.printMarkdown(mdFolder, mmdFolder, svgFolder)
+    await this.genImage()
   }
 
 }

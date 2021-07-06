@@ -20,7 +20,7 @@
     excludes: ["node_modules"] # Ignore scan files in these folders
     # space: 4
     # theme: forest
-    backgroundColor: red
+    # backgroundColor: red
     fileTypes:
       js:
         excludes: ["node_modules", "dist"]
@@ -29,5 +29,7 @@
         excludes: ["__pycache__"]
         commentTag: "# /"
     slient: true # Disabled log
+    showEventDetails: true # Show all of events in overview diagram
+    showRequestDetails: true # Show all of requests in overview diagram
     src: assets/doc_sequence.js # Source folder (or file) which includes the files
     saveTo: assets/seq_doc_comment # Output folder. After done, we get the README.md file in this

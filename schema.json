@@ -200,6 +200,16 @@
                     "neutral"
                   ]
                 },
+                "showEventDetails": {
+                  "type": "boolean",
+                  "description": "Show all of events name in overview diagram",
+                  "default": "true"
+                },
+                "showRequestDetails": {
+                  "type": "boolean",
+                  "description": "Show all of requests name in overview diagram",
+                  "default": "true"
+                },
                 "space": {
                   "type": "number",
                   "description": "Space in code. Default it auto detect space in each files"

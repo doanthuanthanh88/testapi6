@@ -1,0 +1,10 @@
+graph LR
+Client
+App
+LogService
+Redis
+RabbitMQ
+Client ---> App
+App ---> LogService
+App -.-> Redis
+RabbitMQ -.-> App

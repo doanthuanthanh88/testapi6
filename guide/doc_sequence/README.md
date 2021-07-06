@@ -40,6 +40,8 @@ _Auto generate diagrams from any file which base on comment line_
     # configFile: ./mermaid.json            # JSON config file for mermaid
     # cssFile: ./mermaid.css                # CSS file for the page
     # puppeteerConfigFile: ./pup.json       # JSON configuration file for puppeteer
+    # showEventDetails: false               # Show all of events in overview diagram
+    # showRequestDetails: false             # Show all of requests in overview diagram
     # fileTypes:                            # Config handle for each file types
     #   js:
     #     excludes: ['node_modules', 'dist'],
@@ -96,7 +98,7 @@ There are 2 function types:
 1. `Default function`: Defined functions which will be called by startup functions or other functions
   - Syntax:
     ```typescript
-      /// [function name] Description
+      /// [Function_Name]{Context_Name}{Client_Name} Description
     ```
   - Example:
     ```typescript
@@ -106,35 +108,46 @@ There are 2 function types:
       }
     ```
 
-2. `Startup function`: Defined functions which run at startup
+2. `Startup function`: Defined functions which run at startup. In a startup function, function name always is empty
   - Syntax:
     ```typescript
-      /// []{Context} Description
+      /// []{Context_Name1, Context_Name2}{Client_Name} Description
       OR
       /// [] Description
     ```
-    > `Context`: Default is `app`
   - Example:
     ```typescript
       /// []{Worker} Worker to handle test message
       function main() {
         ...
       }
+
+      /// []{Public, Internal} Public and internal APIs
+      function requestTest() {
+        ...
+      }
     ```
+
+> `Context_Name`: which replaces `{}`. Default is `App` __(optional)__
+
+> `Client_Name`: which replaces `{Client}`. Default is `Client` __(optional)__
 
 ### Actions
   - `Call a function`
     - Syntax:
       ```typescript
-      /// [function name]
+      /// [function name]{Context_Name1, Context_Name2}{Client_Name}
       ```
     - Example:
       ```typescript
       function main() {
-        /// [sayHello]
+        /// [sayHello]{Worker}{Worker}
         sayHello('world')
       }
       ```
+  > `Context_Name`: Set `{Context_Name}` to inner contexts in functions __(optional)__
+
+  > `Client_Name`: Set `{Client_Name}` to inner contexts in functions __(optional)__
   - `Step by step in a function`
     - Syntax:
       ```typescript
@@ -160,7 +173,9 @@ There are 2 function types:
       > `<-`: Consume a message
 
     - `TARGET`:
-      > `{}`: Is current context
+      > `{}`: is current context
+
+      > `{Client}`: is object fires the first action
 
       > `[Target]`: `[]` is described to database
 

@@ -1,6 +1,6 @@
 sequenceDiagram
   %% COMMENT
-    Client ->> app: Request to run worker
+    Client ->> App: Request to run worker
     OPT Start a worker
       LOOP infinity
         Worker ->> Worker: Print ok to screen
@@ -11,18 +11,18 @@ sequenceDiagram
     PAR Get user
       %% HttpUser.getUser
         ALT is admin
-          app ->> app: print the role to screen
+          App ->> App: print the role to screen
         ELSE is not admin
-          app ->> LogService: Add log to server
+          App ->> LogService: Add log to server
         END
         LOOP in 10 times
-          app ->> app: print index to screen
+          App ->> App: print index to screen
         END
     AND Get company
       %% HttpUser.getCompany
-        app --) Redis: Publish hello
-        app ->> LogService: Make a request to add log
-        RabbitMQ -) app : Comsume event
+        App --) Redis: Publish hello
+        App ->> LogService: Make a request to add log
+        RabbitMQ -) App : Comsume event
     END
     NOTE OVER Client, RabbitMQ: Message over here
-    app -->> Client : Response "OK"
+    App -->> Client : Response "OK"
