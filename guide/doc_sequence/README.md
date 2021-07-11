@@ -95,20 +95,7 @@ Default:
 _Includes actions to do something_
 
 There are 2 function types:
-1. `Default function`: Defined functions which will be called by startup functions or other functions
-  - Syntax:
-    ```typescript
-      /// [Function_Name]{Context_Name}{Client_Name} Description
-    ```
-  - Example:
-    ```typescript
-      /// [sayHello] This is hello function
-      function sayHello(name: string) {
-        console.log('Hello ' + name)
-      }
-    ```
-
-2. `Startup function`: Defined functions which run at startup. In a startup function, function name always is empty
+1. `Startup function`: Defined functions which run at startup. In a startup function, function name always is empty
   - Syntax:
     ```typescript
       /// []{Context_Name1, Context_Name2}{Client_Name} Description
@@ -119,15 +106,43 @@ There are 2 function types:
     ```typescript
       /// []{Worker} Worker to handle test message
       function main() {
+        /// {Worker} > {MongoDB}: Get data in DB
+        /// {Worker} <x {Worker}: Throw 400
         ...
       }
 
+      @router('/get-somethings')
       /// []{Public, Internal} Public and internal APIs
-      function requestTest() {
+      function clientRequestToGetSomething() {
         ...
       }
     ```
+2. `Default function`: Functions which will be called by startup functions or other functions
+  - Syntax:
+    ```typescript
+      /// [Function_Name]{Context_Name}{Client_Name} Description
+    ```
+  - Example:
+    ```typescript
+      /// [sayHello] This is hello function
+      function sayHello(name: string) {
+        console.log('Hello ' + name)
+      }
 
+      @router('/get-somethings')
+      /// []{Public, Internal} Public and internal APIs
+      function clientRequestToGetSomething() {
+        /// [sayHello]
+        sayHello('thanh')
+      }
+    ```
+__Context__: 
+  - When code run on API service => `Context_name` should be `App`...
+  - When code run on Background service => `Context_name` should be `Worker`...
+  
+__Client__:
+  - Object fires the first action
+  
 > `Context_Name`: which replaces `{}`. Default is `App` __(optional)__
 
 > `Client_Name`: which replaces `{Client}`. Default is `Client` __(optional)__
@@ -317,5 +332,5 @@ There are 2 function types:
   ```
 
 # Best practices
-- [example result](../../test/examples/assets/seq_doc_comment/README.md)
-- [example file](../test/examples/assets/doc_sequence.js)
+- [example result](../../test/examples/assets/seq_doc_comment/README)
+- [example file](../../test/examples/assets/doc_sequence.js)

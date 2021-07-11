@@ -1,726 +1,20 @@
+import { Exec } from '@/components/external/Exec'
+import { Tag } from '@/components/Tag'
+import { Testcase } from '@/components/Testcase'
+import { context } from "@/Context"
 import chalk from 'chalk'
 import { createReadStream, createWriteStream, readdirSync, readFileSync, statSync } from 'fs'
 import mkdirp from 'mkdirp'
 import { extname, join, relative } from 'path'
 import * as readline from 'readline'
-import { context } from "@/Context"
-import { Exec } from '@/components/external/Exec'
-import { Tag } from '@/components/Tag'
-import { Testcase } from '@/components/Testcase'
-
-/**
- * Example
-    /// box rgb(0, 255, 0)
-    ///   loop
-    ///     print all
-    ///       print data
-
-    /// parallel 
-    ///   get user
-    ///     {} ->> {UserCore}: Get user information
-    ///   get relation
-    ///     {} ->> {Relation}: Get user relation
-
-    /// if a
-    ///   {} ->> {}: Do a
-    /// else b
-    ///   {} ->> {}: Do b
-    /// else
-    ///   note right of {redis}: Hello you
-    ///   {} ->> {}: Do c
- */
-
-class Comment {
-  static Comments = new Map<string, Comment>()
-  static Classes = new Array<Comment>()
-  docSequence: DocSequence
-  src: string
-  key: string
-  childs: Array<Comment | any>
-  outputName: string
-  title: string
-  refs: boolean
-  cmd: string
-  type: string
-  _startC: number
-  parent: Comment
-  relations: string[]
-  umlType: 'sequence' | 'class'
-
-  private _client: string
-  private _ctx: string
-
-  set client(client: string) {
-    this._client = client
-  }
-
-  get client() {
-    return this._client || this.parent?.client
-  }
-
-  set ctx(ctx: string) {
-    this._ctx = ctx
-  }
-
-  get ctx() {
-    return this._ctx || this.parent?.ctx
-  }
-
-  set startC(c: number) {
-    if (this._startC !== undefined && this._startC !== c) {
-      const addMore = c - this._startC
-      this.childs.forEach((child: Comment) => {
-        child.startC = child.startC + addMore
-      })
-    }
-    this._startC = c
-  }
-
-  get startC() {
-    return this._startC
-  }
-
-  clone(): Comment {
-    return Object.create(this)
-  }
-
-  cloneNew(): Comment {
-    const newEmpty = Object.create(this)
-    newEmpty.parent = this
-    newEmpty.childs = []
-    newEmpty.name = ''
-    newEmpty.key = ''
-    newEmpty.cmd = ''
-    return newEmpty
-  }
-
-  static getType(name: string) {
-    const m = name.match(/^(if|else|loop|parallel|box|group)(\s+(.+))?/i)
-    if (m) {
-      const clazz = (m[1] || '').trim().toUpperCase()
-      switch (clazz) {
-        case 'LOOP':
-          return LOOP
-        case 'IF':
-          return IF
-        case 'ELSE':
-          return ELSE
-        case 'BOX':
-          return BOX
-        case 'PARALLEL':
-          return PARALLEL
-        case 'GROUP':
-          return GROUP
-      }
-    }
-    return Comment
-  }
-
-  constructor(public name: string, startC: number, firstUmlType: string) {
-    this.relations = []
-    this.startC = startC
-    this.childs = []
-    let m = this.name.match(/^\[(.*?)\]\s*(\{([^\}]+)\})?(\{([^\}]+)\})?(.*)/)
-    if (m) {
-      // template and root sequence diagram
-      this.key = m[1].trim()
-      this.umlType = 'sequence'
-      const ctx = m[3]?.trim()
-      if (ctx) this.ctx = ctx
-      if (m[5]) this.client = m[5].trim()
-      this.name = m[6].trim()
-    } else {
-      m = this.name.match(/^<(.*?)>\s*(.*)/)
-      if (m) {
-        // Class diagram
-        const className = m[1].trim()
-        const des = m[2].trim()
-        this.key = className
-        this.name = des
-        this.umlType = 'class'
-        Comment.Classes.push(this)
-      } else {
-        if (!this.umlType) {
-          this.umlType = firstUmlType as any
-        }
-        if (this.umlType === 'sequence') {
-          // sequence diagram
-          m = this.name.match(/^(if|else|loop|parallel|box|group)(\s+(.+))?/i)
-          if (m) {
-            this.cmd = (m[1] || '').trim().toUpperCase()
-            this.name = (m[3] || '').trim()
-          }
-        } else {
-          m = this.name.match(/^\s*([^\s\:]+)([^\:]+)?(\:(.*))?/)
-          if (m) {
-            const field = m[1]?.trim() || ''
-            const type = m[2]?.trim() || ''
-            const des = m[4]?.trim() || ''
-            this.key = field
-            this.name = des
-            this.type = type
-          }
-        }
-      }
-    }
-  }
-
-  init(isRoot: boolean) {
-    if (this.umlType === 'sequence') {
-      if (isRoot) {
-        if (this.key) {
-          Comment.Comments.set(this.key, this)
-        } else {
-          this.title = this.name
-          this.outputName = this.name.replace(/\W/g, '_').replace(/_+/g, '_')
-          if (!this.ctx) {
-            this.ctx = 'App'
-          } else {
-            this.ctx = this.ctx.split(',').map(e => e.trim()).join(' / ')
-          }
-          // const newNote = this.cloneNew()
-          // newNote.name = `NOTE RIGHT OF {}: ${this.name}`
-          // this.childs.push(newNote)
-          this.name = ''
-        }
-      } else if (this.key) {
-        this.refs = true
-      }
-    }
-  }
-
-  replaceThisAndTarget(str: string) {
-    str = str.replace(/\{\}/g, `{{${this.ctx || 'IMPOSSIBLE_ERROR'}}}`)
-    // if (this.client) {
-    str = str.replace(/\{\s*client\s*\}/gi, `{{{${this.client || 'Client'}}}}`)
-    // }
-    return str
-  }
-
-  mmdSequence(txt: string) {
-    if (/^note [^:]+:(.+)/i.test(txt)) {
-      let m = txt.match(/^\s*note\s((right of)|(left of)|(over))\s+([^,\:]+)\s*(,\s*(.*?))?(\:.+)/i)
-      if (m) {
-        if (m[2] || m[3]) {
-          m[5] = Actor.getActor(this.replaceThisAndTarget(m[5]), undefined).name
-        } else if (m[4] && m[7]) {
-          m[5] = Actor.getActor(this.replaceThisAndTarget(m[5]), undefined).name
-          m[7] = Actor.getActor(this.replaceThisAndTarget(m[7]), undefined).name
-        }
-      }
-      txt = `NOTE ${m[1].toUpperCase()} ${m[5]}${m[7] ? `, ${m[7]}` : ''}${m[8]}`
-    } else {
-      let m = txt.match(/\s*(.*?)\s*(->|<-|=>|<=|x>|<x|>|<)\s*(.*?):(.*)/i)
-      if (m) {
-        const [main, ...des] = txt.split(':')
-        txt = this.replaceThisAndTarget(main) + ':' + des.join('')
-        m = txt.match(/\s*(.*?)\s*(->|<-|=>|<=|x>|<x|>|<)\s*(.*?):(.*)/i)
-
-        m[1] = m[1]?.trim()
-        m[2] = m[2]?.trim()
-        m[3] = m[3]?.trim()
-        m[4] = m[4]?.trim()
-
-        // Parser actor
-        let action = m[2].trim()
-        const { label, dir, seqDir } = Actor.getActionName(action, m[4], this.docSequence.showEventDetails, this.docSequence.showRequestDetails)
-        const actor1 = Actor.getActor(dir > 0 ? m[1].trim() : m[3].trim())
-        const actor2 = Actor.getActor(dir < 0 ? m[1].trim() : m[3].trim())
-        if (actor1.name !== actor2.name && actor1.name && actor2.name) {
-          actor1.name.split('/').map(e => e.trim()).forEach(name1 => {
-            name1 = name1.trim()
-            const actor1 = Actor.getActor(name1)
-            actor2.name.split('/').map(e => e.trim()).forEach(name2 => {
-              name2 = name2.trim()
-              if (!actor1.actions[name2]) {
-                actor1.actions[name2] = new Set()
-              }
-              if (label) {
-                actor1.actions[name2].add(label)
-              }
-            })
-          })
-        }
-
-        m[1] = dir > 0 ? `${actor1.name}` : `${actor2.name}`
-        m[3] = dir < 0 ? `${actor1.name}` : `${actor2.name}`
-        if (actor2.sign) {
-          if (seqDir > 0) m[3] = actor2.sign + m[3]
-          else m[1] = actor2.sign + m[1]
-        } else if (actor1.sign) {
-          if (seqDir > 0) m[3] = actor1.sign + m[3]
-          else m[1] = actor1.sign + m[1]
-        }
-
-
-        if (m[2] === '->') {
-          txt = `${m[1]} --) ${m[3]}: ${m[4]}`
-        } else if (m[2] === '<-') {
-          txt = `${m[1]} (- ${m[3]}: ${m[4]}`
-        } else if (m[2] === '>') {
-          txt = `${m[1]} ->> ${this.docSequence._stackFrom}${m[3]}: ${m[4]}`
-        } else if (m[2] === '<') {
-          txt = `${this.docSequence._stackTo}${m[1]} <<-- ${m[3]}: ${m[4]}`
-        } else if (m[2] === '=>') {
-          txt = `${m[1]} ->> ${this.docSequence._stackFrom}${m[3]}: ${m[4]}`
-        } else if (m[2] === '<=') {
-          txt = `${this.docSequence._stackTo}${m[1]} <<-- ${m[3]}: ${m[4]}`
-        } else if (m[2] === 'x>') {
-          txt = `${m[1]} -x ${m[3]}: ${m[4]}`
-        } else if (m[2] === '<x') {
-          txt = `${m[1]} x-- ${m[3]}: ${m[4]}`
-        }
-      } else {
-        txt = `${this.ctx} ->> ${this.ctx}: ${txt}`
-      }
-      // else if (!/(\{[\w\$]*\})\s*(->|<-|=>|<=|x>|<x|>|<)?\s*(\{[\w\$]*\})?:(.*)/i.test(txt)) {
-      //   txt = `{${this.ctx}} > {${this.ctx}}: ${txt}`
-      // }
-      if (txt?.includes('<<--')) {
-        txt = txt.replace(/\s*(.*?)\s*<<--\s*(.*?)\s*:\s*(.*)/, '$2 -->> $1 : $3')
-      } else if (txt?.includes('<<-')) {
-        txt = txt.replace(/\s*(.*?)\s*<<-\s*(.*?)\s*:\s*(.*)/, '$2 ->> $1 : $3')
-      } else if (txt?.includes('(--')) {
-        txt = txt.replace(/\s*(.*?)\s*\(--\s*(.*?)\s*:\s*(.*)/, '$2 --) $1 : $3')
-      } else if (txt?.includes('(-')) {
-        txt = txt.replace(/\s*(.*?)\s*\(-\s*(.*?)\s*:\s*(.*)/, '$2 -) $1 : $3')
-      } else if (txt?.includes('x--')) {
-        txt = txt.replace(/\s*(.*?)\s*x--\s*(.*?)\s*:\s*(.*)/, '$2 --x $1 : $3')
-      } else if (txt?.includes('x-')) {
-        txt = txt.replace(/\s*(.*?)\s*x-\s*(.*?)\s*:\s*(.*)/, '$2 -x $1 : $3')
-      }
-    }
-    return txt
-  }
-
-  prePrint(writer, _i: number, _tab: string, mtab: string): string {
-    if (!this.name) {
-      if (this.key) {
-        writer.write(`${mtab}%% ${this.key}\r\n`)
-      } else {
-        writer.write(`${mtab}%% ${this.cmd || 'COMMENT'}\r\n`)
-      }
-    }
-    if (this.name && this.childs.length) {
-      return `OPT ${this.name}`
-    }
-    return ''
-  }
-
-  postPrint(_writer, _i: number, _tab: string, _mtab: string): string {
-    if (this.name && this.childs.length) {
-      return `END`
-    }
-    return ''
-  }
-
-  getPrint(_writer, _i: number, _tab: string, _mtab: string): string {
-    if (this.childs.length) {
-      return ''
-    }
-    return this.mmdSequence(this.name)
-  }
-
-  getLevel(newOne: Comment) {
-    const i = this.startC - newOne.startC
-    return i > 0 ? 'child' : i < 0 ? 'parent' : 'same'
-  }
-
-  prepare() {
-    this.childs = this.childs.reduce((sum, child) => {
-      if (child.refs) {
-        let newOneRef = Comment.Comments.get(child.key)
-        if (!newOneRef) throw new Error(`Could not found refs "${child.key}"`)
-        const newOne = newOneRef.clone()
-        newOne.refs = false
-        newOne.parent = this
-        if (child._ctx) newOne._ctx = child._ctx
-        newOne.umlType = this.umlType
-        newOne.startC = child.startC
-        if (child.name) newOne.name = child.name
-        newOne.prepare()
-        sum.push(newOne)
-      } else {
-        child.umlType = this.umlType
-        child.parent = this
-        child.prepare()
-        sum.push(child)
-      }
-      return sum
-    }, [])
-  }
-
-  printChild(writer, _i: number, tab = '|-', _mtab: string) {
-    this.childs.forEach((child: Comment, i: number) => {
-      child.print(writer, i, tab.replace(/-/g, ' ') + '|-')
-    })
-  }
-
-  printTagName() {
-    if (this.key) {
-      return `${chalk.magenta(this.name)}${this.name ? ' ' : ''}${chalk.italic.gray(`[${this.key}]`)}`
-    }
-    return this.childs.length ? chalk.magenta(this.name) : ''
-  }
-
-  print(writer, _i: number, tab = '|-') {
-    this.prepare()
-    const mtab = tab.replace(/\W/g, ' ')
-    let color = chalk.magenta
-    const nname = this.name.toLowerCase()
-    if (nname.startsWith('throw')) {
-      color = color.red
-    } else if (nname.startsWith('return')) {
-      color = color.magentaBright
-    } else if (nname.startsWith('response')) {
-      color = color.green
-    }
-
-    const tagName = this.printTagName()
-    if (tagName && !this.docSequence.slient) context.log(chalk.gray(tab) + chalk.magenta(tagName))
-
-    const raw = this.name
-    const txt = this.getPrint(writer, _i, tab, mtab)
-    if (txt && !this.key && !this.docSequence.slient) context.log(chalk.gray(tab) + color(raw))
-
-    const preText = this.prePrint(writer, _i, tab, mtab)
-    if (preText) writer.write(mtab + preText + '\r\n')
-
-    if (txt) writer.write(mtab + txt + '\r\n')
-
-    this.printChild(writer, _i, tab, mtab)
-
-    const postText = this.postPrint(writer, _i, tab, mtab)
-    if (postText) writer.write(mtab + postText + '\r\n')
-  }
-
-  printClass(writer, _i: number, tab = '  ') {
-    this.prepare()
-    const mtab = tab.replace(/\W/g, ' ')
-    if (!this.type) {
-      if (!this.docSequence.slient) context.log(chalk.yellow(`${tab}class ${chalk.bold(this.key)}`))
-      writer.write(`${mtab}class ${this.key} {\r\n`)
-      writer.write(`${mtab}${this.name ? `<<${this.name}>>` : ''}\r\n`)
-    } else {
-      // const m = this.type.match(/([^\[]+)((\[\])|(\{\}))?/)
-      const m = this.type.match(/([^\[]+)(\[\])?/)
-      if (!this.docSequence.slient) context.log(`${tab}${chalk.cyan(this.key)} ${chalk.green('<' + this.type + '>')} ${chalk.gray(this.name)}`)
-      if (m) {
-        let clazzType = m[2]?.trim() || ''
-        let relation = ''
-        const [clazz, prop] = m[1].split('.')
-        const typeModel = Comment.Classes.find(k => k.key === clazz)
-        if (typeModel) {
-          const typeProp = prop ? typeModel.childs.find(k => k.key === prop) : null
-          if (!typeProp) {
-            this.type = typeModel.type
-          } else {
-            this.type = typeProp.type
-          }
-          let isRefType = false
-          if (!this.type) {
-            isRefType = true
-            this.type = typeModel.key
-            relation = `..`
-          }
-          this.type += clazzType
-          if (clazzType === '[]') {
-            if (!relation) relation = `"${this.key}" --* "${prop}"`
-            this.parent.relations.push(`${this.parent.key} ${relation} ${clazz}: ${isRefType ? `${this.key}` : '1..n'}`)
-          } else {
-            if (!relation) relation = `"${this.key}" --|> "${prop}"`
-            this.parent.relations.push(`${this.parent.key} ${relation} ${clazz}: ${isRefType ? `${this.key}` : '1..1'}`)
-          }
-        }
-      }
-      let preKey = ''
-      let parent = this.parent
-      while (parent && parent.type) {
-        preKey = ' ..' + ' ' + preKey
-        parent = parent.parent
-      }
-      writer.write(`${mtab}+${preKey}${this.key} ~${this.type}~ : ${this.name?.replace(/\W/g, '_') || this.key}\r\n`)
-    }
-    this.childs.forEach((child, i) => {
-      child.printClass(writer, i, tab + '  ')
-    })
-    if (!this.type) {
-      writer.write(`${mtab}}\r\n`)
-      writer.write(`${this.relations.join('\r\n')}\r\n`)
-    }
-  }
-}
-
-class GROUP extends Comment {
-  override prePrint() {
-    if (!this.name) return ''
-    return `OPT ${this.name}`
-  }
-
-  override postPrint(_writer, _i: number, _tab: string, _mtab: string) {
-    if (!this.name) return ''
-    const idx = this.parent.childs.findIndex(child => child === this)
-    if (this.parent.childs[idx + 1] instanceof ELSE) {
-      return ''
-    }
-    return 'END'
-  }
-
-  override printTagName() {
-    if (!this.name) return `${chalk.blue('GROUP')}`
-    return `${chalk.blue('OPT')} ${this.name}`
-  }
-}
-
-class EMPTY extends Comment {
-
-}
-
-class PARALLEL extends Comment {
-
-  override prePrint() {
-    let name = this.name
-    if (!name && this.childs[0]?.childs.length && !this.childs[0].cmd) {
-      name = this.childs[0].name
-      this.childs[0].name = ''
-    }
-    return `PAR ${name}`
-  }
-
-  override postPrint() {
-    return 'END'
-  }
-
-  printChild(writer, _i: number, tab: string, mtab: string) {
-    this.childs.forEach((child: Comment, i: number) => {
-      if (i > 0) {
-        let name = ''
-        if (!child.cmd) {
-          name = child.name
-          child.name = ''
-        }
-        writer.write(mtab + `AND ${name}` + '\r\n')
-      }
-      child.print(writer, i, tab.replace(/-/g, ' ') + '|-')
-    })
-  }
-
-}
-
-class LOOP extends Comment {
-
-  override prePrint() {
-    let name = this.name
-    if (!name && this.childs.length === 1 && !this.childs[0].cmd) {
-      name = this.childs[0].name
-      this.childs[0].name = ''
-    }
-    return `LOOP ${name}`
-  }
-
-  override postPrint() {
-    return 'END'
-  }
-
-  override printTagName() {
-    return `${chalk.blue('LOOP')} ${this.name}`
-  }
-
-}
-
-class BOX extends Comment {
-
-  override prePrint() {
-    return `RECT ${this.name}`
-  }
-
-  override postPrint() {
-    return 'END'
-  }
-
-  override printTagName() {
-    return `${chalk.blue('BOX')} ${this.name}`
-  }
-
-}
-
-class IF extends Comment {
-
-  override prePrint() {
-    return `ALT ${this.name}`
-  }
-
-  override postPrint(_writer, _i: number, _tab: string, _mtab: string) {
-    const idx = this.parent.childs.findIndex(child => child === this)
-    if (this.parent.childs[idx + 1] instanceof ELSE) {
-      return ''
-    }
-    return 'END'
-  }
-
-  override printTagName() {
-    return `${chalk.blue('IF')} ${this.name}`
-  }
-
-}
-
-class ELSE extends IF {
-
-  override prePrint() {
-    return `ELSE ${this.name}`
-  }
-
-  override printTagName() {
-    return `${chalk.blue('ELSE')} ${this.name}`
-  }
-
-}
-
-class Actor {
-  static slient: boolean
-  static actors = {} as Actor[]
-  static declare = new Map<string, string>()
-  actions = {} as { [actor: string]: Set<string> }
-  sign: '+' | '-' | ''
-
-  constructor(public name: string) { }
-
-  static getActionName(action: string, des: string, showEventDetails: boolean, showRequestDetails: boolean) {
-    switch (action) {
-      case '=>':
-      case 'x>':
-        return showRequestDetails ? {
-          type: 'request',
-          seqDir: 1,
-          dir: 1,
-          label: '-->|' + des.replace(/"/g, "'") + '|'
-        } : {
-          type: 'request',
-          seqDir: 1,
-          dir: 1,
-          label: '-->|Request|'
-        }
-      case '<x':
-      case '<=':
-        return {
-          seqDir: -1,
-          dir: -1,
-          label: ''
-        }
-      case '->':
-        return showEventDetails ? {
-          type: 'event',
-          seqDir: 1,
-          dir: 1,
-          label: '-.->|' + des.replace(/"/g, "'") + '|'
-        } : {
-          seqDir: 1,
-          dir: 1,
-          label: '-.->|Publish|'
-        }
-      case '<-':
-        return showEventDetails ? {
-          type: 'event',
-          seqDir: -1,
-          dir: -1,
-          label: '-.->|' + des.replace(/"/g, "'") + '|'
-        } : {
-          seqDir: -1,
-          dir: -1,
-          label: '-.->|Consume|'
-        }
-      case '>':
-        return {
-          seqDir: 1,
-          dir: 1,
-          label: '---'
-        }
-      case '<':
-        return {
-          seqDir: -1,
-          dir: 1,
-          label: '---'
-        }
-    }
-    return {}
-  }
-
-  static getActor(name: string, onlyGet = false) {
-    const m = name.match(/\s*([\(\[<\{})]{1,5})?([^\(\[<\)\]\{\}>)]+)([\)\]\}>)]{1,5})?/)
-    let sign = ''
-    if (m) {
-      name = m[2]
-      const m1 = m[2].match(/^([\+\-])?(.+)/)
-      name = m1[2].trim()
-      sign = (m1[1] || '')
-      if (!onlyGet) {
-        if (m[1] && m[3]) {
-          // if (m[1] === '((' && m[3] === '))') {
-          //   Actor.declare.add(`${name}((${m[2]}))`)
-          // }
-          // if (m[1] === '[[' && m[3] === ']]') {
-          //   Actor.declare.add(`${name}[[${m[2]}]]`)
-          // } else 
-          if (m[1] === '{{' && m[3] === '}}') {
-            // Context {}
-            name.split('/').forEach(name => Actor.declare.set(`${name.trim()}`, 'App'))
-          } else if (m[1] === '{{{' && m[3] === '}}}') {
-            // Client Context {Client}
-            name.split('/').forEach(name => Actor.declare.set(`${name.trim()}`, 'Client'))
-          } else if (m[1] === '{' && m[3] === '}') {
-            // Service {ServiceName}
-            name.split('/').forEach(name => Actor.declare.set(`${name.trim()}`, 'Other Services'))
-          } else if (m[1] === '[' && m[3] === ']') {
-            // Database [MySQL]
-            name.split('/').forEach(name => Actor.declare.set(`${name.trim()}[(${m[2]})]`, ''))
-          } else if (m[1] === '(' && m[3] === ')') {
-            // Other (Redis) (RabbitMQ)
-            name.split('/').forEach(name => Actor.declare.set(`${name.trim()}((${m[2]}))`, ''))
-          } else {
-            name.split('/').forEach(name => Actor.declare.set(`${name.trim()}${m[1]}${name.trim()}${m[3]}`, ''))
-          }
-        }
-      }
-    }
-    let actor: Actor = Actor.actors[name]
-    if (!actor) {
-      actor = Actor.actors[name] = new Actor(name)
-    }
-    actor.sign = sign as any
-    name.split('/').map(e => e.trim()).forEach(name => {
-      if (!Actor.actors[name]) {
-        Actor.actors[name] = new Actor(name)
-        Actor.actors[name].sign = sign
-      }
-    })
-    return actor
-  }
-
-  static save(writer: any) {
-    for (const name in Actor.actors) {
-      const actor = Actor.actors[name]
-      for (const a in actor.actions) {
-        for (const action of actor.actions[a]) {
-          // const { label, dir } = Actor.getActioinName(action)
-          if (name) {
-            let actor1 = name // dir > 0 ? name : a
-            let actor2 = a // dir < 0 ? name : a
-            actor1.split('/').forEach(actor1 => {
-              actor1 = actor1.trim()
-              actor2.split('/').forEach(actor2 => {
-                actor2 = actor2.trim()
-                writer.write(`${actor1} ${action} ${actor2}\r\n`)
-              })
-            })
-            if (!Actor.slient) context.log(`${chalk.gray('-')} ${chalk.magenta(actor1)} ${chalk.blue(action)} ${chalk.magenta(actor2)}`)
-          }
-        }
-      }
-    }
-  }
-}
+import { ArrayUnique } from './ArrayUnique'
+import { Comment } from './Comment'
+import { FlowChart } from './FlowChart'
+import { EMPTY } from './SeqTag'
 
 export class DocSequence extends Tag {
+  /** Document description */
+  description?: string
   /** Not scan in these paths */
   excludes?: string[]
   /** Only scan file with the extensions */
@@ -751,6 +45,10 @@ export class DocSequence extends Tag {
   showEventDetails: boolean
   /** Show request details */
   showRequestDetails: boolean
+  /** Run by node command */
+  runOnNodeJS: boolean
+  /** Concat all of teleview diagrams to summary all of services */
+  combineOverviews: string[]
   /** Theme */
   theme: 'default' | 'forest' | 'dark' | 'neutral'
   _stackFrom: string
@@ -758,11 +56,17 @@ export class DocSequence extends Tag {
   _nodeModulePath: string
   _genImages: { input: string, output: string }[]
 
+  get appName() {
+    return this.title?.replace(/\W+/g, '_') || 'App'
+  }
+
   private totalFiles = 0
   private roots = [] as Comment[]
+  _flowChart = new FlowChart(this)
   private result = {
     clazz: '',
     overview: '',
+    teleview: '',
     sequence: ''
   }
   fileTypes = {
@@ -798,7 +102,7 @@ export class DocSequence extends Tag {
     if (!this.space) this.space = 0
     try {
       // this._nodeModulePath = require.resolve('@mermaid-js/mermaid-cli/index.bundle.js')
-      this._nodeModulePath = __dirname + '/mmdc.js'
+      this._nodeModulePath = __dirname + '/mmdc/mmdc.js'
     } catch {
       this._nodeModulePath = require.resolve('@mermaid-js/mermaid-cli/index.js')
     }
@@ -810,7 +114,7 @@ export class DocSequence extends Tag {
     this._stackTo = this.stack ? '-' : ''
     if (!Array.isArray(attrs.src)) this.src = [attrs.src]
     this.src = this.src.map(src => Testcase.getPathFromRoot(src))
-    if (!this.title) this.title = 'Comment sequence diagram'
+    if (!this.title) this.title = 'My Service'
     if (this.saveTo) {
       this.saveTo = Testcase.getPathFromRoot(this.saveTo)
     }
@@ -946,72 +250,7 @@ export class DocSequence extends Tag {
     return roots
   }
 
-  private async printOverview(_mdFolder: string, mmdFolder: string, svgFolder: string) {
-    if (!Object.keys(Actor.actors).length) return
-    const fileSave = join(this.saveTo, 'overview.md')
-    const fileMMDSave = join(mmdFolder, 'overview.mmd')
-    const fileImageSave = join(svgFolder, 'overview.svg')
-    context.group(`${chalk.green('%s %s')}`, 'Overview:', fileSave)
-    await Promise.all([
-      // Write mmd
-      new Promise((resolve, reject) => {
-        const writer = createWriteStream(fileMMDSave)
-        writer.once('close', resolve)
-        writer.once('error', reject)
-        writer.write('graph LR\r\n')
-        if (Actor.declare.size) {
-          const df = Math.random().toString()
-          let group = {} as any
-          group[df] = []
-          Actor.declare.forEach((vl, key) => {
-            if (vl) {
-              // Got subgraph
-              if (!group[vl]) group[vl] = []
-              group[vl].push(key)
-            } else {
-              group[df].push(key)
-            }
-          })
-          for (const k in group) {
-            if (k === 'Client') {
-              writer.write(group[k].join('\r\n') + '\r\n')
-            } else if (k === 'App') {
-              group[k].forEach((k, i) => {
-                writer.write(`subgraph App ${i + 1}` + '\r\n')
-                writer.write(k + '\r\n')
-                writer.write('end' + '\r\n')
-              })
-            } else if (k === df) {
-              writer.write(group[k].join('\r\n') + '\r\n')
-            } else {
-              writer.write(`subgraph ${k}` + '\r\n')
-              writer.write(group[k].join('\r\n') + '\r\n')
-              writer.write('end' + '\r\n')
-            }
-          }
-        }
-        Actor.slient = this.slient
-        Actor.save(writer)
-        writer.close()
-        this.result.overview = fileSave
-      }),
-      // Write md
-      new Promise((resolve, reject) => {
-        const writer = createWriteStream(fileSave)
-        writer.once('close', resolve)
-        writer.once('error', reject)
-        writer.write(`## Service overview\r\n`)
-        writer.write(`_Show all of components in the service and describe the ways they connect to each others_\r\n`)
-        writer.write(`![Service overview](${relative(this.saveTo, fileImageSave)})\r\n`)
-        writer.close()
-        context.groupEnd()
-      })
-    ])
-    // Generate image
-    this.addImage(fileMMDSave, fileImageSave)
-  }
-
-  private async addImage(mmdFile: string, svgFile: string) {
+  async addImage(mmdFile: string, svgFile: string) {
     this._genImages.push({ input: mmdFile, output: svgFile })
   }
 
@@ -1019,7 +258,9 @@ export class DocSequence extends Tag {
     const genImage = new Exec()
     const inputs = this._genImages.map(e => e.input).join(',')
     const outputs = this._genImages.map(e => e.output).join(',')
-    const args = [this._nodeModulePath, '--input', inputs, '--output', outputs]
+    const args = []
+    if (this.runOnNodeJS) args.push('node')
+    args.push(this._nodeModulePath, '--input', inputs, '--output', outputs)
     if (this.theme) args.push('--theme', this.theme)
     if (this.backgroundColor) args.push('--backgroundColor', this.backgroundColor)
     if (this.width) args.push('--width', this.width.toString())
@@ -1134,6 +375,13 @@ export class DocSequence extends Tag {
       writer.once('close', resolve)
       writer.once('error', reject)
       writer.write(`# ${this.title}\r\n`)
+      if (this.description) {
+        writer.write(`__${this.description}__\r\n`)
+      }
+      if (this.result.teleview) {
+        writer.write(readFileSync(this.result.teleview))
+        writer.write('\r\n')
+      }
       if (this.result.overview) {
         writer.write(readFileSync(this.result.overview))
         writer.write('\r\n')
@@ -1151,6 +399,165 @@ export class DocSequence extends Tag {
     })
   }
 
+  async printAllOfTeleviews(mmdFolder: string, svgFolder: string) {
+    if (this.combineOverviews?.length) {
+      const fileSave = join(this.saveTo, 'SYSTEM.md')
+      const fileMMDSave = join(mmdFolder, 'system.mmd')
+      const fileImageSave = join(svgFolder, 'system.svg')
+      context.group(`${chalk.green('%s %s')}`, 'System:', fileSave)
+      await Promise.all([
+        // Write mmd
+        new Promise((resolve, reject) => {
+          const writer = createWriteStream(fileMMDSave)
+          writer.once('close', resolve)
+          writer.once('error', reject)
+          const cached = new ArrayUnique()
+          const cachedLineStyles = new ArrayUnique()
+          const cachedObjects = {} as { [name: string]: ArrayUnique }
+          cachedObjects[''] = new ArrayUnique()
+          const pt = /^(\w+) ((<-.->)|(<-->)|(---)|(-.-)|(-->)|(-.->)) (\w+)$/
+          const ptSubgraph = /subgraph (.+)/
+          let subgraphName: string
+          this.combineOverviews.forEach((f: string, i: number) => {
+            const content = readFileSync(Testcase.getPathFromRoot(f)).toString().split('\n')
+            content.forEach((cnt, j) => {
+              const line = cnt.trim().replace(/\r|\n/g, '')
+              if (!line) return
+              if (j === 0) {
+                if (i === 0) {
+                  writer.write(line + '\r\n')
+                }
+                return
+              }
+              if (subgraphName || line.startsWith('subgraph ') || line.startsWith('end')) {
+                const m = line.match(ptSubgraph)
+                if (m) {
+                  subgraphName = m[1].trim()
+                  if (!cachedObjects[subgraphName]) cachedObjects[subgraphName] = new ArrayUnique()
+                } else if (line === 'end') {
+                  subgraphName = undefined
+                } else if (subgraphName) {
+                  cachedObjects[subgraphName].add(line.trim())
+                }
+              } else if (line.startsWith('linkStyle ')) {
+                return
+              } else {
+                const m = line.match(pt)
+                let idx: number
+                if (m) {
+                  const last = m.length - 1
+                  switch (m[2]) {
+                    case '-.-':
+                      cached.add(`${m[1]} -..- ${m[last]}`)
+                      break
+                    case '---':
+                      cached.add(`${m[1]} ----- ${m[last]}`)
+                      break
+                    case '-.->':
+                    case '<-.->':
+                      idx = cached.findIndex(c => c === `${m[1]} <-.-> ${m[last]}`)
+                      if (idx === -1) {
+                        idx = cached.findIndex(c => c === `${m[last]} <-.-> ${m[1]}`)
+                        if (idx === -1) {
+                          idx = cached.findIndex(c => c === `${m[1]} -.-> ${m[last]}`)
+                          if (idx === -1) {
+                            idx = cached.findIndex(c => c === `${m[last]} -.-> ${m[1]}`)
+                            if (idx !== -1) {
+                              cached[idx] = `${m[1]} <-...-> ${m[last]}`
+                              break
+                            }
+                          }
+                        }
+                      }
+                      if (m[2] === '-.->') {
+                        cached.add(`${m[1]} -...-> ${m[last]}`)
+                      } else {
+                        cached.add(`${m[1]} <-...-> ${m[last]}`)
+                      }
+                      break
+                    case '-->':
+                    case '<-->':
+                      idx = cached.findIndex(c => c === `${m[1]} <--> ${m[last]}`)
+                      if (idx === -1) {
+                        idx = cached.findIndex(c => c === `${m[last]} <--> ${m[1]}`)
+                        if (idx === -1) {
+                          idx = cached.findIndex(c => c === `${m[1]} --> ${m[last]}`)
+                          if (idx === -1) {
+                            idx = cached.findIndex(c => c === `${m[last]} --> ${m[1]}`)
+                            if (idx !== -1) {
+                              cached[idx] = `${m[1]} <----> ${m[last]}`
+                              break
+                            }
+                          }
+                        }
+                      }
+                      if (m[2] === '-->') {
+                        cached.add(`${m[1]} ----> ${m[last]}`)
+                      } else {
+                        cached.add(`${m[1]} <----> ${m[last]}`)
+                      }
+                      break
+                  }
+                } else if (!line.startsWith('%% ')) {
+                  cachedObjects[''].add(line)
+                }
+                // else {
+                //   cached.push(line)
+                // }
+              }
+            })
+          })
+          cached.forEach((msg, i) => {
+            if (/ <-{2,5}> /.test(msg)) {
+              cachedLineStyles.push(`linkStyle ${i} ${this._flowChart.lineStyle.req2}`)
+            } else if (/ -{2,5}> /.test(msg)) {
+              cachedLineStyles.push(`linkStyle ${i} ${this._flowChart.lineStyle.req}`)
+            } else if (/ <-\.{1,4}-> /.test(msg)) {
+              cachedLineStyles.push(`linkStyle ${i} ${this._flowChart.lineStyle.pubsub}`)
+            } else if (/ -\.{1,4}-> /.test(msg)) {
+              cachedLineStyles.push(`linkStyle ${i} ${this._flowChart.lineStyle.pub}`)
+            } else if (/ -{3,6} /.test(msg)) {
+              cachedLineStyles.push(`linkStyle ${i} ${this._flowChart.lineStyle.call}`)
+            } else if (/ -.{1,3}- /.test(msg)) {
+              cachedLineStyles.push(`linkStyle ${i} ${this._flowChart.lineStyle.call}`)
+            }
+          })
+          if (cachedObjects[''].length > 0) {
+            cachedObjects[''].forEach(objName => {
+              writer.write(`${objName}\r\n`)
+            })
+          }
+          Object.keys(cachedObjects).filter(subgraphName => subgraphName).forEach(subgraphName => {
+            if (cachedObjects[subgraphName].length > 0) {
+              writer.write(`subgraph ${subgraphName}\r\n`)
+              cachedObjects[subgraphName].forEach(objName => {
+                writer.write(`  ${objName}\r\n`)
+              })
+              writer.write(`end\r\n`)
+            }
+          })
+          writer.write(cached.join('\r\n'))
+          writer.write('\r\n')
+          writer.write(cachedLineStyles.join('\r\n'))
+          writer.close()
+          context.groupEnd()
+        }),
+        // Write md
+        new Promise((resolve, reject) => {
+          const writer = createWriteStream(fileSave)
+          writer.once('close', resolve)
+          writer.once('error', reject)
+          writer.write(`### System overviews\r\n`)
+          writer.write(`![System overview](${relative(this.saveTo, fileImageSave)})\r\n`)
+          writer.close()
+          context.groupEnd()
+        })
+      ])
+      // Generate image
+      this.addImage(fileMMDSave, fileImageSave)
+    }
+  }
+
   async print() {
     if (!this.saveTo) return
     const mdFolder = join(this.saveTo, 'api_sequence_diagram')
@@ -1163,8 +570,12 @@ export class DocSequence extends Tag {
     ])
     await this.printSequence(mdFolder, mmdFolder, svgFolder)
     await this.printClasses(mdFolder, mmdFolder, svgFolder)
-    await this.printOverview(mdFolder, mmdFolder, svgFolder)
-    await this.printMarkdown(mdFolder, mmdFolder, svgFolder)
+    this.result.overview = await this._flowChart.printOverviewDetails(mdFolder, mmdFolder, svgFolder)
+    this.result.teleview = await this._flowChart.printOverview(mdFolder, mmdFolder, svgFolder)
+    await Promise.all([
+      this.printMarkdown(mdFolder, mmdFolder, svgFolder),
+      this.printAllOfTeleviews(mmdFolder, svgFolder),
+    ])
     await this.genImage()
   }
 

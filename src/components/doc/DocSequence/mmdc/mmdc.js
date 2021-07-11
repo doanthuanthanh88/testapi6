@@ -1,16 +1,12 @@
 #!/usr/bin/env node
 'use strict';
 
-function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, arguments); return new Promise(function (resolve, reject) { function step(key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { return Promise.resolve(value).then(function (value) { step("next", value); }, function (err) { step("throw", err); }); } } return step("next"); }); }; }
-
 process.title = "mmdc";
 const commander = require('commander');
 const chalk = require('chalk');
 const fs = require('fs');
 const path = require('path');
 const puppeteer = require('puppeteer');
-
-const pkg = require('../../../../package.json');
 
 const error = message => {
   console.log(chalk.red(`\n${message}\n`));
@@ -23,57 +19,16 @@ const checkConfigFile = file => {
   }
 };
 
-const inputPipedFromStdin = () => fs.fstatSync(0).isFIFO();
-
-const getInputData = (() => {
-  var _ref = _asyncToGenerator(function* (inputFile) {
-    return new Promise(function (resolve, reject) {
-      // if an input file has been specified using '-i', it takes precedence over
-      // piping from stdin
-      if (typeof inputFile !== 'undefined') {
-        return fs.readFile(inputFile, 'utf-8', function (err, data) {
-          if (err) {
-            return reject(err);
-          }
-
-          return resolve(data);
-        });
-      }
-
-      let data = '';
-      process.stdin.on('readable', function () {
-        var chunk = this.read();
-
-        if (chunk !== null) {
-          data += chunk;
-        }
-      });
-
-      process.stdin.on('error', function (err) {
-        reject(err);
-      });
-
-      process.stdin.on('end', function () {
-        resolve(data);
-      });
-    });
-  });
-
-  return function getInputData(_x) {
-    return _ref.apply(this, arguments);
-  };
-})();
-
 const convertToValidXML = html => {
   var xml = html;
 
   // <br> tags in valid HTML (from innerHTML) look like <br>, but they must look like <br/> to be valid XML (such as SVG)
-  xml.replace(/<br>/gi, '<br/>');
+  xml = xml.replace(/<br>/gi, '<br/>');
 
   return xml;
 };
 
-commander.version(pkg.version).option('-t, --theme [theme]', 'Theme of the chart, could be default, forest, dark or neutral. Optional. Default: default', /^default|forest|dark|neutral$/, 'default').option('-w, --width [width]', 'Width of the page. Optional. Default: 800', /^\d+$/, '800').option('-H, --height [height]', 'Height of the page. Optional. Default: 600', /^\d+$/, '600').option('-i, --input <input>', 'Input mermaid file. Required.').option('-o, --output [output]', 'Output file. It should be either svg, png or pdf. Optional. Default: input + ".svg"').option('-b, --backgroundColor [backgroundColor]', 'Background color. Example: transparent, red, \'#F0F0F0\'. Optional. Default: white').option('-c, --configFile [configFile]', 'JSON configuration file for mermaid. Optional').option('-C, --cssFile [cssFile]', 'CSS file for the page. Optional').option('-s, --scale [scale]', 'Puppeteer scale factor, default 1. Optional').option('-f, --pdfFit [pdfFit]', 'Scale PDF to fit chart').option('-p --puppeteerConfigFile [puppeteerConfigFile]', 'JSON configuration file for puppeteer. Optional').parse(process.argv);
+commander.version('1.0').option('-t, --theme [theme]', 'Theme of the chart, could be default, forest, dark or neutral. Optional. Default: default', /^default|forest|dark|neutral$/, 'default').option('-w, --width [width]', 'Width of the page. Optional. Default: 800', /^\d+$/, '800').option('-H, --height [height]', 'Height of the page. Optional. Default: 600', /^\d+$/, '600').option('-i, --input <input>', 'Input mermaid file. Required.').option('-o, --output [output]', 'Output file. It should be either svg, png or pdf. Optional. Default: input + ".svg"').option('-b, --backgroundColor [backgroundColor]', 'Background color. Example: transparent, red, \'#F0F0F0\'. Optional. Default: white').option('-c, --configFile [configFile]', 'JSON configuration file for mermaid. Optional').option('-C, --cssFile [cssFile]', 'CSS file for the page. Optional').option('-s, --scale [scale]', 'Puppeteer scale factor, default 1. Optional').option('-f, --pdfFit [pdfFit]', 'Scale PDF to fit chart').option('-p --puppeteerConfigFile [puppeteerConfigFile]', 'JSON configuration file for puppeteer. Optional').parse(process.argv);
 
 const options = commander.opts();
 
@@ -113,7 +68,10 @@ if (configFile) {
   checkConfigFile(configFile);
   mermaidConfig = Object.assign(mermaidConfig, JSON.parse(fs.readFileSync(configFile, 'utf-8')));
 }
-let puppeteerConfig = {};
+let puppeteerConfig = {
+  // headless: false,
+  // args: [`--window-size=${width},${height}`]
+};
 if (puppeteerConfigFile) {
   checkConfigFile(puppeteerConfigFile);
   puppeteerConfig = JSON.parse(fs.readFileSync(puppeteerConfigFile, 'utf-8'));
@@ -134,12 +92,12 @@ height = parseInt(height);
 backgroundColor = backgroundColor || 'white';
 const deviceScaleFactor = parseInt(scale || 1, 10);
 
-_asyncToGenerator(function* () {
-  const browser = yield puppeteer.launch(puppeteerConfig);
+(async () => {
+  const browser = await puppeteer.launch(puppeteerConfig);
   try {
-    const page = yield browser.newPage();
+    const page = await browser.newPage();
     page.setViewport({ width, height, deviceScaleFactor });
-    yield page.goto(`file://${path.join(__dirname, 'index.html')}`);
+    await page.goto(`file://${path.join(__dirname, 'index.html')}`);
     let containerDiv = ''
     for (let i = 0; i < inputs.length; i++) {
       containerDiv += `<div id="container${i}" class="mermaid"></div>`
@@ -148,17 +106,16 @@ _asyncToGenerator(function* () {
     if (myCSS) {
       cssDiv = `<style type="text/css">${myCSS}</style>`
     }
-    yield page.evaluate(`
+    await page.evaluate(`
       document.head.innerHTML += '${cssDiv}';
-      document.body.style.background = '${backgroundColor}';
+      document.body.style.backgroundColor = '${backgroundColor}';
       document.getElementById('container').innerHTML = '${containerDiv}';
       window.mermaid.initialize(${JSON.stringify(mermaidConfig)});
     `);
-    for (let i = 0; i < inputs.length; i++) {
-      const input = inputs[i]
+    await Promise.all(inputs.map(async (input, i) => {
       const output = outputs[i]
-      const definition = yield getInputData(input);
-      const result = yield page.$eval('#container' + i, function (container, definition, myCSS, mermaidConfig) {
+      const definition = fs.readFileSync(input).toString();
+      const result = await page.$eval('#container' + i, function (container, definition) {
         container.textContent = definition;
         // window.mermaid.initialize(mermaidConfig)
         try {
@@ -168,32 +125,32 @@ _asyncToGenerator(function* () {
         } catch (error) {
           return { status: 'error', error, message: error.message };
         }
-      }, definition, myCSS, mermaidConfig);
+      }, definition);
       if (result.status === 'error') {
         error(result.message);
       }
 
       if (output.endsWith('svg')) {
-        const svg = yield page.$eval('#container' + i, function (container) {
+        const svg = await page.$eval('#container' + i, function (container) {
           return container.innerHTML;
         });
         const svg_xml = convertToValidXML(svg);
         fs.writeFileSync(output, svg_xml);
       } else if (output.endsWith('png')) {
-        const clip = yield page.$eval('svg', function (svg) {
+        const clip = await page.$eval('svg', function (svg) {
           const react = svg.getBoundingClientRect();
           return { x: Math.floor(react.left), y: Math.floor(react.top), width: Math.ceil(react.width), height: Math.ceil(react.height) };
         });
-        yield page.setViewport({ width: clip.x + clip.width, height: clip.y + clip.height, deviceScaleFactor });
-        yield page.screenshot({ path: output, clip, omitBackground: backgroundColor === 'transparent' });
+        await page.setViewport({ width: clip.x + clip.width, height: clip.y + clip.height, deviceScaleFactor });
+        await page.screenshot({ path: output, clip, omitBackground: backgroundColor === 'transparent' });
       } else {
         // pdf
         if (pdfFit) {
-          const clip = yield page.$eval('svg', function (svg) {
+          const clip = await page.$eval('svg', function (svg) {
             const react = svg.getBoundingClientRect();
             return { x: react.left, y: react.top, width: react.width, height: react.height };
           });
-          yield page.pdf({
+          await page.pdf({
             path: output,
             printBackground: backgroundColor !== 'transparent',
             width: Math.ceil(clip.width) + clip.x * 2 + 'px',
@@ -201,14 +158,14 @@ _asyncToGenerator(function* () {
             pageRanges: '1-1'
           });
         } else {
-          yield page.pdf({
+          await page.pdf({
             path: output,
             printBackground: backgroundColor !== 'transparent'
           });
         }
       }
-    }
+    }))
   } finally {
-    yield browser.close();
+    await browser.close();
   }
-})();
+})()

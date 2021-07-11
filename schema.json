@@ -178,7 +178,8 @@
           "description": "Extract log from comment in code",
           "type": "object",
           "required": [
-            "src"
+            "src",
+            "title"
           ],
           "allOf": [
             {
@@ -191,6 +192,17 @@
                 "saveTo"
               ],
               "properties": {
+                "title": {
+                  "type": "string",
+                  "description": "Service name"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "runOnNodeJS": {
+                  "type": "boolean",
+                  "description": "Set to true when could not run bin path. Only run via node command"
+                },
                 "theme": {
                   "type": "string",
                   "enum": [
@@ -199,6 +211,9 @@
                     "dark",
                     "neutral"
                   ]
+                },
+                "serviceName": {
+                  "type": "string"
                 },
                 "showEventDetails": {
                   "type": "boolean",
@@ -223,6 +238,13 @@
                     "#F0F0F0"
                   ],
                   "default": "transparent"
+                },
+                "combineOverviews": {
+                  "type": "array",
+                  "description": "Combine multiple overviews to one",
+                  "items": {
+                    "type": "string"
+                  }
                 },
                 "width": {
                   "type": "number",

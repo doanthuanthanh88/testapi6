@@ -1,20 +1,21 @@
 flowchart LR
 %% Test_service
 CLIENT{{"☺ ☺ ☺ <br/> Client"}}:::Client
+classDef App fill:#0cb9c1,color:#fff
+  TEST_SERVICE("☀ <br/> Test_service"):::App
 classDef Services fill:#74d2e7,color:#fff
-subgraph Services
-  TEST_SERVICE("☀ <br/> Test_service"):::Services
-end
 subgraph Services
     LOGSERVICE("☀ <br/> LogService"):::Services
     REDIS("☀ <br/> Redis"):::Services
     RABBITMQ("☀ <br/> RabbitMQ"):::Services
 end
-CLIENT --> TEST_SERVICE
-TEST_SERVICE --> LOGSERVICE
-TEST_SERVICE -.-> REDIS
-RABBITMQ -.-> TEST_SERVICE
+CLIENT ---->| Request to run worker| TEST_SERVICE
+TEST_SERVICE ---->| Add log to server| LOGSERVICE
+TEST_SERVICE -...->| Publish hello| REDIS
+TEST_SERVICE ---->| Make a request to add log| LOGSERVICE
+RABBITMQ -...->| Comsume event| TEST_SERVICE
 linkStyle 0 fill:none,stroke:#0cb9c1,stroke-width:1px;
 linkStyle 1 fill:none,stroke:#0cb9c1,stroke-width:1px;
 linkStyle 2 fill:none,stroke:#f48924,stroke-width:1px;
-linkStyle 3 fill:none,stroke:#f48924,stroke-width:1px;
+linkStyle 3 fill:none,stroke:#0cb9c1,stroke-width:1px;
+linkStyle 4 fill:none,stroke:#f48924,stroke-width:1px;

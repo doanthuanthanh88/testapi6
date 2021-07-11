@@ -1,7 +1,10 @@
 {
   "compilerOptions": {
     "module": "commonjs",
-    "target": "esnext",
+    "target": "ES6",
+    "lib": [
+      "ES2019.Array"
+    ],
     "declaration": true,
     "removeComments": true,
     "esModuleInterop": true,

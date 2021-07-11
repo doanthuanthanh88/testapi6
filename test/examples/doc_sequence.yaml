@@ -28,6 +28,7 @@
       py:
         excludes: ["__pycache__"]
         commentTag: "# /"
+    # runOnNodeJS: true
     slient: true # Disabled log
     showEventDetails: true # Show all of events in overview diagram
     showRequestDetails: true # Show all of requests in overview diagram
