@@ -19,7 +19,7 @@ _Auto generate diagrams from any file which base on comment line_
 1. Prepare configuration file `gen_seq_doc.yaml`
 ```yaml
 - DocSequence:
-    title: My first service                 # Service name
+    title: My first service                 # This is service name (requried)
     ext:                                    # Only scan files which file name endwiths these values
       - .ts             
     excludes:                               # Ignore scan these folders
@@ -31,6 +31,10 @@ _Auto generate diagrams from any file which base on comment line_
     # - /path1
     # - /path2
     saveTo: ./mmd                           # Target path which includes the output document
+    # runOnNodeJS:  true                    # Set to true when could not run bin path. Only run via node command
+    # combineOverviews:                     # Combine multiple overviews to one
+    #   - .../service1/wiki/resources/mmd/overview.mmd
+    #   - .../service2/wiki/resources/mmd/overview.mmd
     # stack: true                           # Auto generate number in sequence diagram
     # autoNumber: true                      # Activations can be stacked for same actor
     # space: 4                              # Set number of spaces in each steps in code. Default "null" is auto detect
