@@ -1,4 +1,5 @@
 import chalk from "chalk"
+import { ArrayUnique } from "./ArrayUnique"
 import { Comment } from "./Comment"
 
 export class GROUP extends Comment {
@@ -7,7 +8,7 @@ export class GROUP extends Comment {
     return `OPT ${this.name}`
   }
 
-  override postPrint(_writer, _i: number, _tab: string, _mtab: string) {
+  override postPrint(_msg: ArrayUnique, _i: number, _tab: string, _mtab: string) {
     if (!this.name) return ''
     const idx = this.parent.childs.findIndex(child => child === this)
     if (this.parent.childs[idx + 1] instanceof ELSE) {
@@ -30,9 +31,20 @@ export class PARALLEL extends Comment {
 
   override prePrint() {
     let name = this.name
-    if (!name && this.childs[0]?.childs.length && !this.childs[0].cmd) {
-      name = this.childs[0].name
-      this.childs[0].name = ''
+    let child0 = this.childs[0]
+    if (!name) {
+      while (child0 instanceof GROUP) {
+        if (child0?.childs.length) {
+          name = child0.name
+          child0.name = ''
+          if (child0.name) {
+            break
+          }
+          child0 = child0.childs[0]
+        } else {
+          break
+        }
+      }
     }
     return `PAR ${name}`
   }
@@ -41,17 +53,17 @@ export class PARALLEL extends Comment {
     return 'END'
   }
 
-  printChild(writer, _i: number, tab: string, mtab: string) {
+  printChild(msg: ArrayUnique, _i: number, tab: string, mtab: string) {
     this.childs.forEach((child: Comment, i: number) => {
       if (i > 0) {
         let name = ''
-        if (!child.cmd) {
+        if (child.name && child instanceof GROUP) {
           name = child.name
           child.name = ''
         }
-        writer.write(mtab + `AND ${name}` + '\r\n')
+        msg.push(mtab + `AND ${name}`)
       }
-      child.print(writer, i, tab.replace(/-/g, ' ') + '|-')
+      child.print(msg, i, tab.replace(/-/g, ' ') + '|-')
     })
   }
 
@@ -100,7 +112,7 @@ export class IF extends Comment {
     return `ALT ${this.name}`
   }
 
-  override postPrint(_writer, _i: number, _tab: string, _mtab: string) {
+  override postPrint(_msg: ArrayUnique, _i: number, _tab: string, _mtab: string) {
     const idx = this.parent.childs.findIndex(child => child === this)
     if (this.parent.childs[idx + 1] instanceof ELSE) {
       return ''

@@ -141,8 +141,11 @@ There are 2 function types:
       }
     ```
 __Context__: 
-  - When code run on API service => `Context_name` should be `App`...
-  - When code run on Background service => `Context_name` should be `Worker`...
+  - If code run in API service => `Context_name` should be `App`...
+    - If some APIs run both "public" and "intenral" => `Context_name` should be `Public, Internal`
+    - If some APIs just exposed to public => `Context_name` should be `Public`
+    - If some APIs just exposed to internal => `Context_name` should be `Internal`
+  - If code run in Background service => `Context_name` should be `Worker`...
   
 __Client__:
   - Object fires the first action
@@ -193,6 +196,8 @@ __Client__:
 
     - `TARGET`:
       > `{}`: is current context
+
+      > `{.Target}`: Target is app context (Example: API call to Worker, all of them in a service. )
 
       > `{Client}`: is object fires the first action
 

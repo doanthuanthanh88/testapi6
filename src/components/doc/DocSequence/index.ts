@@ -57,7 +57,7 @@ export class DocSequence extends Tag {
   _genImages: { input: string, output: string }[]
 
   get appName() {
-    return this.title?.replace(/\W+/g, '_') || 'App'
+    return this.title?.replace(/[^a-zA-Z0-9_\-\.\s]/g, '_').replace(/_+/g, '_') || 'App'
   }
 
   private totalFiles = 0
@@ -185,10 +185,15 @@ export class DocSequence extends Tag {
         newOne.docSequence = this
         if (!first || first.startC === newOne.startC || first.umlType !== newOne.umlType) {
           newOne.init(true)
+          // newOne.root = first
+          if (newOne.umlType === 'sequence') {
+            if (newOne.key) {
+              newOne = Comment.Comments.get(newOne.key)
+            }
+            roots.push(newOne)
+          }
           first = newOne
           cur = newOne
-          // newOne.root = first
-          if (newOne.umlType === 'sequence') roots.push(newOne)
         } else {
           newOne.init(false)
           // newOne.root = cur.root
@@ -197,10 +202,9 @@ export class DocSequence extends Tag {
             let empty: EMPTY = cur
             const childLevel = (newOne.startC - cur.startC) / space.length
             new Array(childLevel - 1).fill(null).forEach((_, i) => {
-              const newEmpty = new EMPTY('', empty.startC, empty.umlType)
+              const newEmpty = new EMPTY('', cur.startC + (space.length * (i + 1)), empty.umlType)
               newEmpty.parent = empty
               newEmpty.docSequence = empty.docSequence
-              newEmpty.startC = newOne.startC - (space.length * (i + 1))
               empty.childs.push(newEmpty)
               empty = newEmpty
               // empty.root = empty.parent.root
@@ -250,7 +254,7 @@ export class DocSequence extends Tag {
     return roots
   }
 
-  async addImage(mmdFile: string, svgFile: string) {
+  addImage(mmdFile: string, svgFile: string) {
     this._genImages.push({ input: mmdFile, output: svgFile })
   }
 
@@ -292,7 +296,49 @@ export class DocSequence extends Tag {
           writer.once('error', reject)
           writer.write('sequenceDiagram\r\n')
           if (this.autoNumber) writer.write('autonumber\r\n')
-          root.print(writer, 0, undefined)
+          // Write participant
+          const msg = new ArrayUnique()
+          root.print(msg, 0, undefined)
+          const participant = new ArrayUnique()
+          for (const key of this._flowChart.globalObjectsKeys) {
+            const names = this._flowChart.globalObjects.get(key)
+            switch (key) {
+              case 'Client':
+                names.forEach(({ name, uname }) => {
+                  participant.add(`participant ${uname} as ${this._flowChart.subGraph.client}${name}`)
+                })
+                break
+              case 'Apps':
+                names.forEach(({ name, uname }) => {
+                  participant.add(`participant ${uname} as ${this._flowChart.subGraph.service}${name}`)
+                })
+                break
+              case 'App':
+                names
+                  .filter(({ name }) => !this._flowChart.globalObjects.get('Apps')?.find(c => new RegExp(`(/\\s?${name})|(${name}\\s?/)`, 'i').test(c.name)))
+                  .forEach(({ name, uname }) => {
+                    participant.add(`participant ${uname} as ${this._flowChart.subGraph.service}${name}`)
+                  })
+                break
+              case 'Services':
+                names.forEach(({ name, uname }) => {
+                  participant.add(`participant ${uname} as ${this._flowChart.subGraph.service}${name}`)
+                })
+                break
+              case 'Databases':
+                names.forEach(({ name, uname }) => {
+                  participant.add(`participant ${uname} as ${name}`)
+                })
+                break
+              case 'Others':
+                names.forEach(({ name, uname }) => {
+                  participant.add(`participant ${uname} as ${name}`)
+                })
+                break
+            }
+          }
+          writer.write(participant.concat(msg).join('\r\n'))
+          writer.write('\r\n')
           writer.close()
         }),
         // Write md
@@ -323,7 +369,7 @@ export class DocSequence extends Tag {
       writer.write(`## Sequence diagram\r\n`)
       writer.write(`_Describe business logic flows in each of APIs, workers... in the service_\r\n`)
       this.roots.forEach((root, i) => {
-        writer.write(`${i + 1}. [${root.title}](${relative(this.saveTo, root.src).replace(/\.md$/, '')})\r\n`)
+        writer.write(`${i + 1}. [${root.title}](${relative(this.saveTo, root.src)})\r\n`)
       })
       writer.write('\r\n')
       this.result.sequence = fileSave

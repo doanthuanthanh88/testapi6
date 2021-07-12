@@ -1,28 +1,29 @@
 sequenceDiagram
+participant CLIENT as ☺ ☺ ☺ <br/>Client
+participant TESTSERVICE as ⌬ <br/>Test service
+participant LOGSERVICE as ⌬ <br/>LogService
+participant REDIS as ⌬ <br/>Redis
+participant RABBITMQ as ⌬ <br/>RabbitMQ
   %% COMMENT
-    Client ->> Test_service: Request to run worker
-    OPT Start a worker
+    CLIENT ->> TESTSERVICE: Request to run worker
       LOOP infinity
-        Worker ->> Worker: Print ok to screen
+        TESTSERVICE ->> TESTSERVICE: Print ok to screen
       END
-    END
-    NOTE RIGHT OF Client: Note right of client
-    NOTE LEFT OF Client: Note left of client
+    NOTE RIGHT OF CLIENT: Note right of client
+    NOTE LEFT OF CLIENT: Note left of client
     PAR Get user
-      %% HttpUser.getUser
         ALT is admin
-          Test_service ->> Test_service: print the role to screen
+          TESTSERVICE ->> TESTSERVICE: print the role to screen
         ELSE is not admin
-          Test_service ->> LogService: Add log to server
+          TESTSERVICE ->> LOGSERVICE: Add log to server
         END
         LOOP in 10 times
-          Test_service ->> Test_service: print index to screen
+          TESTSERVICE ->> TESTSERVICE: print index to screen
         END
     AND Get company
-      %% HttpUser.getCompany
-        Test_service --) Redis: Publish hello
-        Test_service ->> LogService: Make a request to add log
-        RabbitMQ -) Test_service : Comsume event
+        TESTSERVICE --) REDIS: Publish hello
+        TESTSERVICE ->> LOGSERVICE: Make a request to add log
+        RABBITMQ -) TESTSERVICE : Comsume event
     END
-    NOTE OVER Client, RabbitMQ: Message over here
-    Test_service -->> Client : Response "OK"
+    NOTE OVER CLIENT, RABBITMQ: Message over here
+    TESTSERVICE -->> CLIENT : Response "OK"

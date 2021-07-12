@@ -7,7 +7,8 @@ import { ArrayUnique } from "./ArrayUnique"
 
 export class FlowChart {
   private actors: Map<string, { subject: string, target: string, action: string, des: string, subType: string, tarType: string }>
-  private globalObjects: Map<string, Array<{ name, uname }>>
+  globalObjects: Map<string, Array<{ name, uname }>>
+  globalObjectsKeys: string[]
   readonly lineStyle = {
     pub: 'fill:none,stroke:#f48924,stroke-width:1px;',
     sub: 'fill:none,stroke:#f48924,stroke-width:1px;',
@@ -24,17 +25,18 @@ export class FlowChart {
     others: 'fill:#ffc168,color:#fff',
   }
   readonly subGraph = {
-    service: '☀ <br/>',
+    service: '⌬ <br/>',
     client: '☺ ☺ ☺ <br/>',
   }
 
   constructor(private docSequence: DocSequence) {
     this.actors = new Map()
     this.globalObjects = new Map()
+    this.globalObjectsKeys = new ArrayUnique()
   }
 
   getUpperName(name: string) {
-    return name.replace(/\W/g, '').toUpperCase()
+    return name.replace(/[^A-Za-z0-9]/g, '').toUpperCase()
   }
 
   addActor(subject: string, target: string, action: string, des: string) {
@@ -50,6 +52,8 @@ export class FlowChart {
         this.addGlobalObject(tarname, tar.type)
       }
     }
+    if (sub.name.includes('/')) this.addGlobalObject(sub.name, 'Apps')
+    if (tar.name.includes('/')) this.addGlobalObject(tar.name, 'Apps')
   }
 
   private parseName(name: string, _action: string) {
@@ -88,7 +92,10 @@ export class FlowChart {
   }
 
   private addGlobalObject(name: string, type: string) {
-    if (!this.globalObjects.get(type)) this.globalObjects.set(type, new Array())
+    if (!this.globalObjects.get(type)) {
+      this.globalObjects.set(type, new Array())
+      this.globalObjectsKeys.push(type)
+    }
     if (!this.globalObjects.get(type).find(e => e.name === name)) {
       this.globalObjects.get(type).push({ name, uname: this.getUpperName(name) })
     }
@@ -128,14 +135,17 @@ export class FlowChart {
     let msg = new ArrayUnique()
     msg.push('flowchart LR')
     msg.push(`%% ${this.docSequence.appName}`)
-    this.globalObjects.forEach((names, key) => {
+    for (const key of this.globalObjectsKeys) {
+      const names = this.globalObjects.get(key)
       switch (key) {
         case 'Client':
           if (this.defRect.clients) msg.add(`classDef ${key} ${this.defRect.clients}`)
           if (names.length > 1) {
             msg.push(`subgraph Client`)
             names.forEach(({ name, uname }) => {
-              msg.add(`  ${uname}{{"${this.subGraph.client} ${name}"}}:::${key}`)
+              if (!this.globalObjects.get('App').find(names => names.uname === uname)) {
+                msg.add(`  ${uname}{{"${this.subGraph.client} ${name}"}}:::${key}`)
+              }
             })
             msg.push('end')
           } else {
@@ -179,7 +189,7 @@ export class FlowChart {
           })
           break
       }
-    })
+    }
     const lineStyles = new ArrayUnique()
     const subMsg = new ArrayUnique()
     this.actors.forEach(({ subject, target, action, des }) => {
@@ -245,8 +255,9 @@ export class FlowChart {
   private getOverviewContent() {
     let msg = new ArrayUnique()
     msg.push('flowchart LR')
-    msg.push(`%% ${this.docSequence.appName}`)
-    this.globalObjects.forEach((names, key) => {
+    msg.push(`%% ${this.docSequence.title}`)
+    for (let key of this.globalObjectsKeys) {
+      const names = this.globalObjects.get(key)
       switch (key) {
         case 'Client':
           if (this.defRect.clients) msg.add(`classDef ${key} ${this.defRect.clients}`)
@@ -256,7 +267,7 @@ export class FlowChart {
           key = 'Services'
           if (this.defRect.services) msg.add(`classDef ${key} ${this.defRect.services}`)
           msg.push(`subgraph Services`)
-          msg.add(`  ${this.getUpperName(this.docSequence.appName)}("${this.subGraph.service} ${this.docSequence.appName}"):::${key}`)
+          msg.add(`  ${this.getUpperName(this.docSequence.appName)}("${this.subGraph.service} ${this.docSequence.title}"):::${key}`)
           msg.push('end')
           break
         case 'Services':
@@ -282,7 +293,7 @@ export class FlowChart {
           })
           break
       }
-    })
+    }
     const lineStyles = new ArrayUnique()
     const subMsg = new ArrayUnique()
     const hasCall = (msg: ArrayUnique, subject: string, target: string, ...actions: string[]) => {

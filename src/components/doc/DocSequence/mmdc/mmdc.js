@@ -63,7 +63,30 @@ for (const output of outputs) {
 }
 
 // check config files
-let mermaidConfig = { theme, startOnLoad: true };
+let mermaidConfig = {
+  theme,
+  startOnLoad: true,
+  flowchart: {
+    diagramPadding: 8,
+    curve: 'cardinal',
+  },
+  sequence: {
+    diagramMarginX: 8,
+    diagramMarginY: 8,
+    actorMargin: 24,
+    width: 150,
+    height: 65,
+    boxMargin: 10,
+    boxTextMargin: 5,
+    noteMargin: 10,
+    messageMargin: 35,
+    messageAlign: 'center',
+    mirrorActors: false,
+    bottomMarginAdj: 1,
+    useMaxWidth: false,
+    rightAngles: true
+  }
+};
 if (configFile) {
   checkConfigFile(configFile);
   mermaidConfig = Object.assign(mermaidConfig, JSON.parse(fs.readFileSync(configFile, 'utf-8')));

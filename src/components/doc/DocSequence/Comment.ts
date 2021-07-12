@@ -1,3 +1,4 @@
+import { ArrayUnique } from './ArrayUnique'
 import { context } from "@/Context"
 import chalk from "chalk"
 import { DocSequence } from "."
@@ -141,14 +142,22 @@ export class Comment {
     }
   }
 
+  getUpperName(name: string) {
+    return name.replace(/[^A-Za-z0-9]/g, '').toUpperCase()
+  }
+
   init(isRoot: boolean) {
     if (this.umlType === 'sequence') {
       if (isRoot) {
         if (this.key) {
-          Comment.Comments.set(this.key, this)
+          const { GROUP } = require('./SeqTag')
+          const gr = new GROUP(this.name, this.startC, this.umlType)
+          gr.docSequence = this.docSequence
+          gr.init(isRoot)
+          Comment.Comments.set(this.key, gr)
         } else {
           this.title = this.name
-          this.outputName = this.name.replace(/\W/g, '_').replace(/_+/g, '_')
+          this.outputName = this.name.replace(/[^A-Za-z0-9_\-\.]/g, '_')
           if (!this.ctx) {
             // this.ctx = 'App'
             this.ctx = this.docSequence.appName
@@ -175,14 +184,15 @@ export class Comment {
   }
 
   mmdSequence(txt: string) {
+    const uctx = this.getUpperName(this.ctx)
     if (/^note [^:]+:(.+)/i.test(txt)) {
       let m = txt.match(/^\s*note\s((right of)|(left of)|(over))\s+([^,\:]+)\s*(,\s*(.*?))?(\:.+)/i)
       if (m) {
         if (m[2] || m[3]) {
-          m[5] = Actor.getActor(this.replaceThisAndTarget(m[5]), undefined).name
+          m[5] = Actor.getActor(this.replaceThisAndTarget(m[5])).uname
         } else if (m[4] && m[7]) {
-          m[5] = Actor.getActor(this.replaceThisAndTarget(m[5]), undefined).name
-          m[7] = Actor.getActor(this.replaceThisAndTarget(m[7]), undefined).name
+          m[5] = Actor.getActor(this.replaceThisAndTarget(m[5])).uname
+          m[7] = Actor.getActor(this.replaceThisAndTarget(m[7])).uname
         }
       }
       txt = `NOTE ${m[1].toUpperCase()} ${m[5]}${m[7] ? `, ${m[7]}` : ''}${m[8]}`
@@ -224,8 +234,8 @@ export class Comment {
           })
         }
 
-        m[1] = dir > 0 ? `${actor1.name}` : `${actor2.name}`
-        m[3] = dir < 0 ? `${actor1.name}` : `${actor2.name}`
+        m[1] = dir > 0 ? `${actor1.uname}` : `${actor2.uname}`
+        m[3] = dir < 0 ? `${actor1.uname}` : `${actor2.uname}`
         if (actor2.sign) {
           if (seqDir > 0) m[3] = actor2.sign + m[3]
           else m[1] = actor2.sign + m[1]
@@ -253,11 +263,8 @@ export class Comment {
           txt = `${m[1]} x-- ${m[3]}: ${m[4]}`
         }
       } else {
-        txt = `${this.ctx} ->> ${this.ctx}: ${txt}`
+        txt = `${uctx} ->> ${uctx}: ${txt}`
       }
-      // else if (!/(\{[\w\$]*\})\s*(->|<-|=>|<=|x>|<x|>|<)?\s*(\{[\w\$]*\})?:(.*)/i.test(txt)) {
-      //   txt = `{${this.ctx}} > {${this.ctx}}: ${txt}`
-      // }
       if (txt?.includes('<<--')) {
         txt = txt.replace(/\s*(.*?)\s*<<--\s*(.*?)\s*:\s*(.*)/, '$2 -->> $1 : $3')
       } else if (txt?.includes('<<-')) {
@@ -275,12 +282,12 @@ export class Comment {
     return txt
   }
 
-  prePrint(writer, _i: number, _tab: string, mtab: string): string {
+  prePrint(msg: ArrayUnique, _i: number, _tab: string, mtab: string): string {
     if (!this.name) {
       if (this.key) {
-        writer.write(`${mtab}%% ${this.key}\r\n`)
+        msg.push(`${mtab}%% ${this.key}`)
       } else {
-        writer.write(`${mtab}%% ${this.cmd || 'COMMENT'}\r\n`)
+        msg.push(`${mtab}%% ${this.cmd || 'COMMENT'}`)
       }
     }
     if (this.name && this.childs.length) {
@@ -289,14 +296,14 @@ export class Comment {
     return ''
   }
 
-  postPrint(_writer, _i: number, _tab: string, _mtab: string): string {
+  postPrint(_msg, _i: number, _tab: string, _mtab: string): string {
     if (this.name && this.childs.length) {
       return `END`
     }
     return ''
   }
 
-  getPrint(_writer, _i: number, _tab: string, _mtab: string): string {
+  getPrint(_msg, _i: number, _tab: string, _mtab: string): string {
     if (this.childs.length) {
       return ''
     }
@@ -332,9 +339,9 @@ export class Comment {
     }, [])
   }
 
-  printChild(writer, _i: number, tab = '|-', _mtab: string) {
+  printChild(msg: ArrayUnique, _i: number, tab = '|-', _mtab: string) {
     this.childs.forEach((child: Comment, i: number) => {
-      child.print(writer, i, tab.replace(/-/g, ' ') + '|-')
+      child.print(msg, i, tab.replace(/-/g, ' ') + '|-')
     })
   }
 
@@ -345,7 +352,7 @@ export class Comment {
     return this.childs.length ? chalk.magenta(this.name) : ''
   }
 
-  print(writer, _i: number, tab = '|-') {
+  print(msg: ArrayUnique, _i: number, tab = '|-') {
     this.prepare()
     const mtab = tab.replace(/\W/g, ' ')
     let color = chalk.magenta
@@ -362,18 +369,18 @@ export class Comment {
     if (tagName && !this.docSequence.slient) context.log(chalk.gray(tab) + chalk.magenta(tagName))
 
     const raw = this.name
-    const txt = this.getPrint(writer, _i, tab, mtab)
+    const txt = this.getPrint(msg, _i, tab, mtab)
     if (txt && !this.key && !this.docSequence.slient) context.log(chalk.gray(tab) + color(raw))
 
-    const preText = this.prePrint(writer, _i, tab, mtab)
-    if (preText) writer.write(mtab + preText + '\r\n')
+    const preText = this.prePrint(msg, _i, tab, mtab)
+    if (preText) msg.push(mtab + preText)
 
-    if (txt) writer.write(mtab + txt + '\r\n')
+    if (txt) msg.push(mtab + txt)
 
-    this.printChild(writer, _i, tab, mtab)
+    this.printChild(msg, _i, tab, mtab)
 
-    const postText = this.postPrint(writer, _i, tab, mtab)
-    if (postText) writer.write(mtab + postText + '\r\n')
+    const postText = this.postPrint(msg, _i, tab, mtab)
+    if (postText) msg.push(mtab + postText)
   }
 
   printClass(writer, _i: number, tab = '  ') {
