@@ -1,6 +1,6 @@
 {
   "name": "testapi6",
-  "version": "1.2.31",
+  "version": "1.2.33",
   "description": "Test and auto export document to .md or .swagger file. Support many others tasks",
   "keywords": [
     "tool",
@@ -23,6 +23,7 @@
     "build:doc": "rm -rf docs && typedoc --tsconfig tsconfig.doc.json",
     "test": "nodemon --watch src --watch modules --ext .ts --exec 'node -r ts-node/register -r ./bin/tsconfig-paths-bootstrap.js --expose-gc --harmony --inspect src/test.ts'",
     "start": "nodemon --watch src --watch modules --ext .ts --exec 'node -r ts-node/register -r ./bin/tsconfig-paths-bootstrap.js --expose-gc --harmony src/index.ts test/examples/crawler.yaml'",
+    "gen:doc": "node dist ",
     "dev": "nodemon --watch src --watch modules --ext .ts --exec 'node -r ts-node/register -r ./bin/tsconfig-paths-bootstrap.js --expose-gc --harmony --inspect src/index.ts test/examples/doc_sequence.yaml'",
     "preview": "nodemon --watch src --watch modules --ext .ts --exec 'node -r ts-node/register -r ./bin/tsconfig-paths-bootstrap.js --expose-gc --harmony --inspect src/preview.ts test'",
     "serve": "nodemon --watch src --watch modules --ext .ts --exec 'node -r ts-node/register -r ./bin/tsconfig-paths-bootstrap.js --expose-gc --harmony --inspect src/index.ts test/examples/mock_data.yaml'",

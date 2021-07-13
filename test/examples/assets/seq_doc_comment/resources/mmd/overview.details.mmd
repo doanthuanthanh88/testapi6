@@ -1,10 +1,10 @@
 flowchart LR
 %% Test service
+classDef Services fill:#74d2e7,color:#fff;
+classDef App fill:#0cb9c1,color:#fff;
 CLIENT{{"☺ ☺ ☺ <br/> Client"}}:::Client
-classDef App fill:#0cb9c1,color:#fff
   TESTSERVICE("⌬ <br/> Test service"):::App
-classDef Services fill:#74d2e7,color:#fff
-subgraph Services
+subgraph Other-Services
     LOGSERVICE("⌬ <br/> LogService"):::Services
     REDIS("⌬ <br/> Redis"):::Services
     RABBITMQ("⌬ <br/> RabbitMQ"):::Services

@@ -68,6 +68,8 @@ let mermaidConfig = {
   startOnLoad: true,
   flowchart: {
     diagramPadding: 8,
+    // curve: 'basis',
+    // curve: 'linear',
     curve: 'cardinal',
   },
   sequence: {

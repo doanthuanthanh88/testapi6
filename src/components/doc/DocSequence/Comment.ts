@@ -323,7 +323,7 @@ export class Comment {
         const newOne = newOneRef.clone()
         newOne.refs = false
         newOne.parent = this
-        if (child._ctx) newOne._ctx = child._ctx
+        newOne._ctx = child._ctx
         newOne.umlType = this.umlType
         newOne.startC = child.startC
         if (child.name) newOne.name = child.name

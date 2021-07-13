@@ -17,12 +17,61 @@ export class FlowChart {
     req2: 'fill:none,stroke:#0cb9c1,stroke-width:2px;',
     call: 'fill:none,stroke:#9f9fa3,stroke-width:1px;',
   }
+  readonly color = [
+    '#c04df9',
+    '#ff4e50',
+    '#f37736',
+    '#0086ad',
+    '#ff6289',
+    '#1ebbd7',
+    '#234d20',
+    '#007777',
+    '#2a4d69',
+    '#8f9779',
+    '#7289da',
+    '#36802d',
+    '#006666',
+    '#97ebdb',
+    '#4b86b4',
+    '#ee4035',
+    '#78866b',
+    '#107dac',
+    '#424549',
+    '#fc913a',
+    '#ff93ac',
+    '#77ab59',
+    '#005555',
+    '#00c2c7',
+    '#adcbe3',
+    '#738276',
+    '#189ad3',
+    '#36393e',
+    '#f9d62e',
+    '#004444',
+    '#738678',
+    '#282b30',
+    '#eae374',
+    '#005073',
+    '#7bc043',
+    '#fc3468',
+    '#f0f7da',
+    '#003333',
+    '#005582',
+    '#63ace5',
+    '#4d5d53',
+    '#71c7ec',
+    '#1e2124',
+    '#e2f4c7',
+    '#0392cf',
+    '#ff084a',
+  ]
+  lineColors = new ArrayUnique()
   readonly defRect = {
     clients: '',
-    apps: 'fill:#0cb9c1,color:#fff',
-    services: 'fill:#74d2e7,color:#fff',
-    databases: 'fill:#004d73,color:#fff',
-    others: 'fill:#ffc168,color:#fff',
+    apps: 'fill:#0cb9c1,color:#fff;',
+    services: 'fill:#74d2e7,color:#fff;',
+    databases: '', // 'fill:#d9534f,color:#fff;',
+    others: '', // 'fill:#428bca,color:#fff;',
   }
   readonly subGraph = {
     service: '⌬ <br/>',
@@ -33,6 +82,24 @@ export class FlowChart {
     this.actors = new Map()
     this.globalObjects = new Map()
     this.globalObjectsKeys = new ArrayUnique()
+  }
+
+  getLineColor(uname: string) {
+    let idx = this.lineColors.findIndex(n => n === uname)
+    if (idx === -1) {
+      idx = this.lineColors.push(uname) - 1
+    }
+    const color = this.color[idx % this.color.length]
+    return `fill:none,stroke:${color},stroke-width:1px;`
+  }
+
+  getRectColor(name: string) {
+    let idx = this.lineColors.findIndex(n => n === name)
+    if (idx === -1) {
+      idx = this.lineColors.push(name) - 1
+    }
+    const color = this.color[idx % this.color.length]
+    return `fill:${color},color:#fff;`
   }
 
   getUpperName(name: string) {
@@ -110,19 +177,19 @@ export class FlowChart {
       // Write mmd
       new Promise((resolve, reject) => {
         const writer = createWriteStream(fileMMDSave)
-        writer.once('close', resolve)
+        writer.once('finish', resolve)
         writer.once('error', reject)
         writer.write(this.getOverviewDetailsContent())
-        writer.close()
+        writer.end()
       }),
       // Write md
       new Promise((resolve, reject) => {
         const writer = createWriteStream(fileSave)
-        writer.once('close', resolve)
+        writer.once('finish', resolve)
         writer.once('error', reject)
         writer.write(`### Details\r\n`)
         writer.write(`![Service overview](${relative(this.docSequence.saveTo, fileImageSave)})\r\n`)
-        writer.close()
+        writer.end()
         context.groupEnd()
       })
     ])
@@ -135,11 +202,15 @@ export class FlowChart {
     let msg = new ArrayUnique()
     msg.push('flowchart LR')
     msg.push(`%% ${this.docSequence.appName}`)
+    if (this.defRect.services) msg.add(`classDef Services ${this.defRect.services}`)
+    if (this.defRect.databases) msg.add(`classDef Databases ${this.defRect.databases}`)
+    if (this.defRect.others) msg.add(`classDef Others ${this.defRect.others}`)
+    if (this.defRect.apps) msg.add(`classDef App ${this.defRect.apps}`)
+    if (this.defRect.clients) msg.add(`classDef Client ${this.defRect.clients}`)
     for (const key of this.globalObjectsKeys) {
       const names = this.globalObjects.get(key)
       switch (key) {
         case 'Client':
-          if (this.defRect.clients) msg.add(`classDef ${key} ${this.defRect.clients}`)
           if (names.length > 1) {
             msg.push(`subgraph Client`)
             names.forEach(({ name, uname }) => {
@@ -155,9 +226,8 @@ export class FlowChart {
           }
           break
         case 'App':
-          if (this.defRect.apps) msg.add(`classDef ${key} ${this.defRect.apps}`)
           if (names.length > 1) {
-            msg.push(`subgraph Components in app`)
+            msg.push(`subgraph Main`)
             names.forEach(({ name, uname }) => {
               msg.add(`  ${uname}("${this.subGraph.service} ${name}"):::${key}`)
             })
@@ -169,21 +239,18 @@ export class FlowChart {
           }
           break
         case 'Services':
-          if (this.defRect.services) msg.add(`classDef ${key} ${this.defRect.services}`)
-          msg.push(`subgraph Services`)
+          msg.push(`subgraph Other-Services`)
           names.forEach(({ name, uname }) => {
             msg.add(`    ${uname}("${this.subGraph.service} ${name}"):::${key}`)
           })
           msg.push('end')
           break
         case 'Databases':
-          if (this.defRect.databases) msg.add(`classDef ${key} ${this.defRect.databases}`)
           names.forEach(({ name, uname }) => {
             msg.add(`${uname}[("${name}")]:::${key}`)
           })
           break
         case 'Others':
-          if (this.defRect.others) msg.add(`classDef ${key} ${this.defRect.others}`)
           names.forEach(({ name, uname }) => {
             msg.add(`${uname}(("${name}")):::${key}`)
           })
@@ -230,20 +297,20 @@ export class FlowChart {
       // Write mmd
       new Promise((resolve, reject) => {
         const writer = createWriteStream(fileMMDSave)
-        writer.once('close', resolve)
+        writer.once('finish', resolve)
         writer.once('error', reject)
         writer.write(this.getOverviewContent())
-        writer.close()
+        writer.end()
       }),
       // Write md
       new Promise((resolve, reject) => {
         const writer = createWriteStream(fileSave)
-        writer.once('close', resolve)
+        writer.once('finish', resolve)
         writer.once('error', reject)
         writer.write(`## Service overview\r\n`)
         writer.write(`_Show all of components in the service and describe the ways they connect to each others_\r\n`)
         writer.write(`![Service teleview](${relative(this.docSequence.saveTo, fileImageSave)})\r\n`)
-        writer.close()
+        writer.end()
         context.groupEnd()
       })
     ])
@@ -256,6 +323,7 @@ export class FlowChart {
     let msg = new ArrayUnique()
     msg.push('flowchart LR')
     msg.push(`%% ${this.docSequence.title}`)
+    const uname = this.getUpperName(this.docSequence.appName)
     for (let key of this.globalObjectsKeys) {
       const names = this.globalObjects.get(key)
       switch (key) {
@@ -264,17 +332,16 @@ export class FlowChart {
           msg.add(`CLIENT{{"${this.subGraph.client} ${key}"}}:::${key}`)
           break
         case 'App':
-          key = 'Services'
-          if (this.defRect.services) msg.add(`classDef ${key} ${this.defRect.services}`)
-          msg.push(`subgraph Services`)
-          msg.add(`  ${this.getUpperName(this.docSequence.appName)}("${this.subGraph.service} ${this.docSequence.title}"):::${key}`)
+          if (this.defRect.apps) msg.add(`classDef ${uname} ${this.defRect.apps}`)
+          msg.push(`subgraph Other-Services`)
+          msg.add(`  ${uname}("${this.subGraph.service} ${this.docSequence.title}"):::${uname}`)
           msg.push('end')
           break
         case 'Services':
-          if (this.defRect.services) msg.add(`classDef ${key} ${this.defRect.services}`)
-          msg.push(`subgraph Services`)
+          msg.push(`subgraph Other-Services`)
           names.forEach(({ name, uname }) => {
-            msg.add(`    ${uname}("${this.subGraph.service} ${name}"):::${key}`)
+            if (this.defRect.services) msg.add(`classDef ${uname} ${this.defRect.services}`)
+            msg.add(`    ${uname}("${this.subGraph.service} ${name}"):::${uname}`)
           })
           msg.push('end')
           break

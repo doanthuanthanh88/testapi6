@@ -292,7 +292,7 @@ export class DocSequence extends Tag {
         // Write mmd
         new Promise((resolve, reject) => {
           const writer = createWriteStream(fileMMDSave)
-          writer.once('close', resolve)
+          writer.once('finish', resolve)
           writer.once('error', reject)
           writer.write('sequenceDiagram\r\n')
           if (this.autoNumber) writer.write('autonumber\r\n')
@@ -339,12 +339,12 @@ export class DocSequence extends Tag {
           }
           writer.write(participant.concat(msg).join('\r\n'))
           writer.write('\r\n')
-          writer.close()
+          writer.end()
         }),
         // Write md
         new Promise(async (resolve, reject) => {
           const writer = createWriteStream(fileSave)
-          writer.once('close', resolve)
+          writer.once('finish', resolve)
           writer.once('error', reject)
           writer.write(`## ${root.title}\r\n`)
           writer.write(`![${root.title}](${relative(mdFolder, fileImageSave)})\r\n`)
@@ -353,7 +353,7 @@ export class DocSequence extends Tag {
           // writer.write('\r\n')
           root.src = fileSave
           // writer.write('```')
-          writer.close()
+          writer.end()
           context.groupEnd()
         })
       ])
@@ -364,7 +364,7 @@ export class DocSequence extends Tag {
     context.group(`${chalk.green('%s %s')}`, 'Sequence diagram:', fileSave)
     await new Promise((resolve, reject) => {
       const writer = createWriteStream(fileSave)
-      writer.once('close', resolve)
+      writer.once('finish', resolve)
       writer.once('error', reject)
       writer.write(`## Sequence diagram\r\n`)
       writer.write(`_Describe business logic flows in each of APIs, workers... in the service_\r\n`)
@@ -373,7 +373,7 @@ export class DocSequence extends Tag {
       })
       writer.write('\r\n')
       this.result.sequence = fileSave
-      writer.close()
+      writer.end()
       context.groupEnd()
     })
   }
@@ -388,23 +388,23 @@ export class DocSequence extends Tag {
       /// Write mmd
       new Promise((resolve, reject) => {
         const writer = createWriteStream(fileMMDSave)
-        writer.once('close', resolve)
+        writer.once('finish', resolve)
         writer.once('error', reject)
         writer.write('classDiagram\r\n')
         Comment.Classes.forEach((root) => {
           root.printClass(writer, 0, undefined)
         })
-        writer.close()
+        writer.end()
       }),
       // Write md
       new Promise((resolve, reject) => {
         const writer = fileSave ? createWriteStream(fileSave) : null
-        writer.once('close', resolve)
+        writer.once('finish', resolve)
         writer.once('error', reject)
         writer.write(`## Data model\r\n`)
         writer.write(`_Show data structure and relations between them in the service_\r\n`)
         writer.write(`![Data model](${relative(this.saveTo, fileImageSave)})\r\n`)
-        writer.close()
+        writer.end()
         this.result.clazz = fileSave
         context.groupEnd()
       }),
@@ -418,7 +418,7 @@ export class DocSequence extends Tag {
     context.group(`${chalk.green('%s %s')}`, 'Readme:', fileSave)
     await new Promise((resolve, reject) => {
       const writer = createWriteStream(fileSave)
-      writer.once('close', resolve)
+      writer.once('finish', resolve)
       writer.once('error', reject)
       writer.write(`# ${this.title}\r\n`)
       if (this.description) {
@@ -440,7 +440,7 @@ export class DocSequence extends Tag {
         writer.write(readFileSync(this.result.sequence))
         writer.write('\r\n')
       }
-      writer.close()
+      writer.end()
       context.groupEnd()
     })
   }
@@ -455,15 +455,21 @@ export class DocSequence extends Tag {
         // Write mmd
         new Promise((resolve, reject) => {
           const writer = createWriteStream(fileMMDSave)
-          writer.once('close', resolve)
+          writer.once('finish', resolve)
           writer.once('error', reject)
           const cached = new ArrayUnique()
+          const cachedClassDef = new ArrayUnique()
           const cachedLineStyles = new ArrayUnique()
           const cachedObjects = {} as { [name: string]: ArrayUnique }
           cachedObjects[''] = new ArrayUnique()
           const pt = /^(\w+) ((<-.->)|(<-->)|(---)|(-.-)|(-->)|(-.->)) (\w+)$/
           const ptSubgraph = /subgraph (.+)/
           let subgraphName: string
+          if (this._flowChart.defRect.services) cachedClassDef.add(`classDef Services ${this._flowChart.defRect.services}`)
+          if (this._flowChart.defRect.databases) cachedClassDef.add(`classDef Databases ${this._flowChart.defRect.databases}`)
+          if (this._flowChart.defRect.others) cachedClassDef.add(`classDef Others ${this._flowChart.defRect.others}`)
+          if (this._flowChart.defRect.apps) cachedClassDef.add(`classDef App ${this._flowChart.defRect.apps}`)
+          if (this._flowChart.defRect.clients) cachedClassDef.add(`classDef Client ${this._flowChart.defRect.clients}`)
           this.combineOverviews.forEach((f: string, i: number) => {
             const content = readFileSync(Testcase.getPathFromRoot(f)).toString().split('\n')
             content.forEach((cnt, j) => {
@@ -475,7 +481,9 @@ export class DocSequence extends Tag {
                 }
                 return
               }
-              if (subgraphName || line.startsWith('subgraph ') || line.startsWith('end')) {
+              if (line.startsWith('linkStyle ') || line.startsWith('classDef ')) {
+                return
+              } else if (subgraphName || line.startsWith('subgraph ') || line.startsWith('end')) {
                 const m = line.match(ptSubgraph)
                 if (m) {
                   subgraphName = m[1].trim()
@@ -485,13 +493,13 @@ export class DocSequence extends Tag {
                 } else if (subgraphName) {
                   cachedObjects[subgraphName].add(line.trim())
                 }
-              } else if (line.startsWith('linkStyle ')) {
-                return
               } else {
                 const m = line.match(pt)
                 let idx: number
                 if (m) {
                   const last = m.length - 1
+                  cachedClassDef.add(`classDef ${m[1]} ${this._flowChart.getRectColor(m[1])}`)
+                  cachedClassDef.add(`classDef ${m[last]} ${this._flowChart.getRectColor(m[last])}`)
                   switch (m[2]) {
                     case '-.-':
                       cached.add(`${m[1]} -..- ${m[last]}`)
@@ -553,21 +561,53 @@ export class DocSequence extends Tag {
               }
             })
           })
+          const match = {
+            req2: /(.*?) <-{2,5}> /,
+            req: /(.*?) -{2,5}> /,
+            pubsub: /(.*?) <-\.{1,4}-> /,
+            pub: /(.*?) -\.{1,4}-> /,
+            call: /(.*?) -{3,6} /,
+            call1: /(.*?) -.{1,3}- /,
+          }
           cached.forEach((msg, i) => {
-            if (/ <-{2,5}> /.test(msg)) {
-              cachedLineStyles.push(`linkStyle ${i} ${this._flowChart.lineStyle.req2}`)
-            } else if (/ -{2,5}> /.test(msg)) {
-              cachedLineStyles.push(`linkStyle ${i} ${this._flowChart.lineStyle.req}`)
-            } else if (/ <-\.{1,4}-> /.test(msg)) {
-              cachedLineStyles.push(`linkStyle ${i} ${this._flowChart.lineStyle.pubsub}`)
-            } else if (/ -\.{1,4}-> /.test(msg)) {
-              cachedLineStyles.push(`linkStyle ${i} ${this._flowChart.lineStyle.pub}`)
-            } else if (/ -{3,6} /.test(msg)) {
-              cachedLineStyles.push(`linkStyle ${i} ${this._flowChart.lineStyle.call}`)
-            } else if (/ -.{1,3}- /.test(msg)) {
-              cachedLineStyles.push(`linkStyle ${i} ${this._flowChart.lineStyle.call}`)
+            let m = msg.match(match.req2)
+            if (m) {
+              cachedLineStyles.push(`linkStyle ${i} ${this._flowChart.getLineColor(m[1])}`)
+              // cachedLineStyles.push(`linkStyle ${i} ${this._flowChart.lineStyle.req2}`)
+            } else {
+              m = msg.match(match.req)
+              if (m) {
+                cachedLineStyles.push(`linkStyle ${i} ${this._flowChart.getLineColor(m[1])}`)
+                // cachedLineStyles.push(`linkStyle ${i} ${this._flowChart.lineStyle.req}`)
+              } else {
+                m = msg.match(match.pubsub)
+                if (m) {
+                  cachedLineStyles.push(`linkStyle ${i} ${this._flowChart.getLineColor(m[1])}`)
+                  // cachedLineStyles.push(`linkStyle ${i} ${this._flowChart.lineStyle.pubsub}`)
+                } else {
+                  m = msg.match(match.pub)
+                  if (m) {
+                    cachedLineStyles.push(`linkStyle ${i} ${this._flowChart.getLineColor(m[1])}`)
+                    // cachedLineStyles.push(`linkStyle ${i} ${this._flowChart.lineStyle.pub}`)
+                  } else {
+                    m = msg.match(match.call)
+                    if (m) {
+                      cachedLineStyles.push(`linkStyle ${i} ${this._flowChart.getLineColor(m[1])}`)
+                      // cachedLineStyles.push(`linkStyle ${i} ${this._flowChart.lineStyle.call}`)
+                    } else {
+                      m = msg.match(match.call1)
+                      if (m) {
+                        cachedLineStyles.push(`linkStyle ${i} ${this._flowChart.getLineColor(m[1])}`)
+                        // cachedLineStyles.push(`linkStyle ${i} ${this._flowChart.lineStyle.call}`)
+                      }
+                    }
+                  }
+                }
+              }
             }
           })
+          writer.write(cachedClassDef.join('\r\n'))
+          writer.write('\r\n')
           if (cachedObjects[''].length > 0) {
             cachedObjects[''].forEach(objName => {
               writer.write(`${objName}\r\n`)
@@ -585,17 +625,17 @@ export class DocSequence extends Tag {
           writer.write(cached.join('\r\n'))
           writer.write('\r\n')
           writer.write(cachedLineStyles.join('\r\n'))
-          writer.close()
+          writer.end()
           context.groupEnd()
         }),
         // Write md
         new Promise((resolve, reject) => {
           const writer = createWriteStream(fileSave)
-          writer.once('close', resolve)
+          writer.once('finish', resolve)
           writer.once('error', reject)
           writer.write(`### System overviews\r\n`)
           writer.write(`![System overview](${relative(this.saveTo, fileImageSave)})\r\n`)
-          writer.close()
+          writer.end()
           context.groupEnd()
         })
       ])
@@ -609,11 +649,9 @@ export class DocSequence extends Tag {
     const mdFolder = join(this.saveTo, 'api_sequence_diagram')
     const mmdFolder = join(this.saveTo, 'resources', 'mmd')
     const svgFolder = join(this.saveTo, 'resources', 'svg')
-    await Promise.all([
-      mkdirp(mdFolder),
-      mkdirp(mmdFolder),
-      mkdirp(svgFolder),
-    ])
+    mkdirp.sync(mdFolder)
+    mkdirp.sync(mmdFolder)
+    mkdirp.sync(svgFolder)
     await this.printSequence(mdFolder, mmdFolder, svgFolder)
     await this.printClasses(mdFolder, mmdFolder, svgFolder)
     this.result.overview = await this._flowChart.printOverviewDetails(mdFolder, mmdFolder, svgFolder)

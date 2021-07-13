@@ -1,14 +1,17 @@
 flowchart LR
 %% Test service
 CLIENT{{"☺ ☺ ☺ <br/> Client"}}:::Client
-classDef Services fill:#74d2e7,color:#fff
-subgraph Services
-  TESTSERVICE("⌬ <br/> Test service"):::Services
+classDef TESTSERVICE fill:#0cb9c1,color:#fff;
+subgraph Other-Services
+  TESTSERVICE("⌬ <br/> Test service"):::TESTSERVICE
 end
-subgraph Services
-    LOGSERVICE("⌬ <br/> LogService"):::Services
-    REDIS("⌬ <br/> Redis"):::Services
-    RABBITMQ("⌬ <br/> RabbitMQ"):::Services
+subgraph Other-Services
+classDef LOGSERVICE fill:#74d2e7,color:#fff;
+    LOGSERVICE("⌬ <br/> LogService"):::LOGSERVICE
+classDef REDIS fill:#74d2e7,color:#fff;
+    REDIS("⌬ <br/> Redis"):::REDIS
+classDef RABBITMQ fill:#74d2e7,color:#fff;
+    RABBITMQ("⌬ <br/> RabbitMQ"):::RABBITMQ
 end
 CLIENT --> TESTSERVICE
 TESTSERVICE --> LOGSERVICE
