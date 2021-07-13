@@ -189,8 +189,9 @@ export class DocSequence extends Tag {
           if (newOne.umlType === 'sequence') {
             if (newOne.key) {
               newOne = Comment.Comments.get(newOne.key)
+            } else {
+              roots.push(newOne)
             }
-            roots.push(newOne)
           }
           first = newOne
           cur = newOne
