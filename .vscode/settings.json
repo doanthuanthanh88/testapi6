@@ -4,7 +4,7 @@
     "editor.insertSpaces": true,
     "editor.tabSize": 2,
     "yaml.schemas": {
-        "schema.json": "*.yaml"
+        "https://raw.githubusercontent.com/doanthuanthanh88/testapi6/main/schema.json": "*.yaml"
     },
     "yaml.customTags": [
         "!upload scalar",

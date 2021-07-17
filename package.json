@@ -1,6 +1,6 @@
 {
   "name": "testapi6",
-  "version": "1.2.34",
+  "version": "1.2.39",
   "description": "Test and auto export document to .md or .swagger file. Support many others tasks",
   "keywords": [
     "tool",
@@ -49,8 +49,10 @@
     "mkdirp": "^1.0.4",
     "pako": "^1.0.11",
     "prompts": "^2.4.0",
-    "puppeteer": "^10.1.0",
     "to-json-schema": "^0.2.5"
+  },
+  "optionalDependencies": {
+    "puppeteer": "^10.1.0"
   },
   "readme": "./docs/README.md",
   "homepage": "https://github.com/doanthuanthanh88",

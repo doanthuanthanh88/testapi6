@@ -35,12 +35,10 @@ export class DocSequence extends Tag {
   width: number
   /** Chart height */
   height: number
-  /** JSON config file for mermaid */
-  configFile: string
+  /** Mermaid config for mermaid */
+  config: any
   /** CSS file for the page */
   cssFile: string
-  /** JSON configuration file for puppeteer */
-  puppeteerConfigFile: string
   /** Show event details */
   showEventDetails: boolean
   /** Show request details */
@@ -49,8 +47,15 @@ export class DocSequence extends Tag {
   runOnNodeJS: boolean
   /** Concat all of teleview diagrams to summary all of services */
   combineOverviews: string[]
+  /** Puppeteer config */
+  puppeteerConfig: any
+  /** Output template */
+  template: 'gitlab.wiki' | 'github'
   /** Theme */
   theme: 'default' | 'forest' | 'dark' | 'neutral'
+  /** API documents in gitlab.wiki */
+  externalLinks: { name: string, url: string }[]
+
   _stackFrom: string
   _stackTo: string
   _nodeModulePath: string
@@ -106,14 +111,17 @@ export class DocSequence extends Tag {
     } catch {
       this._nodeModulePath = require.resolve('@mermaid-js/mermaid-cli/index.js')
     }
+    if (!this.template) this.template = 'github'
     if (this.showEventDetails === undefined) this.showEventDetails = true
     if (this.showRequestDetails === undefined) this.showRequestDetails = true
     if (!this.ext) this.ext = Object.keys(this.fileTypes).map(e => `.${e}`)
     if (!this.excludes) this.excludes = ['node_modules']
     this._stackFrom = this.stack ? '+' : ''
     this._stackTo = this.stack ? '-' : ''
-    if (!Array.isArray(attrs.src)) this.src = [attrs.src]
-    this.src = this.src.map(src => Testcase.getPathFromRoot(src))
+    if (attrs.src) {
+      if (!Array.isArray(attrs.src)) this.src = [attrs.src]
+      this.src = this.src.map(src => Testcase.getPathFromRoot(src))
+    }
     if (!this.title) this.title = 'My Service'
     if (this.saveTo) {
       this.saveTo = Testcase.getPathFromRoot(this.saveTo)
@@ -122,13 +130,15 @@ export class DocSequence extends Tag {
 
   async exec() {
     this.roots = []
-    context.group(chalk.green(this.title, this.src.join(', ')))
+    context.group(chalk.green(this.title, this.src?.join(', ') || ''))
     context.group()
     const begin = Date.now()
-    await Promise.all(this.src.map(f => this.scan(f)))
-    context.log()
-    context.log(`- Scaned ${this.totalFiles} files in ${Date.now() - begin}ms`)
-    context.log()
+    if (this.src) {
+      await Promise.all(this.src.map(f => this.scan(f)))
+      context.log()
+      context.log(`- Scaned ${this.totalFiles} files in ${Date.now() - begin}ms`)
+      context.log()
+    }
     context.groupEnd()
     await this.print()
     context.groupEnd()
@@ -184,6 +194,12 @@ export class DocSequence extends Tag {
         let newOne = new Clazz(cnt, startC, first?.umlType)
         newOne.docSequence = this
         if (!first || first.startC === newOne.startC || first.umlType !== newOne.umlType) {
+          if (!cnt) {
+            cur = first = undefined
+            this.space = 0
+            space = ''
+            continue
+          }
           newOne.init(true)
           // newOne.root = first
           if (newOne.umlType === 'sequence') {
@@ -260,19 +276,20 @@ export class DocSequence extends Tag {
   }
 
   private async genImage() {
+    if (!this._genImages.length) return
     const genImage = new Exec()
     const inputs = this._genImages.map(e => e.input).join(',')
     const outputs = this._genImages.map(e => e.output).join(',')
     const args = []
     if (this.runOnNodeJS) args.push('node')
     args.push(this._nodeModulePath, '--input', inputs, '--output', outputs)
+    if (this.puppeteerConfig) args.push('--puppeteerConfig', JSON.stringify(this.puppeteerConfig))
     if (this.theme) args.push('--theme', this.theme)
     if (this.backgroundColor) args.push('--backgroundColor', this.backgroundColor)
     if (this.width) args.push('--width', this.width.toString())
     if (this.height) args.push('--height', this.height.toString())
-    if (this.configFile) args.push('--configFile', Testcase.getPathFromRoot(this.configFile))
+    if (this.config) args.push('--config', JSON.stringify(this.config))
     if (this.cssFile) args.push('--cssFile', Testcase.getPathFromRoot(this.cssFile))
-    if (this.puppeteerConfigFile) args.push('--puppeteerConfigFile', Testcase.getPathFromRoot(this.puppeteerConfigFile))
     genImage.init({
       // shell: true,
       // detached: true,
@@ -306,34 +323,46 @@ export class DocSequence extends Tag {
             switch (key) {
               case 'Client':
                 names.forEach(({ name, uname }) => {
-                  participant.add(`participant ${uname} as ${this._flowChart.subGraph.client}${name}`)
+                  if (root.participants.includes(uname)) {
+                    participant.add(`participant ${uname} as ${this._flowChart.subGraph.client}${name}`)
+                  }
                 })
                 break
               case 'Apps':
                 names.forEach(({ name, uname }) => {
-                  participant.add(`participant ${uname} as ${this._flowChart.subGraph.service}${name}`)
+                  if (root.participants.includes(uname)) {
+                    participant.add(`participant ${uname} as ${this._flowChart.subGraph.service}${name}`)
+                  }
                 })
                 break
               case 'App':
                 names
                   .filter(({ name }) => !this._flowChart.globalObjects.get('Apps')?.find(c => new RegExp(`(/\\s?${name})|(${name}\\s?/)`, 'i').test(c.name)))
                   .forEach(({ name, uname }) => {
-                    participant.add(`participant ${uname} as ${this._flowChart.subGraph.service}${name}`)
+                    if (root.participants.includes(uname)) {
+                      participant.add(`participant ${uname} as ${this._flowChart.subGraph.service}${name}`)
+                    }
                   })
                 break
               case 'Services':
                 names.forEach(({ name, uname }) => {
-                  participant.add(`participant ${uname} as ${this._flowChart.subGraph.service}${name}`)
+                  if (root.participants.includes(uname)) {
+                    participant.add(`participant ${uname} as ${this._flowChart.subGraph.service}${name}`)
+                  }
                 })
                 break
               case 'Databases':
                 names.forEach(({ name, uname }) => {
-                  participant.add(`participant ${uname} as ${name}`)
+                  if (root.participants.includes(uname)) {
+                    participant.add(`participant ${uname} as ${name}`)
+                  }
                 })
                 break
               case 'Others':
                 names.forEach(({ name, uname }) => {
-                  participant.add(`participant ${uname} as ${name}`)
+                  if (root.participants.includes(uname)) {
+                    participant.add(`participant ${uname} as ${name}`)
+                  }
                 })
                 break
             }
@@ -403,7 +432,7 @@ export class DocSequence extends Tag {
         writer.once('finish', resolve)
         writer.once('error', reject)
         writer.write(`## Data model\r\n`)
-        writer.write(`_Show data structure and relations between them in the service_\r\n`)
+        writer.write(`_Data structure and relations between them in the service_\r\n`)
         writer.write(`![Data model](${relative(this.saveTo, fileImageSave)})\r\n`)
         writer.end()
         this.result.clazz = fileSave
@@ -444,6 +473,90 @@ export class DocSequence extends Tag {
       writer.end()
       context.groupEnd()
     })
+  }
+
+  private async printGitlabWiki(_mdFolder: string, _mmdFolder: string, _svgFolder: string) {
+    await Promise.all([
+      // Print home.md
+      new Promise((resolve, reject) => {
+        const fileSave = join(this.saveTo, 'home.md')
+        context.group(`${chalk.green('%s %s')}`, 'Home:', fileSave)
+        const writer = createWriteStream(fileSave)
+        writer.once('finish', resolve)
+        writer.once('error', reject)
+        writer.write(`# ${this.title}\r\n`)
+        writer.write('\r\n')
+        if (this.description) {
+          writer.write(`__${this.description}__\r\n`)
+          writer.write('\r\n')
+        }
+        if (this.result.teleview) {
+          writer.write(readFileSync(this.result.teleview))
+          writer.write('\r\n')
+        }
+        if (this.result.overview) {
+          writer.write(readFileSync(this.result.overview))
+          writer.write('\r\n')
+        }
+        if (this.result.clazz) {
+          writer.write(readFileSync(this.result.clazz))
+          writer.write('\r\n')
+        }
+        if (this.result.sequence) {
+          writer.write(readFileSync(this.result.sequence))
+          writer.write('\r\n')
+        }
+        writer.end()
+        context.groupEnd()
+      }),
+      // Print sidebar
+      new Promise((resolve, reject) => {
+        const fileSave = join(this.saveTo, '_sidebar.md')
+        context.group(`${chalk.green('%s %s')}`, 'Sidebar:', fileSave)
+        const writer = createWriteStream(fileSave)
+        writer.once('finish', resolve)
+        writer.once('error', reject)
+        writer.write(`### Architecture design`)
+        writer.write('\r\n')
+        if (this.result.teleview) {
+          writer.write(`- [Overview](overview)`)
+          writer.write('\r\n')
+        }
+        if (this.result.overview) {
+          writer.write(`- [Components & Actions](overview.details)`)
+          writer.write('\r\n')
+        }
+        if (this.result.clazz) {
+          writer.write(`- [Data model](data_model)`)
+          writer.write('\r\n')
+        }
+        if (this.externalLinks && this.externalLinks.length) {
+          this.externalLinks.forEach(link => {
+            if (link && typeof link === 'object') {
+              const { name, url } = link
+              writer.write(`- [${name}](${url})`)
+              writer.write('\r\n')
+            } else {
+              writer.write(link || '---')
+              writer.write('\r\n')
+            }
+          })
+        }
+
+        if (this.result.sequence) {
+          writer.write(`### Sequence diagram`)
+          writer.write('\r\n')
+          const cnt = readFileSync(this.result.sequence).toString()
+          writer.write(cnt.split('\n')
+            .filter(e => /^\d+\. .+/.test(e))
+            .map(e => e.replace(/\.md\)(\r|\n)*$/m, ')'))
+            .join('\r\n'))
+          writer.write('\r\n')
+        }
+        writer.end()
+        context.groupEnd()
+      })
+    ])
   }
 
   async printAllOfTeleviews(mmdFolder: string, svgFolder: string) {
@@ -647,20 +760,26 @@ export class DocSequence extends Tag {
 
   async print() {
     if (!this.saveTo) return
-    const mdFolder = join(this.saveTo, 'api_sequence_diagram')
     const mmdFolder = join(this.saveTo, 'resources', 'mmd')
     const svgFolder = join(this.saveTo, 'resources', 'svg')
-    mkdirp.sync(mdFolder)
     mkdirp.sync(mmdFolder)
     mkdirp.sync(svgFolder)
-    await this.printSequence(mdFolder, mmdFolder, svgFolder)
-    await this.printClasses(mdFolder, mmdFolder, svgFolder)
-    this.result.overview = await this._flowChart.printOverviewDetails(mdFolder, mmdFolder, svgFolder)
-    this.result.teleview = await this._flowChart.printOverview(mdFolder, mmdFolder, svgFolder)
-    await Promise.all([
-      this.printMarkdown(mdFolder, mmdFolder, svgFolder),
-      this.printAllOfTeleviews(mmdFolder, svgFolder),
-    ])
+    if (this.src?.length && this.totalFiles) {
+      const mdFolder = join(this.saveTo, 'api_sequence_diagram')
+      mkdirp.sync(mdFolder)
+      await this.printSequence(mdFolder, mmdFolder, svgFolder)
+      await this.printClasses(mdFolder, mmdFolder, svgFolder)
+      this.result.overview = await this._flowChart.printOverviewDetails(mdFolder, mmdFolder, svgFolder)
+      this.result.teleview = await this._flowChart.printOverview(mdFolder, mmdFolder, svgFolder)
+      if (this.template === 'gitlab.wiki') {
+        await this.printGitlabWiki(mdFolder, mmdFolder, svgFolder)
+      } else {
+        await this.printMarkdown(mdFolder, mmdFolder, svgFolder)
+      }
+    }
+    if (this.combineOverviews?.length) {
+      await this.printAllOfTeleviews(mmdFolder, svgFolder)
+    }
     await this.genImage()
   }
 

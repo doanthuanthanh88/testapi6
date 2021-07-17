@@ -3,6 +3,7 @@ import { context } from "@/Context"
 import chalk from "chalk"
 import { DocSequence } from "."
 import { Actor } from "./Actor"
+import { Testcase } from '@/components/Testcase'
 
 export class Comment {
   static Comments = new Map<string, Comment>()
@@ -16,13 +17,23 @@ export class Comment {
   refs: boolean
   cmd: string
   type: string
+  extends: string
   _startC: number
   parent: Comment
   relations: string[]
   umlType: 'sequence' | 'class'
+  participants: ArrayUnique
 
   private _client: string
   private _ctx: string
+
+  get root() {
+    let root: Comment = this
+    while (root.parent) {
+      root = root.parent as Comment
+    }
+    return root
+  }
 
   set client(client: string) {
     this._client = client
@@ -95,6 +106,7 @@ export class Comment {
     this.relations = []
     this.startC = startC
     this.childs = []
+    this.participants = new ArrayUnique()
     let m = this.name.match(/^\[(.*?)\]\s*(\{([^\}]+)\})?(\{([^\}]+)\})?(.*)/)
     if (m) {
       // template and root sequence diagram
@@ -112,7 +124,9 @@ export class Comment {
         // Class diagram
         const className = m[1].trim()
         const des = m[2].trim()
-        this.key = className
+        const [key, ext] = className.split('~')
+        this.key = key
+        this.extends = ext
         this.name = des
         this.umlType = 'class'
         Comment.Classes.push(this)
@@ -157,7 +171,7 @@ export class Comment {
           Comment.Comments.set(this.key, gr)
         } else {
           this.title = this.name
-          this.outputName = this.name.replace(/[^A-Za-z0-9_\-\.]/g, '_')
+          this.outputName = Testcase.toFileName(this.name)
           if (!this.ctx) {
             // this.ctx = 'App'
             this.ctx = this.docSequence.appName
@@ -190,9 +204,11 @@ export class Comment {
       if (m) {
         if (m[2] || m[3]) {
           m[5] = Actor.getActor(this.replaceThisAndTarget(m[5])).uname
+          this.root.participants.add(m[5])
         } else if (m[4] && m[7]) {
           m[5] = Actor.getActor(this.replaceThisAndTarget(m[5])).uname
           m[7] = Actor.getActor(this.replaceThisAndTarget(m[7])).uname
+          this.root.participants.add(m[5], m[7])
         }
       }
       txt = `NOTE ${m[1].toUpperCase()} ${m[5]}${m[7] ? `, ${m[7]}` : ''}${m[8]}`
@@ -233,6 +249,7 @@ export class Comment {
             })
           })
         }
+        this.root.participants.add(actor1.uname, actor2.uname)
 
         m[1] = dir > 0 ? `${actor1.uname}` : `${actor2.uname}`
         m[3] = dir < 0 ? `${actor1.uname}` : `${actor2.uname}`
@@ -386,54 +403,66 @@ export class Comment {
   printClass(writer, _i: number, tab = '  ') {
     this.prepare()
     const mtab = tab.replace(/\W/g, ' ')
-    if (!this.type) {
-      if (!this.docSequence.slient) context.log(chalk.yellow(`${tab}class ${chalk.bold(this.key)}`))
-      writer.write(`${mtab}class ${this.key} {\r\n`)
-      writer.write(`${mtab}${this.name ? `<<${this.name}>>` : ''}\r\n`)
-    } else {
-      // const m = this.type.match(/([^\[]+)((\[\])|(\{\}))?/)
-      const m = this.type.match(/([^\[]+)(\[\])?/)
-      if (!this.docSequence.slient) context.log(`${tab}${chalk.cyan(this.key)} ${chalk.green('<' + this.type + '>')} ${chalk.gray(this.name)}`)
-      if (m) {
-        let clazzType = m[2]?.trim() || ''
-        let relation = ''
-        const [clazz, prop] = m[1].split('.')
-        const typeModel = Comment.Classes.find(k => k.key === clazz)
-        if (typeModel) {
-          const typeProp = prop ? typeModel.childs.find(k => k.key === prop) : null
-          if (!typeProp) {
-            this.type = typeModel.type
-          } else {
-            this.type = typeProp.type
-          }
-          let isRefType = false
-          if (!this.type) {
-            isRefType = true
-            this.type = typeModel.key
-            relation = `..`
-          }
-          this.type += clazzType
-          if (clazzType === '[]') {
-            if (!relation) relation = `"${this.key}" --* "${prop}"`
-            this.parent.relations.push(`${this.parent.key} ${relation} ${clazz}: ${isRefType ? `${this.key}` : '1..n'}`)
-          } else {
-            if (!relation) relation = `"${this.key}" --|> "${prop}"`
-            this.parent.relations.push(`${this.parent.key} ${relation} ${clazz}: ${isRefType ? `${this.key}` : '1..1'}`)
+    const { EMPTY } = require('./SeqTag')
+    if (!(this instanceof EMPTY)) {
+      if (!this.type) {
+        if (!this.docSequence.slient) context.log(chalk.yellow(`${tab}class ${chalk.bold(this.key)}`))
+        writer.write(`${mtab}class ${this.key} {\r\n`)
+        this.name?.split(':')
+          .map(e => e.trim())
+          .filter(e => e)
+          .reverse()
+          .forEach(key => {
+            writer.write(`<<${key}>>\r\n`)
+          })
+        if (this.extends) {
+          this.relations.push(`${this.key} --> ${this.extends}: Inheritance`)
+        }
+      } else {
+        // const m = this.type.match(/([^\[]+)((\[\])|(\{\}))?/)
+        const m = this.type.match(/([^\[]+)(\[\])?/)
+        if (!this.docSequence.slient) context.log(`${tab}${chalk.cyan(this.key)} ${chalk.green('<' + this.type + '>')} ${chalk.gray(this.name)}`)
+        if (m) {
+          let clazzType = m[2]?.trim() || ''
+          let relation = ''
+          const [clazz, prop] = m[1].split('.')
+          const typeModel = Comment.Classes.find(k => k.key === clazz)
+          if (typeModel) {
+            const typeProp = prop ? typeModel.childs.find(k => k.key === prop) : null
+            if (!typeProp) {
+              this.type = typeModel.type
+            } else {
+              this.type = typeProp.type
+            }
+            let isRefType = false
+            if (!this.type) {
+              isRefType = true
+              this.type = typeModel.key
+              relation = `..`
+            }
+            this.type += clazzType
+            if (clazzType === '[]') {
+              if (!relation) relation = `"${this.key}" --* "${prop}"`
+              this.parent.relations.push(`${this.parent.key} ${relation} ${clazz}: ${isRefType ? `${this.key}` : `${this.parent.relations.length + 1}`}`)
+            } else {
+              if (!relation) relation = `"${this.key}" --|> "${prop}"`
+              this.parent.relations.push(`${this.parent.key} ${relation} ${clazz}: ${isRefType ? `${this.key}` : `${this.parent.relations.length + 1}`}`)
+            }
           }
         }
+        let preKey = ''
+        let parent = this.parent
+        while (parent && parent.type) {
+          preKey = ' ..' + ' ' + preKey
+          parent = parent.parent
+        }
+        writer.write(`${mtab}+${preKey}${this.key} ~${this.type}~${this.name ? (' : ' + this.name.replace(/\W/g, '_')) : ''}\r\n`)
       }
-      let preKey = ''
-      let parent = this.parent
-      while (parent && parent.type) {
-        preKey = ' ..' + ' ' + preKey
-        parent = parent.parent
-      }
-      writer.write(`${mtab}+${preKey}${this.key} ~${this.type}~ : ${this.name?.replace(/\W/g, '_') || this.key}\r\n`)
     }
     this.childs.forEach((child, i) => {
       child.printClass(writer, i, tab + '  ')
     })
-    if (!this.type) {
+    if (!(this instanceof EMPTY) && !this.type) {
       writer.write(`${mtab}}\r\n`)
       writer.write(`${this.relations.join('\r\n')}\r\n`)
     }

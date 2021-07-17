@@ -178,7 +178,6 @@
           "description": "Extract log from comment in code",
           "type": "object",
           "required": [
-            "src",
             "title"
           ],
           "allOf": [
@@ -254,17 +253,17 @@
                   "type": "number",
                   "description": "Chart height"
                 },
-                "configFile": {
-                  "type": "string",
-                  "description": "JSON config file for mermaid"
+                "config": {
+                  "type": "object",
+                  "description": "Mermaid configuration"
                 },
                 "cssFile": {
                   "type": "string",
                   "description": "CSS file for the page"
                 },
-                "puppeteerConfigFile": {
+                "puppeteerConfig": {
                   "type": "string",
-                  "description": "JSON configuration file for puppeteer"
+                  "description": "Puppeteer configuration"
                 },
                 "autoNumber": {
                   "type": "boolean",
@@ -308,6 +307,30 @@
                       "node_modules"
                     ]
                   }
+                },
+                "externalLinks": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "url": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "description": "Extra links. Example document api"
+                },
+                "template": {
+                  "type": "string",
+                  "description": "Auto generate folders, files to specific templates",
+                  "enum": [
+                    "gitlab.wiki",
+                    "github"
+                  ],
+                  "default": "github"
                 },
                 "ext": {
                   "type": "array",

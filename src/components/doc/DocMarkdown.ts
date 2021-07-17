@@ -1,7 +1,12 @@
 import { Api } from '@/components/api/Api';
 import { OutputFile } from '@/components/output/OutputFile';
 import { Testcase } from '@/components/Testcase';
+import { writeFileSync } from 'fs';
+import { dump } from 'js-yaml';
 import { merge, pick, uniqBy } from 'lodash';
+import mkdirp from 'mkdirp';
+import { relative } from 'path';
+import { dirname, join } from 'path';
 import { stringify } from 'querystring';
 import { isGotData } from './DocUtils';
 
@@ -38,20 +43,21 @@ export class DocMarkdown extends OutputFile {
     const { title, description, version = '', developer = '', servers } = this.tc
     this.raw = merge({ title, description, version, developer, servers }, this.raw)
     menu.push(`# ${this.raw.title || this.tc.title || ''}`)
-    menu.push(`_${this.raw.description || this.tc.description || ''}_`)
-    menu.push('')
+    const des = this.raw.description || this.tc.description
+    if (des) {
+      menu.push('')
+      menu.push(`_${des}_`)
+    }
     menu.push('')
     menu.push(`> Version \`${this.raw.version || this.tc.version || ''}\``)
     if (developer) {
       menu.push('')
       menu.push(`> [**Contact ${developer.split('@')[0]}**](mailto:${developer})`)
-      menu.push('')
     }
     menu.push('')
     menu.push(`> Last updated: \`${new Date().toString()}\``)
-    menu.push('')
-    menu.push('## APIs')
-    const details = ['## Details']
+    menu.push('## List APIs')
+    const details = ['', '## Details']
     const apis = uniqBy(Testcase.APIs.filter(api => api.docs && api.title), e => `${e.method.toLowerCase()} ${e.url}`)
     const tags = [] as { name: string, items: Api[] }[]
     apis.forEach(a => {
@@ -74,32 +80,62 @@ export class DocMarkdown extends OutputFile {
     }
 
     const menus = []
-    menus.push(`|No.  | API Description | Actions |`)
-    menus.push(`|---: | ---- | ---- |`)
+    menus.push(`|No.  | API Description | Actions | TestAPI6 |`)
+    menus.push(`|---: | ---- | ---- | ---- |`)
+
+    const saveFolder = dirname(this.saveTo)
+    const yamlFolder = join(saveFolder, 'yaml')
+    mkdirp.sync(yamlFolder)
+    const defaultBaseURL = Object.keys(this.tc.servers || {})[0]
 
     for (let tag of tags) {
       const testItems = [] as any
       const idx = menus.length
       let len = 0
+
       tag.items.forEach((tag, i) => {
-        testItems.push(tag.toTestObject())
+        const yamlFile = join(yamlFolder, Testcase.toFileName(tag.title) + '.yaml')
+        writeFileSync(yamlFile, dump([
+          {
+            Vars: Object.keys(tag.tc.servers || {}).reduce((sum, e) => {
+              sum[e] = tag.tc.servers[e]
+              return sum
+            }, {})
+          },
+          {
+            [Api.getMethodTag(tag.method)]: JSON.parse(JSON.stringify({
+              title: tag.title,
+              debug: 'details',
+              baseURL: defaultBaseURL ? `\$\{${defaultBaseURL}\}` : tag.baseURL,
+              url: tag.url,
+              params: tag.params && Object.keys(tag.params).length ? tag.params : undefined,
+              headers: tag.headers && Object.keys(tag.headers).length ? tag.headers : undefined,
+              query: tag.query && Object.keys(tag.query).length ? tag.query : undefined,
+              body: tag.body
+            }))
+          }
+        ]))
+
+        const testObj = tag.toTestObject()
+        testItems.push(testObj)
         len++
-        menus.push(`|${i + 1}.| [**${tag.title}**](#${tag.index}) |` + `[Try now](${tag.toTestLink()}) |`)
+        menus.push(`|${i + 1}.| [**${tag.title}**](#${tag.index}) |` + `[Try now](${tag.toTestLink()}) | [YAML](${relative(saveFolder, yamlFile)}) |`)
       })
       menus.splice(idx, 0, `| <a name='ANCHOR_-1'></a> | __${tag.name}__ - _${len} items_ |` + `[Import](${Api.toImportLink(testItems)}) |`)
     }
     menu.push('')
 
+
     apis.forEach((tag) => {
-      details.push(`### <a name='${tag.index}'></a>[**${tag.title}**](${tag.toTestLink()})`)
+      details.push(`#### <a name='${tag.index}'></a>[**${tag.title}**](${tag.toTestLink()})`)
       if (tag.description) {
         details.push(`_${tag.description}_`)
       }
       details.push('')
-      details.push(`#### ${tag.response?.status} \`${tag.method}\` ${tag.url.replace(/\$?{([^}]+)}/g, '*`{$1}`*')}${tag.hasQuery ? `\?*${stringify(tag.query)}*` : ''}`)
+      details.push(`${tag.response?.status} \`${tag.method}\` ${tag.url.replace(/\$?{([^}]+)}/g, '*`{$1}`*')}${tag.hasQuery ? `\?*${stringify(tag.query)}*` : ''}`)
       details.push('')
 
-      details.push('#### **Request**')
+      details.push('**Request**')
       // Request headers
       const _reqHeaders = tag.headers || {}
       const reqHeaders = this.headers?.length ? pick(_reqHeaders, this.headers) : _reqHeaders
@@ -123,7 +159,8 @@ export class DocMarkdown extends OutputFile {
       }
 
       if (tag.response) {
-        details.push('#### **Response**')
+        details.push('')
+        details.push('**Response**')
         // Response headers
         const _resHeaders = tag.response?.headers || {}
         const resHeaders = this.responseHeaders?.length ? pick(_resHeaders, this.responseHeaders) : _resHeaders
@@ -155,6 +192,7 @@ export class DocMarkdown extends OutputFile {
     menu = menu.concat(menus)
 
     if (servers) {
+      menu.push('')
       menu.push('## Servers')
       menu = menu.concat(Object.keys(servers).map(des => `- **${servers[des]}** - _${des}_`))
     }

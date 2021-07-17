@@ -253,6 +253,10 @@ export class Api extends Tag {
   _benchmark?: Wrk
   isRunBenchmark: boolean
 
+  static getMethodTag(method: string) {
+    return method[0].toUpperCase() + method.substr(1).toLowerCase()
+  }
+
   init(attrs: Api) {
     super.init(attrs)
     if (this.curl) {

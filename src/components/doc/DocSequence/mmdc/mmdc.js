@@ -28,11 +28,23 @@ const convertToValidXML = html => {
   return xml;
 };
 
-commander.version('1.0').option('-t, --theme [theme]', 'Theme of the chart, could be default, forest, dark or neutral. Optional. Default: default', /^default|forest|dark|neutral$/, 'default').option('-w, --width [width]', 'Width of the page. Optional. Default: 800', /^\d+$/, '800').option('-H, --height [height]', 'Height of the page. Optional. Default: 600', /^\d+$/, '600').option('-i, --input <input>', 'Input mermaid file. Required.').option('-o, --output [output]', 'Output file. It should be either svg, png or pdf. Optional. Default: input + ".svg"').option('-b, --backgroundColor [backgroundColor]', 'Background color. Example: transparent, red, \'#F0F0F0\'. Optional. Default: white').option('-c, --configFile [configFile]', 'JSON configuration file for mermaid. Optional').option('-C, --cssFile [cssFile]', 'CSS file for the page. Optional').option('-s, --scale [scale]', 'Puppeteer scale factor, default 1. Optional').option('-f, --pdfFit [pdfFit]', 'Scale PDF to fit chart').option('-p --puppeteerConfigFile [puppeteerConfigFile]', 'JSON configuration file for puppeteer. Optional').parse(process.argv);
+commander.version('1.0')
+  .option('-t, --theme [theme]', 'Theme of the chart, could be default, forest, dark or neutral. Optional. Default: default', /^default|forest|dark|neutral$/, 'default')
+  .option('-w, --width [width]', 'Width of the page. Optional. Default: 800', /^\d+$/, '800')
+  .option('-H, --height [height]', 'Height of the page. Optional. Default: 600', /^\d+$/, '600')
+  .option('-i, --input <input>', 'Input mermaid file. Required.')
+  .option('-o, --output [output]', 'Output file. It should be either svg, png or pdf. Optional. Default: input + ".svg"')
+  .option('-b, --backgroundColor [backgroundColor]', 'Background color. Example: transparent, red, \'#F0F0F0\'. Optional. Default: white')
+  .option('-c, --config [config]', 'JSON configuration for mermaid. Optional')
+  .option('-C, --cssFile [cssFile]', 'CSS file for the page. Optional')
+  .option('-s, --scale [scale]', 'Puppeteer scale factor, default 1. Optional')
+  .option('-f, --pdfFit [pdfFit]', 'Scale PDF to fit chart')
+  .option('--puppeteerConfig [puppeteerConfig]', 'JSON configuration for puppeteer. Optional')
+  .parse(process.argv);
 
 const options = commander.opts();
 
-let { theme, width, height, input, output, backgroundColor, configFile, cssFile, puppeteerConfigFile, scale, pdfFit } = options;
+let { theme, width, height, input, output, backgroundColor, config, cssFile, scale, pdfFit, puppeteerConfig } = options;
 
 // check input file
 if (!(input || inputPipedFromStdin())) {
@@ -89,17 +101,17 @@ let mermaidConfig = {
     rightAngles: true
   }
 };
-if (configFile) {
-  checkConfigFile(configFile);
-  mermaidConfig = Object.assign(mermaidConfig, JSON.parse(fs.readFileSync(configFile, 'utf-8')));
+if (config) {
+  mermaidConfig = Object.assign(mermaidConfig, config);
 }
-let puppeteerConfig = {
-  // headless: false,
-  // args: [`--window-size=${width},${height}`]
-};
-if (puppeteerConfigFile) {
-  checkConfigFile(puppeteerConfigFile);
-  puppeteerConfig = JSON.parse(fs.readFileSync(puppeteerConfigFile, 'utf-8'));
+// let puppeteerConfig = {
+//   // headless: false,
+//   // args: [`--window-size=${width},${height}`]
+// };
+if (puppeteerConfig) {
+  puppeteerConfig = JSON.parse(puppeteerConfig)
+} else {
+  puppeteerConfig = {}
 }
 
 // check cssFile

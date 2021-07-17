@@ -47,6 +47,10 @@ export class Testcase {
     return str.startsWith('/') ? resolve(str) : join(Testcase.RootDir, str)
   }
 
+  static toFileName(name: string) {
+    return name.replace(/[^A-Za-z0-9_\-\.]/g, '_')
+  }
+
   /** Result after run all of test */
   result = {
     /** APIs passed */

@@ -1,7 +1,7 @@
 classDiagram
   class User {
-  <<User model in Database>>
-    +id ~number~ : id
+<<User model in Database>>
+    +id ~number~
     +name ~string~ : user_name
     +birth ~object~ : birthday
       + .. day ~number~ : day_of_month
@@ -12,10 +12,10 @@ classDiagram
   }
 
   class Room {
-  <<Room model>>
+<<Room model>>
     +name ~string~ : Room_name
     +user_ids ~number[]~ : List_user_in_room
     +creator_id ~number~ : First_user_create_the_room
   }
-Room "user_ids" --* "id" User: 1..n
-Room "creator_id" --|> "id" User: 1..1
+Room "user_ids" --* "id" User: 1
+Room "creator_id" --|> "id" User: 2
