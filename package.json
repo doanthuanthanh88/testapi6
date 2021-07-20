@@ -1,6 +1,6 @@
 {
   "name": "testapi6",
-  "version": "1.2.40",
+  "version": "1.2.41",
   "description": "Test and auto export document to .md or .swagger file. Support many others tasks",
   "keywords": [
     "tool",
@@ -16,7 +16,7 @@
   ],
   "main": "dist/index.js",
   "bin": {
-    "testapi6": "./bin/index.js"
+    "testapi6": "./bin/testapi6.js"
   },
   "scripts": {
     "pub": "npm publish",
