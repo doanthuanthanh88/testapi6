@@ -1,17 +1,18 @@
 {
   "name": "testapi6",
-  "version": "1.2.39",
+  "version": "1.2.40",
   "description": "Test and auto export document to .md or .swagger file. Support many others tasks",
   "keywords": [
     "tool",
     "api",
     "scenario",
     "test",
-    "benchmark",
-    "serve",
+    "rest",
     "debug",
     "development",
-    "dev"
+    "dev",
+    "doc",
+    "uml"
   ],
   "main": "dist/index.js",
   "bin": {
@@ -63,10 +64,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git@github.com:doanthuanthanh88/testapi6.git"
+    "url": "https://github.com/doanthuanthanh88/testapi6"
   },
   "devDependencies": {
     "@types/chai": "^4.2.15",
+    "@types/commander": "^2.12.2",
     "@types/js-yaml": "^3.12.1",
     "@types/lodash": "^4.14.122",
     "@types/node": "^14.14.6",
