@@ -1,11 +1,12 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, CancelTokenSource } from 'axios'
 import chalk from 'chalk'
-import { merge } from 'lodash'
+import { merge, mergeWith } from 'lodash'
 import { parse, stringify } from 'querystring'
 import { URLSearchParams } from "url"
 import { context } from '../../Context'
 import { IWrk, Wrk } from "../benchmark/Wrk"
 import { Validate } from "../data_handler/Validate"
+import { getDocType } from '../doc/DocUtils'
 import { Operation } from "../doc/OpenAPI3"
 import { Tag } from "../Tag"
 import { Testcase } from "../Testcase"
@@ -14,7 +15,7 @@ import { CURLParser } from './CUrlParser'
 context
   .on('log:api:begin', (api: Api) => {
     if (!api.slient && !api.depends) {
-      context.log(`${chalk.green('%s')} ${chalk.green('%s')}\t${chalk.yellow('%s')}${chalk.gray.underline('%s %s')}`, api.icon, api.title, api.docs ? '★ ' : '', api.method.toString(), api._axiosData.fullUrlQuery)
+      context.log(`${chalk.green('%s')} ${chalk.green('%s')}\t${chalk.yellow('%s')}${chalk.gray.underline('%s %s')}`, api.icon, api.title, api.docs ? '★ ' : '', api.method.toString(), api._axiosData.fullUrlQuery(false))
     }
   })
   .on('log:api:validate:done', (_api: Api) => {
@@ -62,81 +63,86 @@ export enum Method {
   PATCH = 'PATCH',
 }
 
-export class Query {
-  constructor(public name: string, public value: any, public required: boolean) { }
+// export class Query {
+//   constructor(public name: string, public value: any, public required: boolean) { }
 
-  static ToValue(qs: { [key: string]: Query }) {
-    return Object.keys(qs).reduce((sum, e) => {
-      sum[e] = qs[e].value
-      return sum
-    }, {})
-  }
-}
+//   static ToValue(qs: { [key: string]: Query }) {
+//     return Object.keys(qs).reduce((sum, e) => {
+//       sum[e] = qs[e].value
+//       return sum
+//     }, {})
+//   }
+// }
 
-export class URL {
-  private static PT = /([^\$]){([^}]+)}/g
+// export class URL {
+//   private static PT = /([^\$]){([^}]+)}/g
 
-  constructor(public $: Api, public url: string, public params = {} as { [key: string]: Query }, public query = {} as { [key: string]: Query }) {
-    for (const _k in this.params) {
-      const vl = this.params[_k]
-      let required = _k.includes('*')
-      const k = _k.replace(/\*/g, '')
-      this.params[k] = new Query(k, vl, required)
-      if (required) delete this.params[_k]
-    }
+//   constructor(public $: Api, public url: string, public params = {} as { [key: string]: Query }, public query = {} as { [key: string]: Query }) {
+//     for (const _k in this.params) {
+//       const vl = this.params[_k]
+//       let required = _k.includes('*')
+//       const k = _k.replace(/\*/g, '')
+//       this.params[k] = new Query(k, vl, required)
+//       if (required) delete this.params[_k]
+//     }
 
-    this.url = url.replace(/\*/g, '').replace(URL.PT, `$1$\{$params.$2\}`)
-  }
+//     this.url = url.replace(/\*/g, '').replace(URL.PT, `$1$\{$params.$2\}`)
+//   }
 
-  async prepare() {
-    this.url = this.$.replaceVars(this.url, {
-      $params: this.toParams()
-    }, undefined)
-    this.url = this.$.replaceVars(this.url, {
-      ...context.Vars,
-      Vars: context.Vars,
-      $: this.$,
-      $$: this.$.$$,
-      Utils: context.Utils,
-      Result: context.Result
-    }, undefined)
+//   async prepare() {
+//     this.url = this.$.replaceVars(this.url, {
+//       $params: this.toParams()
+//     }, undefined)
+//     this.url = this.$.replaceVars(this.url, {
+//       ...context.Vars,
+//       Vars: context.Vars,
+//       $: this.$,
+//       $$: this.$.$$,
+//       Utils: context.Utils,
+//       Result: context.Result
+//     }, undefined)
 
-    const [_url, queries = ''] = this.url.split('?')
-    this.url = _url
+//     const [_url, queries = ''] = this.url.split('?')
+//     this.url = _url
 
-    const q = Object.assign(parse(queries), this.query)
-    for (const _k in q) {
-      const vl = q[_k]
-      const required = _k.includes('*')
-      const k = _k.replace(/\*/g, '')
-      this.query[k] = new Query(k, vl, required)
-      if (required) delete this.query[_k]
-    }
-  }
+//     const q = Object.assign(parse(queries), this.query)
+//     for (const _k in q) {
+//       const vl = q[_k]
+//       const required = _k.includes('*')
+//       const k = _k.replace(/\*/g, '')
+//       this.query[k] = new Query(k, vl, required)
+//       if (required) delete this.query[_k]
+//     }
+//   }
 
-  toQuery() {
-    const rs = Object.keys(this.query || {}).reduce((sum, k) => {
-      sum[k] = this.query[k].value
-      return sum
-    }, {})
-    return rs
-  }
+//   toQuery() {
+//     const rs = Object.keys(this.query || {}).reduce((sum, k) => {
+//       sum[k] = this.query[k].value
+//       return sum
+//     }, {})
+//     return rs
+//   }
 
-  toParams() {
-    const rs = Object.keys(this.params || {}).reduce((sum, k) => {
-      sum[k] = this.params[k].value
-      return sum
-    }, {})
-    return rs
-  }
+//   toParams() {
+//     const rs = Object.keys(this.params || {}).reduce((sum, k) => {
+//       sum[k] = this.params[k].value
+//       return sum
+//     }, {})
+//     return rs
+//   }
 
-  getUrlJoinQuery() {
-    if (Object.keys(this.query || {}).length) {
-      return `${this.url}?${stringify(this.$.query as any)}`
-    }
-    return this.url
-  }
-}
+//   getQueryString(isEncode = true) {
+//     const qr = stringify(this.$.query as any, undefined, undefined, isEncode ? undefined : { encodeURIComponent: str => str })
+//     return qr ? `?${qr}` : ''
+//   }
+
+//   getUrlJoinQuery() {
+//     if (Object.keys(this.query || {}).length) {
+//       return `${this.url}${this.getQueryString()}`
+//     }
+//     return this.url
+//   }
+// }
 
 /**
  * Http request
@@ -158,6 +164,19 @@ export class URL {
  */
 export class Api extends Tag {
   static Index = 0
+  static ignores = [
+    ...Tag.ignores,
+    'iconResponse',
+    'index',
+    'var',
+    'time',
+    '->',
+    '<-',
+    'depends',
+    'response',
+    'validate',
+    'docs',
+  ]
   icon = '→'
   iconResponse = '↳'
   index = 0
@@ -214,16 +233,25 @@ export class Api extends Tag {
   }
   /** Request headers */
   headers: any
-  $url: URL
+  // $url: URL
   /** Validate after request done */
   validate: Validate[]
 
   /** Generate to document */
   docs?: {
     /** Only doc these request headers */
-    headers?: string[]
+    allowHeaders?: string[]
     /** Only doc these response headers */
-    responseHeaders?: string[]
+    allowResponseHeaders?: string[]
+    /** Group API document */
+    tags?: string[]
+    query?: any
+    params?: any
+    headers?: any
+    responseHeaders?: any
+    deprecated?: boolean
+    body?: any
+    data?: any
     /** Config for markdown document */
     md?: {
       /** Group API document */
@@ -244,8 +272,9 @@ export class Api extends Tag {
   }
 
   _axiosData: AxiosRequestConfig & {
-    readonly fullUrlQuery: string
-    readonly fullUrl: string
+    fullPathQuery(isEncode: boolean): string
+    fullUrlQuery(isEncode: boolean): string
+    fullUrl: string
     readonly contentType: string
   }
   _axios: AxiosInstance
@@ -281,13 +310,72 @@ export class Api extends Tag {
   }
 
   async prepare() {
-    super.prepare(undefined, ['validate', 'var', '_benchmark', 'docs', '_controller', '_axios'])
+    this._axiosData = {} as any
+    if (this.docs) {
+      this.docs = this.replaceVars(this.docs, this.getReplaceVarsContext())
+    }
+    // Merge and handle query string
+    const [url, queries = ''] = this.url.split('?')
+    this._axiosData.url = url
+
+    this.query = Object.assign(parse(queries), this.query)
+    if (this.query) {
+      const docs = getDocType(this.query)
+      if (this.docs) {
+        if (!this.docs) this.docs = {}
+        if (!this.docs.query) this.docs.query = {}
+        mergeWith(this.docs.query, docs, (target, src) => {
+          if (Array.isArray(target)) {
+            return Array.from(new Set([...target, ...src]))
+          }
+        })
+      }
+    }
+
+    if (this.params) {
+      for (const _k in this.params) {
+        const vl = this.params[_k]
+        const k = _k.replace(/\*/g, '')
+        this.params[k] = vl
+      }
+      this._axiosData.url = this._axiosData.url
+        .replace(/\*/g, '')
+        .replace(/([^\$]){([^}]+)}/g, `$1$\{$.params.$2\}`)
+      const varContext = this.getReplaceVarsContext()
+      this._axiosData = this.replaceVars(this._axiosData, varContext)
+
+      const docs = getDocType(this.params)
+      if (this.docs) {
+        if (!this.docs) this.docs = {}
+        if (!this.docs.params) this.docs.params = {}
+        mergeWith(this.docs.params, docs, (target, src) => {
+          if (Array.isArray(target)) {
+            return Array.from(new Set([...target, ...src]))
+          }
+        })
+      }
+    }
+
+    if (this.body) {
+      const docs = getDocType(this.body)
+      if (this.docs) {
+        if (!this.docs) this.docs = {}
+        if (!this.docs.body) this.docs.body = {}
+        mergeWith(this.docs.body, docs, (target, src) => {
+          if (Array.isArray(target)) {
+            return Array.from(new Set([...target, ...src]))
+          }
+        })
+      }
+    }
+
+    super.prepare(undefined, Api.ignores)
     const self = this
-    this.$url = new URL(this, this.url, this.params, this.query)
-    await this.$url.prepare()
+
+    // this.$url = new URL(this, this.url, cloneDeep(this.params), cloneDeep(this.query))
+    // await this.$url.prepare()
     // this.url = this.$url.url
-    this.query = this.$url.toQuery()
-    this.params = this.$url.toParams()
+
     if (this.validate) {
       this.validate = this.validate.filter(v => v).map(v => {
         let vl = new Validate()
@@ -322,21 +410,24 @@ export class Api extends Tag {
       validateStatus: status => !!status
     })
     this._axiosData = {
+      url: this._axiosData.url,
       method: this.method,
       baseURL: this.baseURL,
-      url: this.$url.url,
       get fullUrl() {
-        return `${self.baseURL}${self.$url.url}`
+        return `${self.baseURL}${this.url}`
       },
-      get fullUrlQuery() {
-        return `${self.baseURL}${self.$url.getUrlJoinQuery()}`
+      fullPathQuery(isEncode: boolean) {
+        return `${this.url}${stringify(self.query as any, undefined, undefined, isEncode ? undefined : { encodeURIComponent: str => str })}`
+      },
+      fullUrlQuery(isEncode: boolean) {
+        return `${self.baseURL}${this.fullPathQuery(isEncode)}`
       },
       params: this.query,
       headers: merge({ 'content-type': 'application/json' }, this.headers),
       get contentType() {
         return this.headers['content-type'] || this.headers['Content-Type']
       }
-    } as any
+    }
     if (this.isSupportBody) {
       if (this.body) {
         if (this._axiosData.headers['content-type']?.includes('application/x-www-form-urlencoded')) {
@@ -453,9 +544,6 @@ export class Api extends Tag {
         }
       }
       this.response.ok = this.response.status >= 200 && this.response.status < 300
-      if (this.docs) {
-        this.docs = this.replaceVars(this.docs, this.getReplaceVarsContext())
-      }
     } catch (error: Error & any) {
       const { status, statusText, config = {}, response = {} } = error
       const { url, method, headers, params, baseURL, timeout, withCredentials, fullUrl, contentType, data } = config
@@ -529,6 +617,20 @@ export class Api extends Tag {
     return item
   }
 
+  toTestAPI6() {
+    const defaultBaseURL = Object.keys(this.tc.servers || {})[0]
+    return JSON.parse(JSON.stringify({
+      title: this.title,
+      debug: 'details',
+      baseURL: defaultBaseURL ? `\$\{${defaultBaseURL}\}` : this.baseURL,
+      url: this.url,
+      params: this.params && Object.keys(this.params).length ? this.params : undefined,
+      headers: this.headers && Object.keys(this.headers).length ? this.headers : undefined,
+      query: this.query && Object.keys(this.query).length ? this.query : undefined,
+      body: this.body
+    }))
+  }
+
   toCUrl() {
     const { CurlGenerator } = require('curl-generator')
     return CurlGenerator({
@@ -538,7 +640,7 @@ export class Api extends Tag {
         return sum
       }, {}),
       body: this.body,
-      url: this._axiosData.fullUrlQuery
+      url: this._axiosData.fullPathQuery(true)
     })
   }
 
@@ -546,7 +648,7 @@ export class Api extends Tag {
     const obj = this._axiosData
     const space = '--------------------------------------'
     if (['details', 'request'].includes(this.debug as string)) {
-      context.log(`${chalk.red('%s')}`, obj.method + ' ' + obj.fullUrlQuery)
+      context.log(`${chalk.red('%s')}`, obj.method + ' ' + obj.fullUrlQuery(false))
       // Request header
       const reqHeaders = Object.keys(obj.headers)
       if (reqHeaders.length) {

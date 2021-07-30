@@ -5,10 +5,8 @@ import { writeFileSync } from 'fs';
 import { dump } from 'js-yaml';
 import { merge, pick, uniqBy } from 'lodash';
 import mkdirp from 'mkdirp';
-import { relative } from 'path';
-import { dirname, join } from 'path';
-import { stringify } from 'querystring';
-import { isGotData } from './DocUtils';
+import { dirname, join, relative } from 'path';
+import { isGotData, schemaToMD, toJsonSchema } from './DocUtils';
 
 /**
  * Export markdown document
@@ -21,9 +19,9 @@ import { isGotData } from './DocUtils';
  */
 export class DocMarkdown extends OutputFile {
   /** Only doc these request headers */
-  headers: string[]
+  allowHeaders: string[]
   /** Only doc these response headers */
-  responseHeaders: string[]
+  allowResponseHeaders: string[]
   /** Overide swagger properties which system generated */
   raw?: {
     /** Document title */
@@ -46,26 +44,37 @@ export class DocMarkdown extends OutputFile {
     const des = this.raw.description || this.tc.description
     if (des) {
       menu.push('')
-      menu.push(`_${des}_`)
+      menu.push(`_${des}_  `)
     }
     menu.push('')
-    menu.push(`> Version \`${this.raw.version || this.tc.version || ''}\``)
+    menu.push('<br/>')
+    menu.push('')
+    menu.push(`Version: \`${this.raw.version || this.tc.version || ''}\`  `)
     if (developer) {
-      menu.push('')
-      menu.push(`> [**Contact ${developer.split('@')[0]}**](mailto:${developer})`)
+      menu.push(`Developer: [${developer.split('@')[0]}](mailto:${developer})  `)
     }
+    menu.push(`Last updated: \`${new Date().toString()}\``)
     menu.push('')
-    menu.push(`> Last updated: \`${new Date().toString()}\``)
-    menu.push('## List APIs')
-    const details = ['', '## Details']
+    menu.push('<br/>')
+    menu.push('')
+    if (servers) {
+      menu.push('')
+      menu.push('## Servers')
+      menu = menu.concat(Object.keys(servers).map(des => `- ${des}: ${servers[des]}`))
+      menu.push('')
+      menu.push('<br/>')
+      menu.push('')
+    }
+
+    const details = ['', '<br/><br/>', '']
     const apis = uniqBy(Testcase.APIs.filter(api => api.docs && api.title), e => `${e.method.toLowerCase()} ${e.url}`)
     const tags = [] as { name: string, items: Api[] }[]
     apis.forEach(a => {
-      a.docs = merge({ md: { tags: [] } }, a.docs)
-      if (!a.docs.md.tags.length) {
+      a.docs = merge({ md: { tags: [] }, tags: [] }, a.docs)
+      if (!a.docs.md?.tags?.length && !a.docs.tags?.length) {
         a.docs.md.tags.push('default')
       }
-      a.docs?.md?.tags?.forEach(t => {
+      [...(a.docs?.md?.tags || []), ...(a.docs?.tags || [])].forEach(t => {
         let tag = tags.find(tag => tag.name === t)
         if (!tag) {
           tag = { name: t, items: [] }
@@ -80,13 +89,12 @@ export class DocMarkdown extends OutputFile {
     }
 
     const menus = []
-    menus.push(`|No.  | API Description | Actions | TestAPI6 |`)
-    menus.push(`|---: | ---- | ---- | ---- |`)
+    menus.push(`|     |   Title  | |      |      |`)
+    menus.push(`|---: | ---- | ---- | ---- | ---- |`)
 
     const saveFolder = dirname(this.saveTo)
     const yamlFolder = join(saveFolder, 'yaml')
     mkdirp.sync(yamlFolder)
-    const defaultBaseURL = Object.keys(this.tc.servers || {})[0]
 
     for (let tag of tags) {
       const testItems = [] as any
@@ -103,81 +111,118 @@ export class DocMarkdown extends OutputFile {
             }, {})
           },
           {
-            [Api.getMethodTag(tag.method)]: JSON.parse(JSON.stringify({
-              title: tag.title,
-              debug: 'details',
-              baseURL: defaultBaseURL ? `\$\{${defaultBaseURL}\}` : tag.baseURL,
-              url: tag.url,
-              params: tag.params && Object.keys(tag.params).length ? tag.params : undefined,
-              headers: tag.headers && Object.keys(tag.headers).length ? tag.headers : undefined,
-              query: tag.query && Object.keys(tag.query).length ? tag.query : undefined,
-              body: tag.body
-            }))
+            [Api.getMethodTag(tag.method)]: tag.toTestAPI6()
           }
         ]))
 
         const testObj = tag.toTestObject()
         testItems.push(testObj)
         len++
-        menus.push(`|${i + 1}.| [**${tag.title}**](#${tag.index}) |` + `[Try now](${tag.toTestLink()}) | [YAML](${relative(saveFolder, yamlFile)}) |`)
+        const tagTitle = tag.docs.deprecated ? `~~${tag.title}~~` : `${tag.title}`
+        menus.push(`|${i + 1}.| [${tagTitle}](#${tag.index}) | ${tag.method} ${tag.url} | ` + `[Try now](${tag.toTestLink()}) | [YAML](${relative(saveFolder, yamlFile)}) |`)
       })
-      menus.splice(idx, 0, `| <a name='ANCHOR_-1'></a> | __${tag.name}__ - _${len} items_ |` + `[Import](${Api.toImportLink(testItems)}) |`)
+      menus.splice(idx, 0, `| <a name='ANCHOR_-1'></a> | __${tag.name}__ - _${len} items_ | |` + `[Import](${Api.toImportLink(testItems)}) |`)
     }
     menu.push('')
 
 
     apis.forEach((tag) => {
-      details.push(`#### <a name='${tag.index}'></a>[**${tag.title}**](${tag.toTestLink()})`)
+      const tagTitle = tag.docs.deprecated ? `~~${tag.title}~~` : `${tag.title}`
+      details.push(`## <a name='${tag.index}'></a>${tagTitle}`)
       if (tag.description) {
-        details.push(`_${tag.description}_`)
+        details.push(`_${tag.description}_`, '')
       }
-      details.push('')
-      details.push(`${tag.response?.status} \`${tag.method}\` ${tag.url.replace(/\$?{([^}]+)}/g, '*`{$1}`*')}${tag.hasQuery ? `\?*${stringify(tag.query)}*` : ''}`)
-      details.push('')
 
-      details.push('**Request**')
+      details.push((tag.docs.tags || []).map(t => `\`(${t})\``).join(' '))
+
+      details.push('')
+      details.push('<br/>')
+      details.push('')
+      details.push(`URL &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; __\`${tag.url}\`__  `)
+      details.push(`Method &nbsp; __\`${tag.method}\`__  `)
+      details.push(`Status &nbsp;&nbsp;&nbsp; __\`${tag.response.status}\`__ _- ${tag.response.statusText}_  `, '')
+
+      details.push(`<details><summary>cURL</summary>`, '')
+      details.push('```sh', tag.toCUrl(), '```', '')
+      details.push('</details>', '')
+
+      details.push(`<details><summary>testapi6.yaml</summary>`, '')
+      details.push('```yaml', dump({ [Api.getMethodTag(tag.method)]: tag.toTestAPI6() }), '```', '')
+      details.push('</details>', '')
+
+      details.push('<br/>', '<br/>', '', '### Request', '')
+
+      // Request query
+      const reqQuery = tag.query || {}
+      if (isGotData(reqQuery, true)) {
+        details.push(`<details><summary>Query</summary>`, '')
+        details.push('```text', `${tag._axiosData.fullPathQuery(false)}`, '```', '')
+        details.push(`</details>`, '')
+
+        details.push('```yaml')
+        details.push(schemaToMD(merge({}, toJsonSchema(reqQuery), tag.docs.query)))
+        details.push('```', '')
+      }
+
       // Request headers
       const _reqHeaders = tag.headers || {}
-      const reqHeaders = this.headers?.length ? pick(_reqHeaders, this.headers) : _reqHeaders
+      const reqHeaders = this.allowHeaders?.length ? pick(_reqHeaders, this.allowHeaders) : _reqHeaders
       if (isGotData(reqHeaders, true)) {
-        details.push(...Object.keys(reqHeaders).map(k => `- \`${k}\`: *${reqHeaders[k]}*`))
+        details.push(`<details><summary>Headers</summary>`, '')
+        details.push('```json', JSON.stringify(reqHeaders, null, '  '), '```', '')
+        details.push(`</details>`, '')
+
+        details.push('```yaml')
+        details.push(schemaToMD(merge({}, toJsonSchema(reqHeaders), tag.docs.headers)))
+        details.push('```', '')
       }
 
       // Request body
       if (tag.isSupportBody) {
         if (isGotData(tag.body, false)) {
+          details.push(`<details><summary>Body</summary>`, '')
           if (typeof tag.body === 'object') {
-            details.push(`\`\`\`json`)
-            details.push(JSON.stringify(tag.body, null, '  '))
-            details.push(`\`\`\``)
+            details.push('```json', JSON.stringify(tag.body, null, '  '), '```', '')
           } else {
-            details.push(`\`\`\`text`)
-            details.push(tag.body)
-            details.push(`\`\`\``)
+            details.push('```text', tag.body, '```')
           }
+          details.push(`</details>`, '')
+
+          details.push('```yaml')
+          details.push(schemaToMD(merge({}, toJsonSchema(tag.body), tag.docs.body)))
+          details.push('```', '')
         }
       }
 
       if (tag.response) {
-        details.push('')
-        details.push('**Response**')
+        details.push('', '<br/>', '', '### Response', '')
         // Response headers
         const _resHeaders = tag.response?.headers || {}
-        const resHeaders = this.responseHeaders?.length ? pick(_resHeaders, this.responseHeaders) : _resHeaders
+        const resHeaders = this.allowResponseHeaders?.length ? pick(_resHeaders, this.allowResponseHeaders) : _resHeaders
         if (isGotData(resHeaders, true)) {
-          details.push(...Object.keys(resHeaders).map(k => `- \`${k}\`: *${resHeaders[k]}*`))
+          details.push(`<details><summary>Headers</summary>`, '')
+          details.push('```json', JSON.stringify(resHeaders, null, '  '), '```', '')
+          details.push(`</details>`, '')
+
+          details.push('```yaml')
+          details.push(schemaToMD(merge({}, toJsonSchema(resHeaders), tag.docs.responseHeaders)))
+          details.push('```', '')
         }
 
         // Response data
         if (isGotData(tag.response?.data, false)) {
+          details.push(`<details><summary>Data</summary>`, '')
           if (typeof tag.response.data === 'object') {
-            details.push(`\`\`\`json`)
-            details.push(JSON.stringify(tag.response.data, null, '  '))
-            details.push(`\`\`\``)
+            details.push('```json', JSON.stringify(tag.response.data, null, '  '), '```', '')
           } else {
-            details.push(`\`\`\`text`)
-            details.push(tag.response.data)
-            details.push(`\`\`\``)
+            details.push('```text', tag.response.data, '```', '')
+          }
+          details.push(`</details>  `, '')
+
+          if (typeof tag.response.data === 'object') {
+            details.push('```yaml')
+            details.push(schemaToMD(merge({}, toJsonSchema(tag.response.data), tag.docs.data)))
+            details.push('```', '')
           }
         }
       }
@@ -187,15 +232,12 @@ export class DocMarkdown extends OutputFile {
       //   details.push('')
       //   details.push(tag.docs.md.note)
       // }
+      details.push('')
+      details.push('<br/><br/>')
+      details.push('')
     })
     // menu.splice(importIndex, 0, `| No.<a name='ANCHOR_-1'></a> | List APIs | [Import](${Api.toImportLink(testItems)}) |`)
     menu = menu.concat(menus)
-
-    if (servers) {
-      menu.push('')
-      menu.push('## Servers')
-      menu = menu.concat(Object.keys(servers).map(des => `- **${servers[des]}** - _${des}_`))
-    }
 
     this.content = menu.concat(details).join('\n')
 

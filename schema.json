@@ -262,7 +262,7 @@
                   "description": "CSS file for the page"
                 },
                 "puppeteerConfig": {
-                  "type": "string",
+                  "type": "object",
                   "description": "Puppeteer configuration"
                 },
                 "autoNumber": {
@@ -958,14 +958,14 @@
               ],
               "description": "Document this to swagger file",
               "properties": {
-                "responseHeaders": {
+                "allowResponseHeaders": {
                   "description": "Only doc these response headers",
                   "type": "array",
                   "items": {
                     "type": "string"
                   }
                 },
-                "headers": {
+                "allowHeaders": {
                   "description": "Only doc these request headers",
                   "type": "array",
                   "items": {
@@ -1003,14 +1003,14 @@
               ],
               "description": "Document this to markdown file",
               "properties": {
-                "responseHeaders": {
+                "allowResponseHeaders": {
                   "description": "Only doc these response headers",
                   "type": "array",
                   "items": {
                     "type": "string"
                   }
                 },
-                "headers": {
+                "allowHeaders": {
                   "description": "Only doc these request headers",
                   "type": "array",
                   "items": {
@@ -1381,19 +1381,55 @@
                   "type": "object",
                   "description": "Document information for this api",
                   "properties": {
-                    "headers": {
+                    "allowHeaders": {
                       "description": "Only doc these request headers",
                       "type": "array",
                       "items": {
                         "type": "string"
                       }
                     },
-                    "responseHeaders": {
+                    "allowResponseHeaders": {
                       "description": "Only doc these response headers",
                       "type": "array",
                       "items": {
                         "type": "string"
                       }
+                    },
+                    "params": {
+                      "description": "Params json schema in path",
+                      "type": "object"
+                    },
+                    "query": {
+                      "description": "Query json schema in query string",
+                      "type": "object"
+                    },
+                    "headers": {
+                      "description": "Request headers json schema",
+                      "type": "object"
+                    },
+                    "body": {
+                      "description": "Request body json schema",
+                      "type": "object"
+                    },
+                    "responseHeaders": {
+                      "description": "Response headers json schema",
+                      "type": "object"
+                    },
+                    "deprecated": {
+                      "type": "boolean",
+                      "description": "Api is deprecated"
+                    },
+                    "data": {
+                      "description": "Response data json schema",
+                      "type": "object"
+                    },
+                    "tags": {
+                      "description": "Tags",
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "uniqueItems": true
                     },
                     "md": {
                       "tags": {

@@ -54,30 +54,25 @@ export class Require extends Tag {
       this.modules.forEach((p: string) => {
         let obj: any
         let modulePath = 'System'
-        try {
-          obj = require(p)
-        } catch (err) {
-          const { npm, yarn } = require('global-dirs')
-          const libPaths = []
-          if (!this.root || this.root === 'yarn') {
-            libPaths.push(yarn.packages, yarn.prefix, yarn.binaries)
-          }
-          if (!this.root || this.root === 'npm') {
-            libPaths.push(npm.packages, npm.prefix, npm.binaries)
-          }
-          if (libPaths.length === 0) {
-            libPaths.push(this.root || '')
-          }
-          for (const i in libPaths) {
-            modulePath = Testcase.getPathFromRoot(`${join(libPaths[i], p)}`)
-            try {
-              obj = require(modulePath)
-              break
-            } catch (err) {
-              if (+i === libPaths.length - 1) {
-                context.error(chalk.red(`Could not install external library %s`), p)
-                throw err
-              }
+        const { npm, yarn } = require('global-dirs')
+        const libPaths = []
+        if (this.root && this.root !== 'yarn' && this.root !== 'npm') libPaths.push(this.root)
+        if (!this.root || this.root === 'yarn') {
+          libPaths.push(yarn.packages, yarn.prefix, yarn.binaries)
+        }
+        if (!this.root || this.root === 'npm') {
+          libPaths.push(npm.packages, npm.prefix, npm.binaries)
+        }
+        libPaths.push('')
+        for (const i in libPaths) {
+          modulePath = Testcase.getPathFromRoot(`${join(libPaths[i], p)}`)
+          try {
+            obj = require(modulePath)
+            break
+          } catch (err) {
+            if (+i === libPaths.length - 1) {
+              context.error(chalk.red(`Could not install external library %s`), p)
+              throw err
             }
           }
         }

@@ -397,7 +397,7 @@ export class DocSequence extends Tag {
       writer.once('finish', resolve)
       writer.once('error', reject)
       writer.write(`## Sequence diagram\r\n`)
-      writer.write(`_Describe business logic flows in each of APIs, workers... in the service_\r\n`)
+      writer.write(`_Describe business logic flows in each of APIs, workers... in the service_\r\n\r\n`)
       this.roots.forEach((root, i) => {
         writer.write(`${i + 1}. [${root.title}](${relative(this.saveTo, root.src)})\r\n`)
       })
@@ -475,6 +475,13 @@ export class DocSequence extends Tag {
     })
   }
 
+  private removeMDInLink(cnt: string, startAt = 0) {
+    return cnt.split('\r\n')
+      .filter((_, i) => i >= startAt)
+      .map(e => e.replace(/\.md\)(\r|\n)*$/m, ')'))
+      .join('\r\n')
+  }
+
   private async printGitlabWiki(_mdFolder: string, _mmdFolder: string, _svgFolder: string) {
     await Promise.all([
       // Print home.md
@@ -491,19 +498,19 @@ export class DocSequence extends Tag {
           writer.write('\r\n')
         }
         if (this.result.teleview) {
-          writer.write(readFileSync(this.result.teleview))
+          writer.write(this.removeMDInLink(readFileSync(this.result.teleview).toString()))
           writer.write('\r\n')
         }
         if (this.result.overview) {
-          writer.write(readFileSync(this.result.overview))
+          writer.write(this.removeMDInLink(readFileSync(this.result.overview).toString()))
           writer.write('\r\n')
         }
         if (this.result.clazz) {
-          writer.write(readFileSync(this.result.clazz))
+          writer.write(this.removeMDInLink(readFileSync(this.result.clazz).toString()))
           writer.write('\r\n')
         }
         if (this.result.sequence) {
-          writer.write(readFileSync(this.result.sequence))
+          writer.write(this.removeMDInLink(readFileSync(this.result.sequence).toString()))
           writer.write('\r\n')
         }
         writer.end()
@@ -546,11 +553,8 @@ export class DocSequence extends Tag {
         if (this.result.sequence) {
           writer.write(`### Sequence diagram`)
           writer.write('\r\n')
-          const cnt = readFileSync(this.result.sequence).toString()
-          writer.write(cnt.split('\n')
-            .filter(e => /^\d+\. .+/.test(e))
-            .map(e => e.replace(/\.md\)(\r|\n)*$/m, ')'))
-            .join('\r\n'))
+          const cnt = this.removeMDInLink(readFileSync(this.result.sequence).toString(), 3)
+          writer.write(cnt)
           writer.write('\r\n')
         }
         writer.end()

@@ -51,6 +51,12 @@ export async function Import(arrs: any[], tc: Testcase) {
 
 export abstract class Tag {
   static Cached = new Map<string, Tag>()
+  static ignores = [
+    'error',
+    'tagName',
+    'preload',
+    'icon',
+  ]
   $$: Tag
   id: string
   tc: Testcase
@@ -152,7 +158,7 @@ export abstract class Tag {
       this.vars = this.replaceVars(this.vars, varContext, [])
       merge(context.Vars, this.vars)
     }
-    this.replaceVars(this, varContext, ['steps', 'var', 'vars', 'context', ...ignore])
+    this.replaceVars(this, varContext, ['var', 'vars', 'context', ...ignore])
   }
 
   beforeExec() {
@@ -178,17 +184,18 @@ function _replaceVars(obj: any, context = {}, ignores = []) {
   if (obj === null || obj === undefined) return obj
   if (Array.isArray(obj)) {
     for (let i = 0; i < obj.length; i++) {
-      obj[i] = _replaceVars(obj[i], context)
+      obj[i] = _replaceVars(obj[i], context, [])
     }
-  } else if (typeof obj === 'object' && (obj.constructor === Object || obj instanceof Tag)) {
+  } else if (typeof obj === 'object') {
     for (const _k in obj) {
-      if (ignores.includes(_k)) continue
       if (_k === '...') {
-        _merge(obj, _replaceVars(obj[_k], context))
+        _merge(obj, _replaceVars(obj[_k], context, []))
         delete obj[_k]
+      } else if (ignores.includes(_k) || /^[^a-zA-Z]/.test(_k)) {
+        continue
       } else {
-        const k = _replaceVars(_k, context)
-        obj[k] = _replaceVars(obj[_k], context)
+        const k = _replaceVars(_k, context, [])
+        obj[k] = _replaceVars(obj[_k], context, [])
         if (k !== _k) delete obj[_k]
       }
     }

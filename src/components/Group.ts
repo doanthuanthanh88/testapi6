@@ -27,6 +27,16 @@ context
  * ```
  */
 export class Group extends Tag {
+  static ignores = [
+    ...Tag.ignores,
+    'steps',
+    'templates',
+    '->',
+    '<-',
+    'loop',
+    'loopKey',
+    'loopValue',
+  ]
   /** Description */
   description: string
   /** Steps which will run in the group */
@@ -74,7 +84,7 @@ export class Group extends Tag {
 
   async prepare(scope?: any) {
     if (!this.loop) {
-      await super.prepare(scope, ['loop', 'loopKey', 'loopValue'])
+      await super.prepare(scope, Group.ignores)
     }
   }
 

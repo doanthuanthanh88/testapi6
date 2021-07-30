@@ -13,12 +13,6 @@ const error = message => {
   process.exit(1);
 };
 
-const checkConfigFile = file => {
-  if (!fs.existsSync(file)) {
-    error(`Configuration file "${file}" doesn't exist`);
-  }
-};
-
 const convertToValidXML = html => {
   var xml = html;
 
@@ -78,7 +72,12 @@ for (const output of outputs) {
 let mermaidConfig = {
   theme,
   startOnLoad: true,
+  class: {
+    useMaxWidth: false,
+    diagramPadding: 8
+  },
   flowchart: {
+    useMaxWidth: false,
     diagramPadding: 8,
     // curve: 'basis',
     // curve: 'linear',

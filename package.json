@@ -1,6 +1,6 @@
 {
   "name": "testapi6",
-  "version": "1.2.41",
+  "version": "1.2.48",
   "description": "Test and auto export document to .md or .swagger file. Support many others tasks",
   "keywords": [
     "tool",
@@ -40,7 +40,7 @@
     "axios": "^0.21.0",
     "chai": "^4.3.3",
     "chalk": "^2.4.2",
-    "commander": "^8.0.0",
+    "commander": "8.0.0",
     "curl-generator": "^0.1.0",
     "form-data": "^3.0.0",
     "global-dirs": "^3.0.0",
@@ -68,7 +68,6 @@
   },
   "devDependencies": {
     "@types/chai": "^4.2.15",
-    "@types/commander": "^2.12.2",
     "@types/js-yaml": "^3.12.1",
     "@types/lodash": "^4.14.122",
     "@types/node": "^14.14.6",

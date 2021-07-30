@@ -37,9 +37,9 @@ const jsonSchemaOptions = undefined
  */
 export class DocSwagger extends OutputFile {
   /** Only doc these request headers */
-  headers: string[]
+  allowHeaders: string[]
   /** Only doc these response headers */
-  responseHeaders: string[]
+  allowResponseHeaders: string[]
   /** Overide OpenAPI properties which system generated */
   raw: OpenAPI
 
@@ -74,8 +74,9 @@ export class DocSwagger extends OutputFile {
     const apis = uniqBy(Testcase.APIs.filter(api => api.docs && api.title), e => `${e.method.toLowerCase()} ${e.url}`)
     let tags = this.raw.tags || []
     apis.forEach((api: Api) => {
-      if (api.docs.swagger?.tags) {
-        const newTags = differenceWith(tags, api.docs.swagger?.tags as any, (a, b) => a.name === b)
+      let _tags = [...(api.docs.swagger?.tags || []), ...(api.docs.tags || [])]
+      if (_tags && _tags.length) {
+        const newTags = differenceWith(tags, _tags as any, (a, b) => a.name === b)
         tags = tags.concat(newTags)
       }
       const pathName = api.url //(api.docs.pathname || api._url)
@@ -86,65 +87,117 @@ export class DocSwagger extends OutputFile {
         description: api.docs?.swagger?.description || api.description || '',
         parameters: [],
         ...api.docs?.swagger,
+        tags: _tags || [],
         // externalDocs: {
         //   description: 'Try now',
         //   url: tag.toTestLink()
         // }
       } as any
       cnt.paths[pathName][method] = rs
-      if (Object.keys(api.params || {}).length) {
-        Object.keys(api.$url.params).forEach(k => {
-          const p = api.$url.params[k]
-          rs.parameters.push({
-            in: 'path',
-            name: p.name,
-            required: p.required,
-            // style: 'form',
-            // explode: true,
-            example: p.value,
-            schema: toJsonSchema(p.value, jsonSchemaOptions)
-          })
-        })
-      }
-      if (api.query) {
-        Object.keys(api.$url.query).forEach(k => {
-          const p = api.$url.query[k]
-          rs.parameters.push({
-            in: 'query',
-            name: p.name,
-            required: p.required,
-            // style: 'form',
-            // explode: true,
-            example: p.value,
-            schema: toJsonSchema(p.value, jsonSchemaOptions)
-          })
-        })
-      }
-      // Request headers
-      if (isGotData(this.headers)) {
-        let arrs = Object.keys(api.headers)
-        if (isGotData(this.headers)) {
-          arrs = arrs.filter(e => this.headers.includes(e))
+      if (api.docs.deprecated !== undefined) rs.deprecated = api.docs.deprecated
+
+      // Request params
+      let keys = Object.keys(api.params || {})
+      if (keys.length) {
+        keys = Array.from(new Set([...keys, ...Object.keys(api.docs?.params?.properties || {})]))
+        for (const name of keys) {
+          let old = rs.parameters?.find(e => e.name === name && e.in === 'path')
+          if (!old) {
+            old = {
+              in: 'path',
+              name: name,
+              required: true,
+              // style: 'form',
+              // explode: true,
+              schema: toJsonSchema(api.params[name], jsonSchemaOptions)
+            }
+            rs.parameters.push(old)
+          }
+          if (api.docs?.params) {
+            // if (api.docs.params.required) old.required = api.docs.params.required.includes(name)
+            // else if (Array.isArray(old.required)) delete old.required
+            if (api.docs.params.properties && api.docs.params.properties[name]) {
+              const { description, ...swaggerProps } = api.docs.params.properties[name]
+              if (description) old.description = description
+              if (!swaggerProps.example && api.params[name] !== undefined) swaggerProps.example = api.params[name]
+              merge(old, { schema: swaggerProps })
+            }
+          }
         }
-        arrs.forEach(q => {
-          rs.parameters.push({
-            in: 'header',
-            name: q,
-            example: api.headers[q],
-            schema: toJsonSchema(api.headers[q], jsonSchemaOptions)
-          })
-        })
+      }
+
+      // Request query
+      keys = Object.keys(api.query || {})
+      if (keys.length) {
+        keys = Array.from(new Set([...keys, ...Object.keys(api.docs?.query?.properties || {})]))
+        for (const name of keys) {
+          let old = rs.parameters?.find(e => e.name === name && e.in === 'query')
+          if (!old) {
+            old = {
+              in: 'query',
+              name: name,
+              // style: 'form',
+              // explode: true,
+              schema: toJsonSchema(api.query[name], jsonSchemaOptions)
+            }
+            rs.parameters.push(old)
+          }
+          if (api.docs?.query) {
+            if (api.docs.query.required) old.required = api.docs.query.required.includes(name)
+            else if (Array.isArray(old.required)) delete old.required
+            if (api.docs.query.properties && api.docs.query.properties[name]) {
+              const { description, ...swaggerProps } = api.docs.query.properties[name]
+              if (description) old.description = description
+              if (!swaggerProps.example && api.query[name] !== undefined) swaggerProps.example = api.query[name]
+              merge(old, { schema: swaggerProps })
+            }
+          }
+        }
+      }
+
+      // Request headers
+      keys = Object.keys(api.headers)
+      if (this.allowHeaders) {
+        keys = keys.filter(e => this.allowHeaders.includes(e))
+      }
+      if (keys.length) {
+        keys = Array.from(new Set([...keys, ...Object.keys(api.docs?.headers?.properties || {})]))
+        for (const name of keys) {
+          let old = rs.parameters?.find(e => e.name === name && e.in === 'header')
+          if (!old) {
+            old = {
+              in: 'header',
+              name: name,
+              // style: 'form',
+              // explode: true,
+              schema: toJsonSchema(api.headers[name], jsonSchemaOptions)
+            }
+            rs.parameters.push(old)
+          }
+          if (api.docs?.headers) {
+            if (api.docs.headers.required) old.required = api.docs.headers.required.includes(name)
+            else if (Array.isArray(old.required)) delete old.required
+            if (api.docs.headers.properties && api.docs.headers.properties[name]) {
+              const { description, ...swaggerProps } = api.docs.headers.properties[name]
+              if (description) old.description = description
+              if (!swaggerProps.example && api.headers[name] !== undefined) swaggerProps.example = api.headers[name]
+              merge(old, { schema: swaggerProps })
+            }
+          }
+        }
       }
       // Request body
       if (isGotData(api.body)) {
-        rs.requestBody = merge({}, {
+        const schema = {
+          schema: merge(toJsonSchema(api.body, jsonSchemaOptions), api.docs.body || {})
+        } as any
+        if (api.body !== undefined) schema.example = api.body
+        const old = {
           content: {
-            'application/json': {
-              example: api.body,
-              schema: toJsonSchema(api.body, jsonSchemaOptions)
-            }
+            'application/json': schema
           }
-        }, rs.requestBody || {})
+        }
+        rs.requestBody = merge({}, old, rs.requestBody || {})
       }
       // Response
       if (isGotData(api.response)) {
@@ -154,32 +207,42 @@ export class DocSwagger extends OutputFile {
           }
         }, rs.responses || {})
 
+        // Respnse data
         if (isGotData(api.response.data, false)) {
           const [contentType] = api.response.headers['content-type']?.split(';')
+          const schema = {
+            schema: merge(toJsonSchema(api.response.data, jsonSchemaOptions), api.docs.data || {})
+          } as any
+          if (api.response.data !== undefined) schema.example = api.response.data
           rs.responses = merge({}, {
             [api.response.status]: {
               content: {
-                [contentType]: {
-                  example: api.response.data,
-                  schema: toJsonSchema(api.response.data, jsonSchemaOptions)
-                }
+                [contentType]: schema
               }
             }
           }, rs.responses)
         }
 
-        let arrs = Object.keys(api.response.headers)
-        if (isGotData(this.responseHeaders)) {
-          arrs = arrs.filter(e => this.responseHeaders.includes(e))
+        // Response headers
+        keys = Object.keys(api.response.headers)
+        if (this.allowResponseHeaders) {
+          keys = keys.filter(e => this.allowResponseHeaders.includes(e))
         }
-        rs.responses[api.response.status].headers = arrs.reduce((sum, e) => {
-          sum[e] = {
-            // example: tag.response.headers[e],
-            description: api.response.headers[e],
-            schema: toJsonSchema(api.response.headers[e], jsonSchemaOptions)
+        keys = Array.from(new Set([...keys, ...Object.keys(api.docs?.responseHeaders?.properties || {})]))
+        if (!rs.responses[api.response.status].headers) rs.responses[api.response.status].headers = {}
+        for (const name of keys) {
+          if (!rs.responses[api.response.status].headers[name]) rs.responses[api.response.status].headers[name] = {}
+          let old = rs.responses[api.response.status].headers[name]
+          old.schema = toJsonSchema(api.response.headers[name], jsonSchemaOptions)
+          if (api.docs?.responseHeaders) {
+            if (api.docs.responseHeaders.required) old.required = api.docs.responseHeaders.required.includes(name)
+            if (api.docs.responseHeaders.properties && api.docs.responseHeaders.properties[name]) {
+              const { description, ...swaggerProps } = api.docs.responseHeaders.properties[name]
+              if (description) old.description = description
+              merge(old, { schema: swaggerProps })
+            }
           }
-          return sum
-        }, {})
+        }
       }
     })
     this.content = dump(cnt)

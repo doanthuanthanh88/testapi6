@@ -81,9 +81,9 @@ export async function execute(tc) {
   await tc.exec()
 }
 
-export async function main(input: InputYamlFile | InputYamlText, decryptPassword?: string, initEnv?: string) {
+export async function main(input: InputYamlFile | InputYamlText, decryptPassword?: string, initEnv?: any) {
   context.tc = await load(input, decryptPassword)
-  const newVar = merge({}, context.Vars, JSON.parse(initEnv || '{}'))
+  const newVar = merge({}, context.Vars, initEnv)
   context.Vars = newVar
   await execute(context.tc)
   return context.tc

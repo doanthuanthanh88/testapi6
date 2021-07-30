@@ -1,0 +1,223 @@
+import { Api } from '@/components/api/Api';
+import { isGotData, toJsonSchema } from '@/components/doc/DocUtils';
+import { OpenAPI } from '@/components/doc/OpenAPI3';
+import { OutputFile } from '@/components/output/OutputFile';
+import { Testcase } from '@/components/Testcase';
+import { dump } from 'js-yaml';
+import { differenceWith, merge, uniqBy } from 'lodash';
+
+const jsonSchemaOptions = undefined
+
+/**
+ * Export swagger document
+ * 
+ * ```yaml
+ * - DocSwagger:
+ *    saveTo: test.swagger.yaml              # Swagger ouput file
+ *    allowHeaders: []                       # Only expose these request headers
+ *    allowResponseHeaders: ["content-type"] # Only expose these response headers
+ *    raw:                                   # Overide OpenAPI properties
+ *      components:
+ *        securitySchemes:
+ *          bearerAuth:
+ *            type: http
+ *            scheme: bearer
+ *            bearerFormat: JWT
+ *          bypassAuth:
+ *            type: apiKey
+ *            name: keyHere
+ *            description: ...
+ *            in: header
+ *          bypassAuthHeader:
+ *            type: apiKey
+ *            name: valueHere
+ *            description: ...
+ *            in: header
+ * ```
+ */
+export class DocSwagger extends OutputFile {
+  /** Only doc these request headers */
+  headers: string[]
+  /** Only doc these response headers */
+  responseHeaders: string[]
+  /** Overide OpenAPI properties which system generated */
+  raw: OpenAPI
+
+  async exec() {
+    const self = this
+    const cnt = merge({
+      openapi: '3.0.1',
+      info: {
+        title: self.tc.title || '',
+        description: `${self.tc.description || ''}`,
+        version: self.tc.version || '',
+        contact: {
+          name: self.tc.developer?.split('@')[0] || '',
+          email: self.tc.developer || ''
+        }
+      },
+      externalDocs: {
+        description: `Last updated: ${new Date().toString()}`,
+        url: 'https://'
+      },
+      servers: Object.keys(self.tc.servers || {}).map(des => {
+        return {
+          url: self.tc.servers[des],
+          description: des
+        }
+      }),
+      paths: {},
+      components: {
+        schemas: {}
+      }
+    }, this.raw)
+    const apis = uniqBy(Testcase.APIs.filter(api => api.docs && api.title), e => `${e.method.toLowerCase()} ${e.url}`)
+    let tags = this.raw.tags || []
+    apis.forEach((api: Api) => {
+      if (api.docs.swagger?.tags) {
+        const newTags = differenceWith(tags, api.docs.swagger?.tags as any, (a, b) => a.name === b)
+        tags = tags.concat(newTags)
+      }
+      const pathName = api.url //(api.docs.pathname || api._url)
+      if (!cnt.paths[pathName]) cnt.paths[pathName] = {}
+      const method = api.method.toString().toLowerCase()
+      const rs = {
+        summary: api.docs?.swagger?.summary || api.title || '',
+        description: api.docs?.swagger?.description || api.description || '',
+        parameters: [],
+        ...api.docs?.swagger,
+        // externalDocs: {
+        //   description: 'Try now',
+        //   url: tag.toTestLink()
+        // }
+      } as any
+      cnt.paths[pathName][method] = rs
+      if (Object.keys(api._paramsType || {}).length) {
+        for (const name in api._paramsType.properties) {
+          let old = rs.parameters?.find(e => e.name === name && e.in === 'path')
+          if (old) {
+            const _old = merge({
+              in: 'path',
+              name: name,
+              required: api._paramsType.required.includes(name),
+              // style: 'form',
+              // explode: true,
+              example: api.params[name],
+              schema: toJsonSchema(api.params[name], jsonSchemaOptions)
+            }, old)
+            merge(old, _old)
+          } else {
+            rs.parameters.push({
+              in: 'path',
+              name: name,
+              required: api._paramsType.required.includes(name),
+              // style: 'form',
+              // explode: true,
+              example: api.params[name],
+              schema: toJsonSchema(api.params[name], jsonSchemaOptions)
+            })
+          }
+        }
+      }
+      if (api.query) {
+        const keys = Array.from(new Set(Object.keys(api.query).concat(Object.keys(api.docs.query || {}))))
+        for (const name of keys) {
+          let old = rs.parameters?.find(e => e.name === name && e.in === 'query')
+          if (!old) {
+            old = {
+              in: 'query',
+              name: name,
+              required: api.docs.query?.required,
+              // style: 'form',
+              // explode: true,
+              schema: toJsonSchema(api.query[name], jsonSchemaOptions)
+            }
+            rs.parameters.push(old)
+          }
+          if (old.example === undefined) old.example = api.query[name]
+          const define = api.docs.query && api.docs.query[name]
+          if (define) {
+            merge(old, define)
+          }
+        }
+      }
+      // Request headers
+      if (isGotData(this.headers)) {
+        let arrs = Object.keys(api.headers)
+        if (isGotData(this.headers)) {
+          arrs = arrs.filter(e => this.headers.includes(e))
+        }
+        const keys = Array.from(new Set(arrs.concat(Object.keys(api.docs.requestHeaders || {}))))
+        for (const name of keys) {
+          let old = rs.parameters?.find(e => e.name === name && e.in === 'header')
+          if (!old) {
+            old = {
+              in: 'header',
+              name: name,
+              required: api.docs.requestHeaders?.required,
+              // style: 'form',
+              // explode: true,
+              schema: toJsonSchema(api.query[name], jsonSchemaOptions)
+            }
+            rs.parameters.push(old)
+          }
+          if (old.example === undefined) old.example = api.headers[name]
+          const define = api.docs.query && api.docs.query[name]
+          if (define) {
+            merge(old, define)
+          }
+        }
+      }
+      // Request body
+      if (isGotData(api.body)) {
+        rs.requestBody = merge({}, {
+          content: {
+            'application/json': {
+              example: api.body,
+              schema: toJsonSchema(api.body, jsonSchemaOptions)
+            }
+          }
+        }, rs.requestBody || {})
+      }
+      // Response
+      if (isGotData(api.response)) {
+        rs.responses = merge({}, {
+          [api.response.status]: {
+            description: 'Success'
+          }
+        }, rs.responses || {})
+
+        if (isGotData(api.response.data, false)) {
+          const [contentType] = api.response.headers['content-type']?.split(';')
+          rs.responses = merge({}, {
+            [api.response.status]: {
+              content: {
+                [contentType]: {
+                  example: api.response.data,
+                  schema: toJsonSchema(api.response.data, jsonSchemaOptions)
+                }
+              }
+            }
+          }, rs.responses)
+        }
+
+        let arrs = Object.keys(api.response.headers)
+        if (isGotData(this.responseHeaders)) {
+          arrs = arrs.filter(e => this.responseHeaders.includes(e))
+        }
+        rs.responses[api.response.status].headers = arrs.reduce((sum, e) => {
+          sum[e] = {
+            // example: tag.response.headers[e],
+            description: api.response.headers[e],
+            schema: toJsonSchema(api.response.headers[e], jsonSchemaOptions)
+          }
+          return sum
+        }, {})
+      }
+    })
+    this.content = dump(cnt)
+    cnt.tags = tags
+    if (!this.title) this.title = 'Swagger document'
+    await this.save()
+  }
+}
