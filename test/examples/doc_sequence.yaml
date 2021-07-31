@@ -1,3 +1,5 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doanthuanthanh88/testapi6/main/schema.json
+
 # 1. Should use the extension "aaron-bond.better-comments" to change comment text color to make the source code more clearly
 #   Copy these lines to settings.json to set color to comment line
 #   "better-comments.tags": [

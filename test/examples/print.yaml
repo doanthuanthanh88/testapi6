@@ -1,16 +1,15 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doanthuanthanh88/testapi6/main/schema.json
+
 - Group:
     title: Print to screen
-    vars: 
-      IDs: [1,2,3]
-      myObject: {
-        name: "name 1",
-        age: 123
-      }
+    vars:
+      IDs: [1, 2, 3]
+      myObject: { name: "name 1", age: 123 }
     steps:
       - Echo: suggest ${IDs}
 
       - Clear:
-      
+
       - Echo: ${Utils.schema(IDs)}
 
       - Echo: Base64 > ${Utils.base64('thanh')}

@@ -1,7 +1,9 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doanthuanthanh88/testapi6/main/schema.json
+
 - Group:
     title: Test
     steps:
-      - Regex: 
+      - Regex:
           title: Extract title text
           input: <title>name</title> # new String() to prevent to replace var in result content
           pattern: /<title>(.*?)<\/title>/

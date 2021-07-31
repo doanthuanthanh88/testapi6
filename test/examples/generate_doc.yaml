@@ -1,3 +1,5 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doanthuanthanh88/testapi6/main/schema.json
+
 # Make get request
 - Get:
     <-: base # Extends from "base" template which is declared in main scenario (../index.testapi6.yaml)
@@ -8,7 +10,7 @@
     params:
       type*: csv
       name: addresses.csv
-    headers: 
+    headers:
       content-type: test-type
       size: 123
     docs: # Required to generate DOC
@@ -16,7 +18,7 @@
         tags:
           - TEST
       swagger:
-        tags: 
+        tags:
           - TEST
     query:
       must-have*: abc
@@ -38,23 +40,23 @@
         tags:
           - TEST
       swagger:
-        tags: 
+        tags:
           - TEST
     response:
       status: 200
       headers:
         content-type: application/json
-      data: [1,2,3,4]
+      data: [1, 2, 3, 4]
 # Export to document
 - Group:
     title: Generate document
     description: --------------------------------------
     steps:
       - DocSwagger:
-          saveTo: test.swagger.yaml         # Swagger ouput file
-          headers: []                       # Only expose these request headers
+          saveTo: test.swagger.yaml # Swagger ouput file
+          headers: [] # Only expose these request headers
           responseHeaders: ["content-type"] # Only expose these response headers
-          raw:                              # Overide OpenAPI properties
+          raw: # Overide OpenAPI properties
             components:
               securitySchemes:
                 bearerAuth:
@@ -72,6 +74,6 @@
                   description: ...
                   in: header
       - DocMarkdown:
-          saveTo: test.md                       # Markdown ouput file
-          headers: []                           # Only expose these request headers
-          responseHeaders: ["content-type"]     # Only expose these response headers
+          saveTo: test.md # Markdown ouput file
+          headers: [] # Only expose these request headers
+          responseHeaders: ["content-type"] # Only expose these response headers

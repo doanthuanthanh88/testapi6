@@ -1,3 +1,5 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doanthuanthanh88/testapi6/main/schema.json
+
 - Group:
     ignoreError: true
     templates:
@@ -19,7 +21,7 @@
       - Validate:
           title: Validate object schema which use builtin system
           func: schema
-          args: 
+          args:
             - ${obj}
             - { "type": "array" }
 
@@ -30,7 +32,7 @@
           args:
             - ${obj.name}
             - name 12
-      
+
       - Echo: Use chaijs (assert, expect) to validate (https://www.chaijs.com/api/bdd/)
 
       - Validate:
@@ -44,7 +46,7 @@
           func: expect.to.deep.equal
           args:
             - ${obj}
-            - {name: 'Name 1'}
+            - { name: "Name 1" }
       - Validate:
           title: Check object got value
           func: assert.isOk

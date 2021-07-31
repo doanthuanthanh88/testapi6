@@ -1,3 +1,5 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doanthuanthanh88/testapi6/main/schema.json
+
 - Group:
     title: Benchmark via external command
     steps:
@@ -15,7 +17,7 @@
             - http://abc.com
 - Group:
     title: Benchmark in an API
-    vars: 
+    vars:
       url: http://localhost:5000
     steps:
       - OutputFile:

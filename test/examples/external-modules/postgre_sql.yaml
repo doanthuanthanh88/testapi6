@@ -1,20 +1,18 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doanthuanthanh88/testapi6/main/schema.json
+
 - Require:
-    # root is empty: It auto load from "npm" or "yarn"
-    # root is "npm": It auto load from npm global
-    # root is "yarn": It auto load from yarn global
-    # root is specific
-    # Install: yarn global add testapi6-sql
-    root: yarn
+    # Install: `yarn global add testapi6-sql` or `npm install -g testapi6-sql`
+    # root: Path to modules
     modules:
       - testapi6-sql
 
 - PostgreSql:
     title: PostgreSQL - local
     connection: postgres://root:root@localhost/mydb
-    queries: 
+    queries:
       - select * from users
       - title: Get users
         query: select * from users where name = ?
-        args: 
+        args:
           - thanh
         var: rs

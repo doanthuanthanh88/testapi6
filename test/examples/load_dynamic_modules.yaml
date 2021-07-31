@@ -1,3 +1,5 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doanthuanthanh88/testapi6/main/schema.json
+
 - Require:
     modules:
       - ./examples/assets/my-module/my-tag.js
@@ -5,5 +7,6 @@
       Utils.sayHello = (name) => ('hello' + name)
 
 - Echo: ${Utils.sayHello('thanh')}
+
 - MyTag:
     title: Hello

@@ -1,8 +1,8 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doanthuanthanh88/testapi6/main/schema.json
+
 # Declare global variables
-- Vars: 
-    obj: {
-      name: Name 1
-    }
+- Vars:
+    obj: { name: Name 1 }
 
 # Pause
 - Pause:
@@ -25,7 +25,7 @@
     args:
       - ${obj.name}
       - Name 1
-      
+
 - Validate:
     title: check name
     func: match # schema, match, in, length

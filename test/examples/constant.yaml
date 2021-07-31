@@ -1,8 +1,10 @@
-- Api: 
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doanthuanthanh88/testapi6/main/schema.json
+
+- Api:
     ->: user-base
     headers:
       x-gapo-role: user
-- Api: 
+- Api:
     ->: service-base
     headers:
       x-gapo-role: service
