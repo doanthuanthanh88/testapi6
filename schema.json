@@ -1,4 +1,5 @@
 {
+  "$id": "https://github.com/doanthuanthanh88/testapi6/blob/main/schema.json",
   "$schema": "http://json-schema.org/draft-07/schema",
   "anyOf": [
     {
