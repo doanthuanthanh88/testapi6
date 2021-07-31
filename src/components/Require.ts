@@ -48,37 +48,68 @@ export class Require extends Tag {
    * */
   code: ContentScript
 
+  init(attrs: any, ...props: any[]) {
+    if (Array.isArray(attrs)) {
+      attrs = {
+        modules: attrs
+      }
+    }
+    return super.init(attrs, ...props)
+  }
+
+  static getLibPaths(root?: string) {
+    const libPaths = []
+    const { npm, yarn } = require('global-dirs')
+    if (root && root !== 'yarn' && root !== 'npm') {
+      libPaths.push(Testcase.getPathFromRoot(root))
+    }
+    libPaths.push('')
+    if (!root || root === 'yarn') {
+      libPaths.push(
+        Testcase.getPathFromRoot(yarn.packages),
+        Testcase.getPathFromRoot(yarn.prefix),
+        Testcase.getPathFromRoot(yarn.binaries),
+      )
+    }
+    if (!root || root === 'npm') {
+      libPaths.push(
+        Testcase.getPathFromRoot(npm.packages),
+        Testcase.getPathFromRoot(npm.prefix),
+        Testcase.getPathFromRoot(npm.binaries),
+      )
+    }
+    return libPaths
+  }
+
+  static getPathGlobalModule(name: string, root?: string) {
+    const libPaths = Require.getLibPaths(root)
+    let modulePath = undefined
+    for (const i in libPaths) {
+      modulePath = join(libPaths[i], name)
+      try {
+        require.resolve(modulePath)
+        return modulePath
+      } catch { }
+    }
+    throw new Error(`Please install module "${name}" \n    \`npm install -g ${name}\` \n OR \n    \`yarn global add ${name}\``)
+  }
+
   async exec() {
     if (this.modules) {
-      context.group('Installed external libraries')
+      context.group('Installed external modules')
       this.modules.forEach((p: string) => {
         let obj: any
         let modulePath = 'System'
-        const { npm, yarn } = require('global-dirs')
-        const libPaths = []
-        if (this.root && this.root !== 'yarn' && this.root !== 'npm') libPaths.push(this.root)
-        if (!this.root || this.root === 'yarn') {
-          libPaths.push(yarn.packages, yarn.prefix, yarn.binaries)
-        }
-        if (!this.root || this.root === 'npm') {
-          libPaths.push(npm.packages, npm.prefix, npm.binaries)
-        }
-        libPaths.push('')
-        for (const i in libPaths) {
-          modulePath = Testcase.getPathFromRoot(`${join(libPaths[i], p)}`)
-          try {
-            obj = require(modulePath)
-            break
-          } catch (err) {
-            if (+i === libPaths.length - 1) {
-              context.error(chalk.red(`Could not install external library %s`), p)
-              throw err
-            }
+        try {
+          modulePath = Require.getPathGlobalModule(p, this.root)
+          obj = require(modulePath)
+          for (let k in obj) {
+            context.ExternalLibraries[k] = obj[k]
+            context.log('- %s (%s)', k, modulePath)
           }
-        }
-        for (let k in obj) {
-          context.ExternalLibraries[k] = obj[k]
-          context.log('- %s (%s)', k, modulePath)
+        } catch (err) {
+          context.error(chalk.red(err.message))
+          throw err
         }
       })
       context.groupEnd()

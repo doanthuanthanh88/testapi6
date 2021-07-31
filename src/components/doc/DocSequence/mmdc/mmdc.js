@@ -6,7 +6,6 @@ const commander = require('commander');
 const chalk = require('chalk');
 const fs = require('fs');
 const path = require('path');
-const puppeteer = require('puppeteer');
 
 const error = message => {
   console.log(chalk.red(`\n${message}\n`));
@@ -34,11 +33,14 @@ commander.version('1.0')
   .option('-s, --scale [scale]', 'Puppeteer scale factor, default 1. Optional')
   .option('-f, --pdfFit [pdfFit]', 'Scale PDF to fit chart')
   .option('--puppeteerConfig [puppeteerConfig]', 'JSON configuration for puppeteer. Optional')
+  .option('--puppeteerPath [puppeteerPath]', 'Path of puppeteer module. Optional')
   .parse(process.argv);
 
 const options = commander.opts();
 
-let { theme, width, height, input, output, backgroundColor, config, cssFile, scale, pdfFit, puppeteerConfig } = options;
+let { theme, width, height, input, output, backgroundColor, config, cssFile, scale, pdfFit, puppeteerConfig, puppeteerPath = '' } = options;
+
+const puppeteer = require(puppeteerPath || 'puppeteer');
 
 // check input file
 if (!(input || inputPipedFromStdin())) {

@@ -1,6 +1,6 @@
 import { context } from "@/Context"
 import chalk from "chalk"
-import { createWriteStream } from "fs"
+import { createWriteStream, readFileSync } from "fs"
 import { join, relative } from "path"
 import { DocSequence } from "."
 import { ArrayUnique } from "./ArrayUnique"
@@ -168,32 +168,41 @@ export class FlowChart {
     }
   }
 
-  async printOverviewDetails(_mdFolder: string, mmdFolder: string, svgFolder: string) {
+  async printOverviewDetails(mdTasks: Promise<any>[], _mdFolder: string, mmdFolder: string, svgFolder: string) {
     const fileSave = join(this.docSequence.saveTo, 'overview.details.md')
     const fileMMDSave = join(mmdFolder, 'overview.details.mmd')
     const fileImageSave = join(svgFolder, 'overview.details.svg')
     context.group(`${chalk.green('%s %s')}`, 'Overview Details:', fileSave)
-    await Promise.all([
-      // Write mmd
-      new Promise((resolve, reject) => {
-        const writer = createWriteStream(fileMMDSave)
-        writer.once('finish', resolve)
-        writer.once('error', reject)
-        writer.write(this.getOverviewDetailsContent())
-        writer.end()
-      }),
-      // Write md
+    // Write mmd
+    await new Promise((resolve, reject) => {
+      const writer = createWriteStream(fileMMDSave)
+      writer.once('finish', resolve)
+      writer.once('error', reject)
+      writer.write(this.getOverviewDetailsContent())
+      writer.end()
+    })
+    // Write md to show details later
+    mdTasks.push(
       new Promise((resolve, reject) => {
         const writer = createWriteStream(fileSave)
         writer.once('finish', resolve)
         writer.once('error', reject)
         writer.write(`## Components & Actions\r\n`)
         writer.write(`_Flows & Actions details between the application and others components_\r\n\r\n`)
-        writer.write(`![ComponentsActions](${relative(this.docSequence.saveTo, fileImageSave)})\r\n`)
+        if (this.docSequence.outputType === 'svg') {
+          // svg
+          writer.write(`![ComponentsActions](${relative(this.docSequence.saveTo, fileImageSave)})\r\n`)
+        } else {
+          // mmd
+          writer.write('```mermaid\r\n')
+          writer.write(readFileSync(fileMMDSave))
+          writer.write('\r\n')
+          writer.write('```')
+        }
         writer.end()
         context.groupEnd()
       })
-    ])
+    )
     // Generate image
     this.docSequence.addImage(fileMMDSave, fileImageSave)
     return fileSave
@@ -289,32 +298,41 @@ export class FlowChart {
     return msg.concat(subMsg).concat(lineStyles).join('\r\n')
   }
 
-  async printOverview(_mdFolder: string, mmdFolder: string, svgFolder: string) {
+  async printOverview(mdTasks: Promise<any>[], _mdFolder: string, mmdFolder: string, svgFolder: string) {
     const fileSave = join(this.docSequence.saveTo, 'overview.md')
     const fileMMDSave = join(mmdFolder, 'overview.mmd')
     const fileImageSave = join(svgFolder, 'overview.svg')
     context.group(`${chalk.green('%s %s')}`, 'Overviews:', fileSave)
-    await Promise.all([
-      // Write mmd
-      new Promise((resolve, reject) => {
-        const writer = createWriteStream(fileMMDSave)
-        writer.once('finish', resolve)
-        writer.once('error', reject)
-        writer.write(this.getOverviewContent())
-        writer.end()
-      }),
-      // Write md
+    // Write mmd
+    await new Promise((resolve, reject) => {
+      const writer = createWriteStream(fileMMDSave)
+      writer.once('finish', resolve)
+      writer.once('error', reject)
+      writer.write(this.getOverviewContent())
+      writer.end()
+    })
+    // Write md to show details later
+    mdTasks.push(
       new Promise((resolve, reject) => {
         const writer = createWriteStream(fileSave)
         writer.once('finish', resolve)
         writer.once('error', reject)
         writer.write(`## Overview\r\n`)
         writer.write(`_List all of components in the application & describe the ways they comunicate to each others_\r\n\r\n`)
-        writer.write(`![Overview](${relative(this.docSequence.saveTo, fileImageSave)})\r\n`)
+        if (this.docSequence.outputType === 'svg') {
+          // svg
+          writer.write(`![Overview](${relative(this.docSequence.saveTo, fileImageSave)})\r\n`)
+        } else {
+          // mmd
+          writer.write('```mermaid\r\n')
+          writer.write(readFileSync(fileMMDSave))
+          writer.write('\r\n')
+          writer.write('```')
+        }
         writer.end()
         context.groupEnd()
       })
-    ])
+    )
     // Generate image
     this.docSequence.addImage(fileMMDSave, fileImageSave)
     return fileSave

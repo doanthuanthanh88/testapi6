@@ -3,6 +3,7 @@ import chalk from 'chalk'
 import { merge, mergeWith } from 'lodash'
 import { parse, stringify } from 'querystring'
 import { URLSearchParams } from "url"
+import { deflateSync } from 'zlib'
 import { context } from '../../Context'
 import { IWrk, Wrk } from "../benchmark/Wrk"
 import { Validate } from "../data_handler/Validate"
@@ -682,17 +683,13 @@ export class Api extends Tag {
 
   toTestLink(link?: string) {
     const item = this.toTestObject(link)
-    const pako = require('pako')
-    const str = pako.deflate(JSON.stringify(item), { level: 9 });
-    const sdatas = Buffer.from(str).toString('base64')
+    const sdatas = deflateSync(JSON.stringify(item), { level: 9 }).toString('base64')
     const links = `http://test.onapis.com/Test/${sdatas}`
     return links
   }
 
   static toImportLink(items: any[]) {
-    const pako = require('pako')
-    const str = pako.deflate(JSON.stringify(items), { level: 9 });
-    const sdatas = Buffer.from(str).toString('base64')
+    const sdatas = deflateSync(JSON.stringify(items), { level: 9 }).toString('base64')
     const links = `http://test.onapis.com/Test/${sdatas}`
     return links
   }

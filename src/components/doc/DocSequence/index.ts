@@ -1,11 +1,13 @@
 import { Exec } from '@/components/external/Exec'
+import { Require } from '@/components/Require'
 import { Tag } from '@/components/Tag'
 import { Testcase } from '@/components/Testcase'
 import { context } from "@/Context"
 import chalk from 'chalk'
 import { createReadStream, createWriteStream, readdirSync, readFileSync, statSync } from 'fs'
+import { readFile, writeFile } from 'fs/promises'
 import mkdirp from 'mkdirp'
-import { extname, join, relative } from 'path'
+import { dirname, extname, join, relative } from 'path'
 import * as readline from 'readline'
 import { ArrayUnique } from './ArrayUnique'
 import { Comment } from './Comment'
@@ -23,6 +25,8 @@ export class DocSequence extends Tag {
   src: string[]
   /** Export sequence diagram to this path */
   saveTo: string
+  /** Output type */
+  outputType = 'mmd' as 'mmd' | 'svg'
   /** Auto generate number in sequence diagram */
   autoNumber?: boolean
   /** Activations can be stacked for same actor */
@@ -49,6 +53,8 @@ export class DocSequence extends Tag {
   combineOverviews: string[]
   /** Puppeteer config */
   puppeteerConfig: any
+  /** Path of puppeteer module to generate to .svg */
+  puppeteerPath: any
   /** Output template */
   template: 'gitlab.wiki' | 'github'
   /** Theme */
@@ -275,7 +281,27 @@ export class DocSequence extends Tag {
     this._genImages.push({ input: mmdFile, output: svgFile })
   }
 
-  private async genImage() {
+  async genImage() {
+    if (this.outputType === 'svg') {
+      try {
+        try {
+          this.puppeteerPath = Require.getPathGlobalModule('puppeteer', this.puppeteerPath ? dirname(this.puppeteerPath) : undefined)
+          await this.genImagePuperteer()
+        } catch (err) {
+          context.log('')
+          throw new Error('Could not generate ".svg" from ".mmd" in DocSequence')
+        }
+        return true
+      } catch {
+        context.log('')
+        context.log(chalk.yellow('Warning:', 'To generate to .svg must run `npm install -g puppeteer` OR `yarn global add puppeteer`'))
+        this.outputType = 'mmd'
+      }
+    }
+    return false
+  }
+
+  async genImagePuperteer() {
     if (!this._genImages.length) return
     const genImage = new Exec()
     const inputs = this._genImages.map(e => e.input).join(',')
@@ -283,6 +309,7 @@ export class DocSequence extends Tag {
     const args = []
     if (this.runOnNodeJS) args.push('node')
     args.push(this._nodeModulePath, '--input', inputs, '--output', outputs)
+    args.push('--puppeteerPath', this.puppeteerPath)
     if (this.puppeteerConfig) args.push('--puppeteerConfig', JSON.stringify(this.puppeteerConfig))
     if (this.theme) args.push('--theme', this.theme)
     if (this.backgroundColor) args.push('--backgroundColor', this.backgroundColor)
@@ -299,99 +326,218 @@ export class DocSequence extends Tag {
     await genImage.exec()
   }
 
-  private async printSequence(mdFolder: string, mmdFolder: string, svgFolder: string) {
+  // @deprecate
+  async _genImageJSDom() {
+    if (!this._genImages.length) return
+    const { JSDOM, ResourceLoader } = require('jsdom')
+    let mermaidConfig = {
+      logLevel: 1,
+      theme: this.theme,
+      startOnLoad: true,
+      class: {
+        // htmlLabels: false,
+        useMaxWidth: false,
+        diagramPadding: 8
+      },
+      flowchart: {
+        // htmlLabels: false,
+        useMaxWidth: false,
+        diagramPadding: 8,
+        // curve: 'basis',
+        // curve: 'linear',
+        curve: 'cardinal',
+      },
+      sequence: {
+        // htmlLabels: false,
+        diagramMarginX: 8,
+        diagramMarginY: 8,
+        actorMargin: 24,
+        width: 150,
+        height: 65,
+        boxMargin: 10,
+        boxTextMargin: 5,
+        noteMargin: 10,
+        messageMargin: 35,
+        messageAlign: 'center',
+        mirrorActors: false,
+        bottomMarginAdj: 1,
+        useMaxWidth: false,
+        rightAngles: true
+      }
+    }
+    if (this.config) mermaidConfig = Object.assign(mermaidConfig, this.config)
+
+    class CustomResourceLoader extends ResourceLoader {
+      constructor(...args) {
+        super(...args)
+      }
+      fetch(url, options) {
+        if (url === 'http://doanthuanthanh88.com/mermaid.min.js') {
+          return readFile(join(__dirname, 'mmdc/mermaid.min.js')) as any
+        }
+        return super.fetch(url, options);
+      }
+    }
+    const dom = new JSDOM(`<!doctype html>
+    <html>
+    <body>
+      ${this._genImages.map((e, i) => `<div id="container${i}" output="${e.output}" class="mermaid">${readFileSync(e.input).toString()}</div>`).join('\n')}
+      <script src="http://doanthuanthanh88.com/mermaid.min.js"></script>
+      <script>
+        const totalItem = ${this._genImages.length}
+        const mermaidConfig = ${JSON.stringify(mermaidConfig)}
+        window.mermaid.initialize(mermaidConfig)
+        let tm = setInterval(() => {
+          if(!tm) return
+          const list = window.document.querySelectorAll('.mermaid[data-processed="true"]')
+          if (totalItem === list.length) {
+            clearInterval(tm)
+            tm = undefined
+            const svgs = []
+            list.forEach(e => {
+              svgs.push({
+                output: e.getAttribute('output'),
+                svg: e.innerHTML.replace(/<br>/gi, '<br/>')
+              })
+            })
+            window.dispatchEvent(new CustomEvent('mmdc.done', { detail: svgs }))
+          }
+        }, 300)
+      </script>
+    </body>
+    </html>`, {
+      beforeParse(window) {
+        window.Element.prototype.getBBox = function () {
+          try {
+            if (this.tagName === 'svg') {
+              return {
+                width: 1024,
+                height: 1024
+              }
+            } else if (this.textContent) {
+              return {
+                width: this.textContent.length * 10,
+                height: this.textContent.length * 10,
+              }
+            }
+            console.log('TAGNAME==============', this.tagName, this.textContent)
+            return { width: 0, height: 0 }
+          } catch (err) {
+            debugger
+          }
+        }
+      },
+      resources: new CustomResourceLoader({
+        strictSSL: false,
+      }),
+      runScripts: "dangerously",
+    })
+    const svgs = await new Promise((resolve) => {
+      dom.window.addEventListener('mmdc.done', ({ detail }) => {
+        resolve(detail)
+      });
+    }) as any[]
+    await Promise.all(svgs.map(({ svg, output }) => writeFile(output, svg)))
+  }
+
+  private async printSequence(mdTasks: Promise<any>[], mdFolder: string, mmdFolder: string, svgFolder: string) {
     if (!this.roots.length) return
     for (const root of this.roots) {
       const fileSave = join(mdFolder, root.outputName + '.md')
       const fileMMDSave = join(mmdFolder, root.outputName + '.mmd')
       const fileImageSave = join(svgFolder, root.outputName + '.svg')
       context.group(`${chalk.green('%s %s')}`, 'Diagram:', fileSave)
-      await Promise.all([
-        // Write mmd
-        new Promise((resolve, reject) => {
-          const writer = createWriteStream(fileMMDSave)
-          writer.once('finish', resolve)
-          writer.once('error', reject)
-          writer.write('sequenceDiagram\r\n')
-          if (this.autoNumber) writer.write('autonumber\r\n')
-          // Write participant
-          const msg = new ArrayUnique()
-          root.print(msg, 0, undefined)
-          const participant = new ArrayUnique()
-          for (const key of this._flowChart.globalObjectsKeys) {
-            const names = this._flowChart.globalObjects.get(key)
-            switch (key) {
-              case 'Client':
-                names.forEach(({ name, uname }) => {
-                  if (root.participants.includes(uname)) {
-                    participant.add(`participant ${uname} as ${this._flowChart.subGraph.client}${name}`)
-                  }
-                })
-                break
-              case 'Apps':
-                names.forEach(({ name, uname }) => {
-                  if (root.participants.includes(uname)) {
-                    participant.add(`participant ${uname} as ${this._flowChart.subGraph.service}${name}`)
-                  }
-                })
-                break
-              case 'App':
-                names
-                  .filter(({ name }) => !this._flowChart.globalObjects.get('Apps')?.find(c => new RegExp(`(/\\s?${name})|(${name}\\s?/)`, 'i').test(c.name)))
-                  .forEach(({ name, uname }) => {
-                    if (root.participants.includes(uname)) {
-                      participant.add(`participant ${uname} as ${this._flowChart.subGraph.service}${name}`)
-                    }
-                  })
-                break
-              case 'Services':
-                names.forEach(({ name, uname }) => {
+      // Write mmd
+      await new Promise((resolve, reject) => {
+        const writer = createWriteStream(fileMMDSave)
+        writer.once('finish', resolve)
+        writer.once('error', reject)
+        writer.write('sequenceDiagram\r\n')
+        if (this.autoNumber) writer.write('autonumber\r\n')
+        // Write participant
+        const msg = new ArrayUnique()
+        root.print(msg, 0, undefined)
+        const participant = new ArrayUnique()
+        for (const key of this._flowChart.globalObjectsKeys) {
+          const names = this._flowChart.globalObjects.get(key)
+          switch (key) {
+            case 'Client':
+              names.forEach(({ name, uname }) => {
+                if (root.participants.includes(uname)) {
+                  participant.add(`participant ${uname} as ${this._flowChart.subGraph.client}${name}`)
+                }
+              })
+              break
+            case 'Apps':
+              names.forEach(({ name, uname }) => {
+                if (root.participants.includes(uname)) {
+                  participant.add(`participant ${uname} as ${this._flowChart.subGraph.service}${name}`)
+                }
+              })
+              break
+            case 'App':
+              names
+                .filter(({ name }) => !this._flowChart.globalObjects.get('Apps')?.find(c => new RegExp(`(/\\s?${name})|(${name}\\s?/)`, 'i').test(c.name)))
+                .forEach(({ name, uname }) => {
                   if (root.participants.includes(uname)) {
                     participant.add(`participant ${uname} as ${this._flowChart.subGraph.service}${name}`)
                   }
                 })
-                break
-              case 'Databases':
-                names.forEach(({ name, uname }) => {
-                  if (root.participants.includes(uname)) {
-                    participant.add(`participant ${uname} as ${name}`)
-                  }
-                })
-                break
-              case 'Others':
-                names.forEach(({ name, uname }) => {
-                  if (root.participants.includes(uname)) {
-                    participant.add(`participant ${uname} as ${name}`)
-                  }
-                })
-                break
-            }
+              break
+            case 'Services':
+              names.forEach(({ name, uname }) => {
+                if (root.participants.includes(uname)) {
+                  participant.add(`participant ${uname} as ${this._flowChart.subGraph.service}${name}`)
+                }
+              })
+              break
+            case 'Databases':
+              names.forEach(({ name, uname }) => {
+                if (root.participants.includes(uname)) {
+                  participant.add(`participant ${uname} as ${name}`)
+                }
+              })
+              break
+            case 'Others':
+              names.forEach(({ name, uname }) => {
+                if (root.participants.includes(uname)) {
+                  participant.add(`participant ${uname} as ${name}`)
+                }
+              })
+              break
           }
-          writer.write(participant.concat(msg).join('\r\n'))
-          writer.write('\r\n')
-          writer.end()
-        }),
-        // Write md
+        }
+        writer.write(participant.concat(msg).join('\r\n'))
+        writer.write('\r\n')
+        writer.end()
+      })
+      // Write md to show details later
+      mdTasks.push(
         new Promise(async (resolve, reject) => {
           const writer = createWriteStream(fileSave)
           writer.once('finish', resolve)
           writer.once('error', reject)
           writer.write(`## ${root.title}\r\n`)
-          writer.write(`![${root.title}](${relative(mdFolder, fileImageSave)})\r\n`)
-          // writer.write('```mermaid\r\n')
-          // writer.write(readFileSync(root.src))
-          // writer.write('\r\n')
-          root.src = fileSave
-          // writer.write('```')
+          if (this.outputType === 'svg') {
+            // svg
+            writer.write(`![${root.title}](${relative(mdFolder, fileImageSave)})\r\n`)
+          } else {
+            // mmd
+            writer.write('```mermaid\r\n')
+            writer.write(readFileSync(fileMMDSave))
+            writer.write('\r\n')
+            writer.write('```')
+          }
           writer.end()
+          root.src = fileSave
           context.groupEnd()
-        })
-      ])
+        }))
       // Generate image
       this.addImage(fileMMDSave, fileImageSave)
     }
     const fileSave = join(this.saveTo, 'sequence.md')
     context.group(`${chalk.green('%s %s')}`, 'Sequence diagram:', fileSave)
+    // Write md file to show list sequences
     await new Promise((resolve, reject) => {
       const writer = createWriteStream(fileSave)
       writer.once('finish', resolve)
@@ -408,42 +554,51 @@ export class DocSequence extends Tag {
     })
   }
 
-  private async printClasses(_mdFolder: string, mmdFolder: string, svgFolder: string) {
+  private async printClasses(mdTasks: Promise<any>[], _mdFolder: string, mmdFolder: string, svgFolder: string) {
     if (!Comment.Classes.length) return
     const fileSave = join(this.saveTo, 'data_model.md')
     const fileMMDSave = join(mmdFolder, 'data_model.mmd')
     const fileImageSave = join(svgFolder, 'data_model.svg')
     context.group(`${chalk.green('%s %s')}`, 'Data model:', fileSave)
-    await Promise.all([
-      /// Write mmd
-      new Promise((resolve, reject) => {
-        const writer = createWriteStream(fileMMDSave)
-        writer.once('finish', resolve)
-        writer.once('error', reject)
-        writer.write('classDiagram\r\n')
-        Comment.Classes.forEach((root) => {
-          root.printClass(writer, 0, undefined)
-        })
-        writer.end()
-      }),
-      // Write md
+    // Write mmd
+    await new Promise((resolve, reject) => {
+      const writer = createWriteStream(fileMMDSave)
+      writer.once('finish', resolve)
+      writer.once('error', reject)
+      writer.write('classDiagram\r\n')
+      Comment.Classes.forEach((root) => {
+        root.printClass(writer, 0, undefined)
+      })
+      writer.end()
+    })
+    // Write md to show details later
+    mdTasks.push(
       new Promise((resolve, reject) => {
         const writer = fileSave ? createWriteStream(fileSave) : null
         writer.once('finish', resolve)
         writer.once('error', reject)
         writer.write(`## Data model\r\n`)
         writer.write(`_Data structure and relations between them in the service_\r\n`)
-        writer.write(`![Data model](${relative(this.saveTo, fileImageSave)})\r\n`)
+        if (this.outputType === 'svg') {
+          // svg
+          writer.write(`![Data model](${relative(this.saveTo, fileImageSave)})\r\n`)
+        } else {
+          // mmd
+          writer.write('```mermaid\r\n')
+          writer.write(readFileSync(fileMMDSave))
+          writer.write('\r\n')
+          writer.write('```')
+        }
         writer.end()
         this.result.clazz = fileSave
         context.groupEnd()
-      }),
-    ])
+      })
+    )
     // Generate image
     this.addImage(fileMMDSave, fileImageSave)
   }
 
-  private async printMarkdown(_mdFolder: string, _mmdFolder: string, _svgFolder: string) {
+  private async printDefaultMarkdown(_mdFolder: string, _mmdFolder: string, _svgFolder: string) {
     const fileSave = join(this.saveTo, 'README.md')
     context.group(`${chalk.green('%s %s')}`, 'Readme:', fileSave)
     await new Promise((resolve, reject) => {
@@ -752,7 +907,16 @@ export class DocSequence extends Tag {
           writer.once('finish', resolve)
           writer.once('error', reject)
           writer.write(`### System overviews\r\n`)
-          writer.write(`![System overview](${relative(this.saveTo, fileImageSave)})\r\n`)
+          if (this.outputType === 'svg') {
+            // svg
+            writer.write(`![System overview](${relative(this.saveTo, fileImageSave)})\r\n`)
+          } else {
+            // mmd
+            writer.write('```mermaid\r\n')
+            writer.write(readFileSync(fileMMDSave))
+            writer.write('\r\n')
+            writer.write('```')
+          }
           writer.end()
           context.groupEnd()
         })
@@ -768,23 +932,28 @@ export class DocSequence extends Tag {
     const svgFolder = join(this.saveTo, 'resources', 'svg')
     mkdirp.sync(mmdFolder)
     mkdirp.sync(svgFolder)
+    const mdTasks = []
     if (this.src?.length && this.totalFiles) {
       const mdFolder = join(this.saveTo, 'api_sequence_diagram')
       mkdirp.sync(mdFolder)
-      await this.printSequence(mdFolder, mmdFolder, svgFolder)
-      await this.printClasses(mdFolder, mmdFolder, svgFolder)
-      this.result.overview = await this._flowChart.printOverviewDetails(mdFolder, mmdFolder, svgFolder)
-      this.result.teleview = await this._flowChart.printOverview(mdFolder, mmdFolder, svgFolder)
+      await this.printSequence(mdTasks, mdFolder, mmdFolder, svgFolder)
+      await this.printClasses(mdTasks, mdFolder, mmdFolder, svgFolder)
+      this.result.overview = await this._flowChart.printOverviewDetails(mdTasks, mdFolder, mmdFolder, svgFolder)
+      this.result.teleview = await this._flowChart.printOverview(mdTasks, mdFolder, mmdFolder, svgFolder)
       if (this.template === 'gitlab.wiki') {
         await this.printGitlabWiki(mdFolder, mmdFolder, svgFolder)
       } else {
-        await this.printMarkdown(mdFolder, mmdFolder, svgFolder)
+        await this.printDefaultMarkdown(mdFolder, mmdFolder, svgFolder)
       }
     }
     if (this.combineOverviews?.length) {
       await this.printAllOfTeleviews(mmdFolder, svgFolder)
     }
-    await this.genImage()
+    const isGenSvg = await this.genImage()
+    if (isGenSvg) this.outputType = 'svg'
+    if (mdTasks.length) await Promise.all(mdTasks)
+    context.log('')
+    context.log(chalk.green.bold(`Output type is ".${this.outputType}"`))
   }
 
 }

@@ -30,31 +30,33 @@ _Auto generate diagrams from any file which base on comment line_
     # src: 
     # - /path1
     # - /path2
-    saveTo: ./mmd                           # Target path which includes the output document
-    # runOnNodeJS:  true                    # Set to true when could not run bin path. Only run via node command
-    # combineOverviews:                     # Combine multiple overviews to one
-    #   - .../service1/wiki/resources/mmd/overview.mmd
-    #   - .../service2/wiki/resources/mmd/overview.mmd
-    # stack: true                           # Auto generate number in sequence diagram
-    # autoNumber: true                      # Activations can be stacked for same actor
-    # space: 4                              # Set number of spaces in each steps in code. Default "null" is auto detect
-    # backgroundColor: "#FFFFFF"            # Chart background color (Not support .svg)
-    # width: 800                            # Chart width
-    # height: 600                           # Chart height
-    # config:                               # Config for mermaid
-    # cssFile: ./mermaid.css                # CSS file for the page
-    # puppeteerConfig:                      # Configuration for puppeteer
-    # showEventDetails: false               # Show all of events in overview diagram
-    # showRequestDetails: false             # Show all of requests in overview diagram
-    # fileTypes:                            # Config handle for each file types
+    saveTo: ./mmd                               # Target path which includes the output document
+    # outputType: svg                           # Generate .MD content which includes .svg file or mermaid syntax. Default is 'mmd'. Support 'svg' | 'mmd'
+    # puppeteerPath: $HOME/.config/yarn/global  # Path of folder to puppeteer module. Used when outputType is 'svg'. Default it auto detect in global npm or yarn
+        # runOnNodeJS:  true                    # Set to true when could not run bin path. Only run via node command
+        # combineOverviews:                     # Combine multiple overviews to one
+        #   - .../service1/wiki/resources/mmd/overview.mmd
+        #   - .../service2/wiki/resources/mmd/overview.mmd
+    # stack: true                               # Auto generate number in sequence diagram
+    # autoNumber: true                          # Activations can be stacked for same actor
+    # space: 4                                  # Set number of spaces in each steps in code. Default "null" is auto detect
+    # backgroundColor: "#FFFFFF"                # Chart background color (Not support .svg)
+    # width: 800                                # Chart width
+    # height: 600                               # Chart height
+    # config:                                   # Config for mermaid
+    # cssFile: ./mermaid.css                    # CSS file for the page
+    # puppeteerConfig:                          # Configuration for puppeteer
+    # showEventDetails: false                   # Show all of events in overview diagram
+    # showRequestDetails: false                 # Show all of requests in overview diagram
+    # fileTypes:                                # Config handle for each file types
     #   js:
     #     excludes: ['node_modules', 'dist'],
     #     commentTag: '///'
     #   ts:
     #     excludes: ['node_modules', 'dist'],
     #     commentTag: '///'
-    # template: gitlab.wiki                 # Auto generate folders, files to specific templates. Default is 'github'
-    # externalLinks:                        # Extra links. Example document api
+    # template: gitlab.wiki                     # Auto generate folders, files to specific templates. Default is 'github'
+    # externalLinks:                            # Extra links. Example document api
     #   - name: Public api
     #     url: api_document/public
     #   - name: Internal api

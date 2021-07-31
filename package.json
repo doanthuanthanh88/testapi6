@@ -1,6 +1,6 @@
 {
   "name": "testapi6",
-  "version": "1.2.48",
+  "version": "1.2.49",
   "description": "Test and auto export document to .md or .swagger file. Support many others tasks",
   "keywords": [
     "tool",
@@ -9,7 +9,6 @@
     "test",
     "rest",
     "debug",
-    "development",
     "dev",
     "doc",
     "uml"
@@ -22,13 +21,13 @@
     "pub": "npm publish",
     "doc": "typedoc --tsconfig tsconfig.doc.json --watch",
     "build:doc": "rm -rf docs && typedoc --tsconfig tsconfig.doc.json",
-    "test": "nodemon --watch src --watch modules --ext .ts --exec 'node -r ts-node/register -r ./bin/tsconfig-paths-bootstrap.js --expose-gc --harmony --inspect src/test.ts'",
-    "start": "nodemon --watch src --watch modules --ext .ts --exec 'node -r ts-node/register -r ./bin/tsconfig-paths-bootstrap.js --expose-gc --harmony src/index.ts test/examples/crawler.yaml'",
+    "test": "npx nodemon --watch src --watch modules --ext .ts --exec 'node -r ts-node/register -r ./bin/tsconfig-paths-bootstrap.js --expose-gc --harmony --inspect src/test.ts'",
+    "start": "npx nodemon --watch src --watch modules --ext .ts --exec 'node -r ts-node/register -r ./bin/tsconfig-paths-bootstrap.js --expose-gc --harmony src/index.ts test/examples/crawler.yaml'",
     "gen:doc": "node dist ",
-    "dev": "nodemon --watch src --watch modules --ext .ts --exec 'node -r ts-node/register -r ./bin/tsconfig-paths-bootstrap.js --expose-gc --harmony --inspect src/index.ts test/examples/doc_sequence.yaml'",
-    "preview": "nodemon --watch src --watch modules --ext .ts --exec 'node -r ts-node/register -r ./bin/tsconfig-paths-bootstrap.js --expose-gc --harmony --inspect src/preview.ts test'",
-    "serve": "nodemon --watch src --watch modules --ext .ts --exec 'node -r ts-node/register -r ./bin/tsconfig-paths-bootstrap.js --expose-gc --harmony --inspect src/index.ts test/examples/mock_data.yaml'",
-    "watch": "nodemon --watch src --watch modules --ext .ts --exec 'yarn build:only && yarn doc'",
+    "dev": "npx nodemon --watch src --watch modules --ext .ts --exec 'node -r ts-node/register -r ./bin/tsconfig-paths-bootstrap.js --expose-gc --harmony --inspect src/index.ts test/examples/doc_sequence.yaml'",
+    "preview": "npx nodemon --watch src --watch modules --ext .ts --exec 'node -r ts-node/register -r ./bin/tsconfig-paths-bootstrap.js --expose-gc --harmony --inspect src/preview.ts test'",
+    "serve": "npx nodemon --watch src --watch modules --ext .ts --exec 'node -r ts-node/register -r ./bin/tsconfig-paths-bootstrap.js --expose-gc --harmony --inspect src/index.ts test/examples/mock_data.yaml'",
+    "watch": "npx nodemon --watch src --watch modules --ext .ts --exec 'yarn build:only && yarn doc'",
     "build": "yarn clean && yarn build:only",
     "build:only": "tsc && yarn build:resolve-module",
     "build:resolve-module": "node bin/tsconfig",
@@ -48,14 +47,21 @@
     "jsonschema": "^1.2.10",
     "lodash": "^4.17.11",
     "mkdirp": "^1.0.4",
-    "pako": "^1.0.11",
     "prompts": "^2.4.0",
     "to-json-schema": "^0.2.5"
   },
-  "optionalDependencies": {
+  "devDependencies": {
+    "@types/chai": "^4.2.15",
+    "@types/js-yaml": "^3.12.1",
+    "@types/lodash": "^4.14.122",
+    "@types/node": "^14.14.6",
+    "@types/to-json-schema": "^0.2.0",
+    "ts-node": "^9.1.1",
+    "typedoc": "^0.20.33",
+    "typescript": "^4.3.5",
     "puppeteer": "^10.1.0"
   },
-  "readme": "./docs/README.md",
+  "optionalDependencies": {},
   "homepage": "https://github.com/doanthuanthanh88",
   "author": {
     "name": "Đoàn Thuận Thành",
@@ -66,16 +72,8 @@
     "type": "git",
     "url": "https://github.com/doanthuanthanh88/testapi6"
   },
-  "devDependencies": {
-    "@types/chai": "^4.2.15",
-    "@types/js-yaml": "^3.12.1",
-    "@types/lodash": "^4.14.122",
-    "@types/node": "^14.14.6",
-    "@types/pako": "^1.0.1",
-    "@types/to-json-schema": "^0.2.0",
-    "nodemon": "^2.0.9",
-    "ts-node": "^9.1.1",
-    "typedoc": "^0.20.33",
-    "typescript": "^4.3.5"
+  "bugs": {
+    "url": "https://github.com/doanthuanthanh88/testapi6/issues",
+    "email": "doanthuanthanh88@gmail.com"
   }
 }

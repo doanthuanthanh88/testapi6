@@ -282,6 +282,19 @@
                     "/test.mmd"
                   ]
                 },
+                "outputType": {
+                  "type": "string",
+                  "description": "Generate .MD content which includes .svg file or mermaid syntax",
+                  "enum": [
+                    "svg",
+                    "mmd"
+                  ],
+                  "default": "mmd"
+                },
+                "puppeteerPath": {
+                  "type": "string",
+                  "description": "Path of folder to puppeteer module. Used when outputType is 'svg'. Default it auto detect in global npm or yarn"
+                },
                 "src": {
                   "type": [
                     "array",
@@ -526,41 +539,52 @@
       "additionalProperties": false,
       "properties": {
         "Require": {
-          "allOf": [
+          "oneOf": [
             {
-              "$ref": "#/definitions/defaultTags"
+              "type": "array",
+              "description": "Load modules in app",
+              "items": {
+                "type": "string"
+              }
             },
             {
-              "type": "object",
-              "description": "Dynamic load custom tags",
-              "additionalProperties": false,
-              "properties": {
-                "root": {
-                  "type": "string",
-                  "description": "Root path where modules are installed",
-                  "examples": [
-                    "yarn global add $MODULE_NAME",
-                    "/Users/$USER/.config/yarn/global/node_modules"
-                  ]
+              "allOf": [
+                {
+                  "$ref": "#/definitions/defaultTags"
                 },
-                "code": {
-                  "type": "string",
-                  "description": "Write code init here. Some global vars (Vars, Validate, ExternalLibraries, Utils, context)",
-                  "examples": [
-                    "context.log('here')"
-                  ]
-                },
-                "modules": {
-                  "type": "array",
-                  "description": "Load modules in app",
-                  "examples": [
-                    "/home/user/my-modules/dist/index.js"
-                  ],
-                  "items": {
-                    "type": "string"
+                {
+                  "type": "object",
+                  "description": "Dynamic load custom tags",
+                  "additionalProperties": false,
+                  "properties": {
+                    "root": {
+                      "type": "string",
+                      "description": "Root path where modules are installed",
+                      "examples": [
+                        "yarn global add $MODULE_NAME",
+                        "/Users/$USER/.config/yarn/global/node_modules"
+                      ]
+                    },
+                    "code": {
+                      "type": "string",
+                      "description": "Write code init here. Some global vars (Vars, Validate, ExternalLibraries, Utils, context)",
+                      "examples": [
+                        "context.log('here')"
+                      ]
+                    },
+                    "modules": {
+                      "type": "array",
+                      "description": "Load modules in app",
+                      "examples": [
+                        "/home/user/my-modules/dist/index.js"
+                      ],
+                      "items": {
+                        "type": "string"
+                      }
+                    }
                   }
                 }
-              }
+              ]
             }
           ]
         }
