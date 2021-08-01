@@ -1,8 +1,10 @@
 import { Tag } from '@/components/Tag'
 import { Testcase } from '@/components/Testcase'
 import chalk from 'chalk'
+import { existsSync } from 'fs'
 import { join } from 'path'
 import { context } from '../Context'
+import { Exec } from './external/Exec'
 import { ContentScript } from './Script'
 
 /**
@@ -57,32 +59,48 @@ export class Require extends Tag {
     return super.init(attrs, ...props)
   }
 
-  static getLibPaths(root?: string) {
+  static async getLibPaths(root?: string) {
     const libPaths = []
-    const { npm, yarn } = require('global-dirs')
-    if (root && root !== 'yarn' && root !== 'npm') {
+    if (root) {
       libPaths.push(Testcase.getPathFromRoot(root))
     }
     libPaths.push('')
-    if (!root || root === 'yarn') {
-      libPaths.push(
-        Testcase.getPathFromRoot(yarn.packages),
-        Testcase.getPathFromRoot(yarn.prefix),
-        Testcase.getPathFromRoot(yarn.binaries),
-      )
-    }
-    if (!root || root === 'npm') {
-      libPaths.push(
-        Testcase.getPathFromRoot(npm.packages),
-        Testcase.getPathFromRoot(npm.prefix),
-        Testcase.getPathFromRoot(npm.binaries),
-      )
+    if (!root) {
+      await Promise.all([
+        (async () => {
+          try {
+            const exec = new Exec()
+            exec.init({
+              slient: true,
+              args: ['npm', 'root', '-g'],
+              success: []
+            })
+            await exec.exec()
+            libPaths.push(...exec.success.map(f => f?.trim()).filter(f => f && existsSync(f)))
+          } catch (err) {
+            console.error(err)
+          }
+        })(),
+        (async () => {
+          const exec = new Exec()
+          exec.init({
+            slient: true,
+            args: ['yarn', 'global', 'dir'],
+            success: []
+          })
+          await exec.exec()
+          libPaths.push(...exec.success.map(f => {
+            f = f?.trim()
+            return f ? join(f, 'node_modules') : f
+          }).filter(f => f && existsSync(f)))
+        })()
+      ])
     }
     return libPaths
   }
 
-  static getPathGlobalModule(name: string, root?: string) {
-    const libPaths = Require.getLibPaths(root)
+  static async getPathGlobalModule(name: string, root?: string) {
+    const libPaths = await Require.getLibPaths(root)
     let modulePath = undefined
     for (const i in libPaths) {
       modulePath = join(libPaths[i], name)
@@ -97,11 +115,11 @@ export class Require extends Tag {
   async exec() {
     if (this.modules) {
       context.group('Installed external modules')
-      this.modules.forEach((p: string) => {
+      for (const p of this.modules) {
         let obj: any
         let modulePath = 'System'
         try {
-          modulePath = Require.getPathGlobalModule(p, this.root)
+          modulePath = await Require.getPathGlobalModule(p, this.root)
           obj = require(modulePath)
           for (let k in obj) {
             context.ExternalLibraries[k] = obj[k]
@@ -111,7 +129,7 @@ export class Require extends Tag {
           context.error(chalk.red(err.message))
           throw err
         }
-      })
+      }
       context.groupEnd()
     }
 

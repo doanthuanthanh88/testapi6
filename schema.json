@@ -188,8 +188,19 @@
             {
               "type": "object",
               "required": [
-                "src",
                 "saveTo"
+              ],
+              "oneOf": [
+                {
+                  "required": [
+                    "src"
+                  ]
+                },
+                {
+                  "required": [
+                    "combineOverviews"
+                  ]
+                }
               ],
               "properties": {
                 "title": {

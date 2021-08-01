@@ -22,6 +22,8 @@ export class Exec extends Tag {
   code: number
   /** Log content */
   log: string[]
+  /** Log success content */
+  success: string[]
   prc: ChildProcessWithoutNullStreams
   detached: boolean
   shell: boolean | string
@@ -53,7 +55,7 @@ export class Exec extends Tag {
     return new Promise((resolve) => {
       if (!this.slient) this.prc.on('message', msg => this.onMessage(msg))
       this.prc.on('error', err => this.onError(err))
-      if (!this.slient) this.prc.stdout.on('data', msg => this.onMessage(msg))
+      this.prc.stdout.on('data', msg => this.onMessage(msg))
       this.prc.stderr.on('data', err => this.onError(err))
       this.prc.on('close', code => {
         this.onDone(code)
@@ -63,8 +65,10 @@ export class Exec extends Tag {
   }
 
   onMessage(msg: any) {
-    this.log?.push(msg.toString())
-    if (!this.slient) context.log(msg.toString())
+    msg = msg?.toString()
+    this.log?.push(msg)
+    this.success?.push(msg)
+    if (!this.slient) context.log(msg)
   }
 
   onError(msg: any) {
