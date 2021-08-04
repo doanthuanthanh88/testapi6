@@ -32,16 +32,14 @@
         args:
           - ${$.response.data}
           - 328
+# Write document base on static data
 - Get:
     title: Test fake data
     url: http://localhost/test
     docs:
-      md:
-        tags:
-          - TEST
-      swagger:
-        tags:
-          - TEST
+      tags:
+        - TEST
+      deprecated: true
     response:
       status: 200
       headers:
@@ -54,8 +52,8 @@
     steps:
       - DocSwagger:
           saveTo: test.swagger.yaml # Swagger ouput file
-          headers: [] # Only expose these request headers
-          responseHeaders: ["content-type"] # Only expose these response headers
+          allowHeaders: [] # Only expose these request headers
+          allowResponseHeaders: ["content-type"] # Only expose these response headers
           raw: # Overide OpenAPI properties
             components:
               securitySchemes:
@@ -75,5 +73,5 @@
                   in: header
       - DocMarkdown:
           saveTo: test.md # Markdown ouput file
-          headers: [] # Only expose these request headers
-          responseHeaders: ["content-type"] # Only expose these response headers
+          allowHeaders: [] # Only expose these request headers
+          allowResponseHeaders: ["content-type"] # Only expose these response headers

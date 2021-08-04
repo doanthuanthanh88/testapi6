@@ -418,7 +418,8 @@ export class Api extends Tag {
         return `${self.baseURL}${this.url}`
       },
       fullPathQuery(isEncode: boolean) {
-        return `${this.url}${stringify(self.query as any, undefined, undefined, isEncode ? undefined : { encodeURIComponent: str => str })}`
+        const q = stringify(self.query as any, undefined, undefined, isEncode ? undefined : { encodeURIComponent: str => str })
+        return `${this.url}${q ? `?${q}` : ''}`
       },
       fullUrlQuery(isEncode: boolean) {
         return `${self.baseURL}${this.fullPathQuery(isEncode)}`
@@ -551,10 +552,11 @@ export class Api extends Tag {
       this.error = { status, statusText }
       this.error.config = { url, method, headers, params, baseURL, timeout, withCredentials, fullUrl, contentType, data }
       this.error.response = { headers: response.headers, data: response.data }
+      this.error.message = this.error.response?.data || error?.message
     } finally {
       this.time = Date.now() - begin
       context.emit('log:api:done', this)
-      if (this.var) this.setVar(this.var, this.response.data)
+      if (this.var) this.setVar(this.var, this.response?.data)
       if (!this.error) {
         if (this.validate) {
           await this.validates()
@@ -567,6 +569,7 @@ export class Api extends Tag {
   }
 
   toTestObject(baseURL?: string) {
+    const self = this
     const item = {
       id: this.index,
       name: this.title,
@@ -578,7 +581,7 @@ export class Api extends Tag {
           url: this.tc.servers[des]
         }
       }),
-      url: this._axiosData.url,
+      url: this._axiosData.fullPathQuery(false),
       headers: this.headers,
       cate: this.tc.title,
       body: {
@@ -591,28 +594,23 @@ export class Api extends Tag {
         return !(this.response?.status >= 200 && this.response?.status < 400)
       },
       // note: this.docs.md?.note,
-      response: { error: this.error, ...this.response, executionTime: this.time } as any,
-      contentType: this.headers['content-type'] || 'application/json',
+      response: { error: self.error, ...this.response, executionTime: this.time } as any,
+      contentType: this._axiosData.contentType || 'application/json',
     }
     if (item.response && Array.isArray(item.response.data)) {
       item.response.data = item.response.data.slice(0, 1)
     }
     if (item.contentType.includes('application/json')) {
       item.headers['content-type'] = 'application/json'
+      if (this.body) item.body.json = this.body
     } else if (item.contentType.includes('multipart/form-data')) {
       item.headers['content-type'] = 'multipart/form-data'
+      item.body.multipart = this.body || {}
     } else if (item.contentType.includes('text/plain')) {
       item.headers['content-type'] = 'text/plain'
+      if (this.body) item.body.text = this.body
     } else {
       item.headers['content-type'] = 'application/x-www-form-urlencoded'
-    }
-    if (item.contentType === 'application/json') {
-      if (this.body) item.body.json = this.body
-    } else if (item.contentType === 'text/plain') {
-      if (this.body) item.body.text = this.body
-    } else if (item.contentType === 'multipart/form-data') {
-      item.body.multipart = this.body || {}
-    } else {
       item.body.form = this.body || {}
     }
     return item
