@@ -1,6 +1,6 @@
 {
   "name": "testapi6",
-  "version": "1.2.51",
+  "version": "1.2.52",
   "description": "Test and auto export document to .md or .swagger file. Support many others tasks",
   "keywords": [
     "tool",
@@ -28,7 +28,7 @@
     "preview": "npx nodemon --watch src --watch modules --ext .ts --exec 'node -r ts-node/register -r ./bin/tsconfig-paths-bootstrap.js --expose-gc --harmony --inspect src/preview.ts test'",
     "serve": "npx nodemon --watch src --watch modules --ext .ts --exec 'node -r ts-node/register -r ./bin/tsconfig-paths-bootstrap.js --expose-gc --harmony --inspect src/index.ts test/examples/mock_data.yaml'",
     "watch": "npx nodemon --watch src --watch modules --ext .ts --exec 'yarn build:only && yarn doc'",
-    "build": "yarn clean && yarn build:only",
+    "build": "yarn clean && yarn build:only && node bin/expose_example.js",
     "build:only": "tsc && yarn build:resolve-module",
     "build:resolve-module": "node bin/tsconfig",
     "clean": "rm -rf dist",

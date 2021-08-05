@@ -285,7 +285,7 @@ export class DocSequence extends Tag {
     if (this.outputType === 'svg') {
       try {
         try {
-          this.puppeteerPath = Require.getPathGlobalModule('puppeteer', this.puppeteerPath ? dirname(this.puppeteerPath) : undefined)
+          this.puppeteerPath = await Require.getPathGlobalModule('puppeteer', this.puppeteerPath ? dirname(this.puppeteerPath) : undefined)
           await this.genImagePuperteer()
         } catch (err) {
           context.log('')
