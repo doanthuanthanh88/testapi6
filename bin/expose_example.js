@@ -21,8 +21,8 @@ function getFiles(folder, rs) {
   return rs
 }
 
-const files = { examples: [], guide: [] }
-getFiles(join(__dirname, '../test/examples'), files.examples)
+const files = { test: [], guide: [] }
+getFiles(join(__dirname, '../test'), files.test)
 getFiles(join(__dirname, '../guide'), files.guide)
 
 writeFileSync(join(__dirname, '../test/examples.json'), JSON.stringify(files))

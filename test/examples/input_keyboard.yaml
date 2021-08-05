@@ -1,10 +1,10 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/doanthuanthanh88/testapi6/main/schema.json
 
-Group:
-  title: Get input from keyboard
-  steps:
-    - Input:
-        title: User input
-        var: userInput
+- Group:
+    title: Get input from keyboard
+    steps:
+      - Input:
+          title: User input
+          var: userInput
 
-    - Echo: ${userInput}
+      - Echo: ${userInput}
