@@ -253,13 +253,15 @@ export class Api extends Tag {
     deprecated?: boolean
     body?: any
     data?: any
+    /** Config for openapi document */
+    openapi?: Operation & { ref?: string, path?: string, method?: string }
     /** Config for markdown document */
     md?: {
       /** Group API document */
       tags?: string[]
     }
     /** Config for swagger document */
-    swagger?: Operation
+    swagger?: Operation & { ref?: string, path?: string, method?: string }
   }
 
   /** 

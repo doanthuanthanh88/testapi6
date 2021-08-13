@@ -66,11 +66,10 @@ export type TAG_KEEP = '!keep'
  */
 export type TAG_REMOVE = '!remove'
 
-
 export const SCHEMA = Schema.create([
   upload,
   remove,
-  keep
+  keep,
 ])
 
 export const Components = {
@@ -113,6 +112,9 @@ export const Components = {
   },
   get DocSequence() {
     return getComponent('DocSequence', './doc/DocSequence')
+  },
+  get DocOpenAPI() {
+    return getComponent('DocOpenAPI', './doc/DocOpenAPI')
   },
   get DocMermaid() {
     return getComponent('DocMermaid', './doc/DocMermaid')

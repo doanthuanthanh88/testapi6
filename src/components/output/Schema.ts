@@ -25,7 +25,7 @@ export class Schema extends Tag {
 
   async exec() {
     if (this.msg !== null && this.msg !== undefined) {
-      this.msg = toJsonSchema(this.msg)
+      this.msg = toJsonSchema(this.msg, false)
     }
     context.log(chalk.yellow('%j'), this.msg)
   }

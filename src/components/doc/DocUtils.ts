@@ -61,7 +61,7 @@ export function schemaToMD(schema: any, _parent?: any, level = '', msg = []) {
     for (const key in properties) {
       const prop = properties[key]
       const isRequired = required?.includes(key)
-      const sign = isRequired ? '◦ *' : '◦ '
+      const sign = isRequired ? '® ' : '◦ '
       let type = prop.enum ? `enum(${prop.enum.join(',')})` : prop.type
       if (type === 'array') {
         const details = `${(Array.isArray(prop.items) ? prop.items : [prop.items]).filter(e => e?.type).map(e => e.type).join('|')}`
@@ -73,7 +73,7 @@ export function schemaToMD(schema: any, _parent?: any, level = '', msg = []) {
       let des = ''
       if (prop.description) {
         let space = mes.replace(/./g, ' ')
-        des = prop.description.split('\n').filter(e => e).map((e, i) => `${i > 0 ? space : ''} # ${e.trim()}`).join('\n')
+        des = prop.description.split('\n').filter(e => e).map((e, i) => `${i > 0 ? space : ''} \t# ${e.trim()}`).join('\n')
       }
       msg.push(mes + des)
       if (prop.type === 'object') {
@@ -118,12 +118,14 @@ export function isGotData(obj, isCheckEmptyObject = true) {
   return true
 }
 
-export function toJsonSchema(data = null, opts = {
+export function toJsonSchema(data = null, isSetExample = true, opts = {
   objects: { additionalProperties: false },
   arrays: { mode: 'first' },
   strings: { detectFormat: false },
   // required: true
 }) {
   const convert = require('to-json-schema')
-  return convert(mergeData(data), opts)
+  const obj = convert(mergeData(data), opts)
+  if (isSetExample) obj.example = data
+  return obj
 }

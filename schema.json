@@ -19,6 +19,9 @@
       "items": {
         "anyOf": [
           {
+            "$ref": "#/definitions/DocOpenAPI"
+          },
+          {
             "$ref": "#/definitions/DocSequence"
           },
           {
@@ -983,6 +986,7 @@
       "additionalProperties": false,
       "properties": {
         "DocSwagger": {
+          "description": "Deprecated! Should use DocOpenAPI",
           "allOf": [
             {
               "$ref": "#/definitions/defaultTags"
@@ -994,6 +998,11 @@
               ],
               "description": "Document this to swagger file",
               "properties": {
+                "convertToMarkdown": {
+                  "description": "Auto convert swagger file to markdown file",
+                  "type": "boolean",
+                  "default": false
+                },
                 "allowResponseHeaders": {
                   "description": "Only doc these response headers",
                   "type": "array",
@@ -1023,11 +1032,73 @@
         }
       }
     },
+    "DocOpenAPI": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "DocOpenAPI": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/defaultTags"
+            },
+            {
+              "type": "object",
+              "required": [
+                "saveTo"
+              ],
+              "description": "Document this to swagger file",
+              "properties": {
+                "allowResponseHeaders": {
+                  "description": "Only doc these response headers",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "allowHeaders": {
+                  "description": "Only doc these request headers",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "openapi": {
+                  "description": "Raw data of swagger Open API",
+                  "required": [],
+                  "$ref": "https://raw.githubusercontent.com/OAI/OpenAPI-Specification/master/schemas/v3.0/schema.json#"
+                },
+                "saveTo": {
+                  "type": "object",
+                  "description": "Target files",
+                  "properties": {
+                    "markdown": {
+                      "type": "string",
+                      "description": "Markdown document file path",
+                      "examples": [
+                        "./api-document.md"
+                      ]
+                    },
+                    "swagger": {
+                      "type": "string",
+                      "description": "Swagger document file path",
+                      "examples": [
+                        "./api-document.yaml"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
     "DocMarkdown": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "DocMarkdown": {
+          "description": "Deprecated! Should use DocOpenAPI",
           "allOf": [
             {
               "$ref": "#/definitions/defaultTags"
@@ -1477,10 +1548,45 @@
                         "uniqueItems": true
                       }
                     },
+                    "openapi": {
+                      "description": "Set openapi properties",
+                      "anyOf": [
+                        {
+                          "$ref": "https://raw.githubusercontent.com/OAI/OpenAPI-Specification/master/schemas/v3.0/schema.json#/definitions/Operation"
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "$ref": {
+                              "description": "Ref to API path in yaml file",
+                              "type": "string",
+                              "examples": [
+                                "../another_api.yaml#/paths/%2Fuser%2Fregister/post"
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    },
                     "swagger": {
                       "description": "Set swagger properties",
-                      "required": [],
-                      "$ref": "https://raw.githubusercontent.com/OAI/OpenAPI-Specification/master/schemas/v3.0/schema.json#/definitions/Operation"
+                      "anyOf": [
+                        {
+                          "$ref": "https://raw.githubusercontent.com/OAI/OpenAPI-Specification/master/schemas/v3.0/schema.json#/definitions/Operation"
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "$ref": {
+                              "description": "Ref to API path in yaml file",
+                              "type": "string",
+                              "examples": [
+                                "../another_api.yaml#/paths/%2Fuser%2Fregister/post"
+                              ]
+                            }
+                          }
+                        }
+                      ]
                     }
                   }
                 }

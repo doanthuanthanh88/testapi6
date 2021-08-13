@@ -253,10 +253,10 @@ export class DocSequence extends Tag {
               const nextOne = newOne.clone()
               if (m[3]) {
                 newOne.name = `${m[1]}>${m[5]}:${m[6]}`
-                nextOne.name = `${m[1]}<${m[5]}:${m[7] || 'Return'}`
+                nextOne.name = `${m[1]}<${m[5]}:${m[7]}`
               } else if (m[4]) {
                 newOne.name = `${m[1]}=>${m[5]}:${m[6]}`
-                nextOne.name = `${m[1]}<=${m[5]}:${m[7] || 'Return'}`
+                nextOne.name = `${m[1]}<=${m[5]}:${m[7]}`
               }
               newOne.parent.childs.push(nextOne)
               newOne = nextOne

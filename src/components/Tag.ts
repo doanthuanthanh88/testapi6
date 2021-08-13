@@ -141,6 +141,29 @@ export abstract class Tag {
     }
   }
 
+  static cleanObject(obj) {
+    if (!obj || typeof obj !== 'object') return obj
+    if (Array.isArray(obj)) {
+      obj.forEach((o, i) => {
+        if (o === null || o === undefined) {
+          delete obj[i]
+        } else {
+          Tag.cleanObject(o)
+        }
+      })
+    } else {
+      Object.keys(obj).forEach(k => {
+        const o = obj[k]
+        if (o === null || o === undefined) {
+          delete obj[k]
+        } else {
+          Tag.cleanObject(o)
+        }
+      })
+    }
+    return obj
+  }
+
   getReplaceVarsContext(scope?: any) {
     return {
       ...context.Vars,

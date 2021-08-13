@@ -19,22 +19,30 @@ export type ParameterLocation =
     in?: "path";
     style?: "matrix" | "label" | "simple";
     required: true;
+    name: string
+    example: string
     [k: string]: unknown;
   }
   | {
     in?: "query";
     style?: "form" | "spaceDelimited" | "pipeDelimited" | "deepObject";
     [k: string]: unknown;
+    name: string
+    example: string
   }
   | {
     in?: "header";
     style?: "simple";
     [k: string]: unknown;
+    name: string
+    example: string
   }
   | {
     in?: "cookie";
     style?: "form";
     [k: string]: unknown;
+    name: string
+    example: string
   };
 export type MediaType = ExampleXORExamples;
 export type Header = ExampleXORExamples & SchemaXORContent;
@@ -163,6 +171,7 @@ export interface PathItem {
   description?: string;
   servers?: Server[];
   parameters?: (Parameter | Reference)[];
+  deprecated?: boolean
 }
 /**
  * Example and examples are mutually exclusive
@@ -187,6 +196,7 @@ export interface Operation {
   description?: string;
   externalDocs?: ExternalDocumentation;
   operationId?: string;
+  example?: string
   parameters?: (Parameter | Reference)[];
   requestBody?: RequestBody | Reference;
   responses: Responses;
@@ -208,6 +218,7 @@ export interface RequestBody {
     [k: string]: MediaType;
   };
   required?: boolean;
+  example: string
   /**
    * This interface was referenced by `RequestBody`'s JSON-Schema definition
    * via the `patternProperty` "^x-".
