@@ -149,4 +149,12 @@ steps:
   ...
 ```
 
+### Support some tags
+```yaml
+!remove             # Remove item array when merge 
+!keep               # Not override item in array when merge
+!erase              # Delete field in object or item in array
+!upload             # Incase upload file
+```
+
 # [Examples](./test)

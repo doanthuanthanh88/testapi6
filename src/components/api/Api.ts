@@ -64,87 +64,6 @@ export enum Method {
   PATCH = 'PATCH',
 }
 
-// export class Query {
-//   constructor(public name: string, public value: any, public required: boolean) { }
-
-//   static ToValue(qs: { [key: string]: Query }) {
-//     return Object.keys(qs).reduce((sum, e) => {
-//       sum[e] = qs[e].value
-//       return sum
-//     }, {})
-//   }
-// }
-
-// export class URL {
-//   private static PT = /([^\$]){([^}]+)}/g
-
-//   constructor(public $: Api, public url: string, public params = {} as { [key: string]: Query }, public query = {} as { [key: string]: Query }) {
-//     for (const _k in this.params) {
-//       const vl = this.params[_k]
-//       let required = _k.includes('*')
-//       const k = _k.replace(/\*/g, '')
-//       this.params[k] = new Query(k, vl, required)
-//       if (required) delete this.params[_k]
-//     }
-
-//     this.url = url.replace(/\*/g, '').replace(URL.PT, `$1$\{$params.$2\}`)
-//   }
-
-//   async prepare() {
-//     this.url = this.$.replaceVars(this.url, {
-//       $params: this.toParams()
-//     }, undefined)
-//     this.url = this.$.replaceVars(this.url, {
-//       ...context.Vars,
-//       Vars: context.Vars,
-//       $: this.$,
-//       $$: this.$.$$,
-//       Utils: context.Utils,
-//       Result: context.Result
-//     }, undefined)
-
-//     const [_url, queries = ''] = this.url.split('?')
-//     this.url = _url
-
-//     const q = Object.assign(parse(queries), this.query)
-//     for (const _k in q) {
-//       const vl = q[_k]
-//       const required = _k.includes('*')
-//       const k = _k.replace(/\*/g, '')
-//       this.query[k] = new Query(k, vl, required)
-//       if (required) delete this.query[_k]
-//     }
-//   }
-
-//   toQuery() {
-//     const rs = Object.keys(this.query || {}).reduce((sum, k) => {
-//       sum[k] = this.query[k].value
-//       return sum
-//     }, {})
-//     return rs
-//   }
-
-//   toParams() {
-//     const rs = Object.keys(this.params || {}).reduce((sum, k) => {
-//       sum[k] = this.params[k].value
-//       return sum
-//     }, {})
-//     return rs
-//   }
-
-//   getQueryString(isEncode = true) {
-//     const qr = stringify(this.$.query as any, undefined, undefined, isEncode ? undefined : { encodeURIComponent: str => str })
-//     return qr ? `?${qr}` : ''
-//   }
-
-//   getUrlJoinQuery() {
-//     if (Object.keys(this.query || {}).length) {
-//       return `${this.url}${this.getQueryString()}`
-//     }
-//     return this.url
-//   }
-// }
-
 /**
  * Http request
  * 
@@ -310,6 +229,7 @@ export class Api extends Tag {
     if (!this.debug) this.debug = this.tc?.debug
     if (!this.method) this.method = Method.GET
     if (!this.headers) this.headers = {}
+    this.headers = merge({ 'content-type': 'application/json' }, this.headers)
   }
 
   async prepare() {
@@ -328,6 +248,19 @@ export class Api extends Tag {
         if (!this.docs) this.docs = {}
         if (!this.docs.query) this.docs.query = {}
         mergeWith(this.docs.query, docs, (target, src) => {
+          if (Array.isArray(target)) {
+            return Array.from(new Set([...target, ...src]))
+          }
+        })
+      }
+    }
+
+    if (this.headers) {
+      const docs = getDocType(this.headers)
+      if (this.docs) {
+        if (!this.docs) this.docs = {}
+        if (!this.docs.headers) this.docs.headers = {}
+        mergeWith(this.docs.headers, docs, (target, src) => {
           if (Array.isArray(target)) {
             return Array.from(new Set([...target, ...src]))
           }
@@ -427,7 +360,7 @@ export class Api extends Tag {
         return `${self.baseURL}${this.fullPathQuery(isEncode)}`
       },
       params: this.query,
-      headers: merge({ 'content-type': 'application/json' }, this.headers),
+      headers: this.headers,
       get contentType() {
         return this.headers['content-type'] || this.headers['Content-Type']
       }
@@ -641,7 +574,7 @@ export class Api extends Tag {
         return sum
       }, {}),
       body: this.body,
-      url: this._axiosData.fullPathQuery(true)
+      url: this._axiosData.fullUrlQuery(true)
     })
   }
 

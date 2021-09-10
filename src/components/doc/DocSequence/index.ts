@@ -222,41 +222,51 @@ export class DocSequence extends Tag {
           // newOne.root = cur.root
           const level = newOne.getLevel(cur)
           if (level === 'child') {
-            let empty: EMPTY = cur
-            const childLevel = (newOne.startC - cur.startC) / space.length
-            new Array(childLevel - 1).fill(null).forEach((_, i) => {
-              const newEmpty = new EMPTY('', cur.startC + (space.length * (i + 1)), empty.umlType)
-              newEmpty.parent = empty
-              newEmpty.docSequence = empty.docSequence
-              empty.childs.push(newEmpty)
-              empty = newEmpty
-              // empty.root = empty.parent.root
-            })
-            newOne.parent = empty
-            // newOne.ctx = newOne.parent.ctx
-            empty.childs.push(newOne)
+            try {
+              let empty: EMPTY = cur
+              const childLevel = (newOne.startC - cur.startC) / space.length
+              new Array(childLevel - 1).fill(null).forEach((_, i) => {
+                const newEmpty = new EMPTY('', cur.startC + (space.length * (i + 1)), empty.umlType)
+                newEmpty.parent = empty
+                newEmpty.docSequence = empty.docSequence
+                empty.childs.push(newEmpty)
+                empty = newEmpty
+                // empty.root = empty.parent.root
+              })
+              newOne.parent = empty
+              // newOne.ctx = newOne.parent.ctx
+              empty.childs.push(newOne)
+            } catch (err) {
+              context.error('Error tab in child', chalk.red(line))
+              throw err
+            }
           } else if (level === 'parent') {
-            const parentLevel = (cur.startC - newOne.startC) / space.length
-            let parent = cur.parent
-            new Array(parentLevel).fill(null).forEach(() => {
-              parent = parent.parent
-            })
-            newOne.parent = parent
-            newOne.parent.childs.push(newOne)
+            try {
+              const parentLevel = (cur.startC - newOne.startC) / space.length
+              let parent = cur.parent
+              new Array(parentLevel).fill(null).forEach(() => {
+                parent = parent.parent
+              })
+              newOne.parent = parent
+              newOne.parent.childs.push(newOne)
+            } catch (err) {
+              context.error('Error tab in parent', chalk.red(line))
+              throw err
+            }
           } else {
             newOne.parent = cur.parent
             cur.parent.childs.push(newOne)
           }
           if (newOne.name && !newOne.childs.length) {
-            const m = newOne.name.match(/^([^<]+)((<>)|(<=>))([^:]+)([^;]+);?(.*)/)
+            const m = newOne.name.match(/^([^<]+)((<>)|(<=>))([^:]+)([^;]+)(;?(.*))?/)
             if (m) {
               const nextOne = newOne.clone()
               if (m[3]) {
                 newOne.name = `${m[1]}>${m[5]}:${m[6]}`
-                nextOne.name = `${m[1]}<${m[5]}:${m[7]}`
+                nextOne.name = `${m[1]}<${m[5]}:${m[8] || 'Return'}`
               } else if (m[4]) {
                 newOne.name = `${m[1]}=>${m[5]}:${m[6]}`
-                nextOne.name = `${m[1]}<=${m[5]}:${m[7]}`
+                nextOne.name = `${m[1]}<=${m[5]}:${m[8] || 'Return'}`
               }
               newOne.parent.childs.push(nextOne)
               newOne = nextOne
@@ -773,6 +783,7 @@ export class DocSequence extends Tag {
                   const last = m.length - 1
                   cachedClassDef.add(`classDef ${m[1]} ${this._flowChart.getRectColor(m[1])}`)
                   cachedClassDef.add(`classDef ${m[last]} ${this._flowChart.getRectColor(m[last])}`)
+                  // if (m[1] !== m[last]) {
                   switch (m[2]) {
                     case '-.-':
                       cached.add(`${m[1]} -..- ${m[last]}`)
@@ -825,6 +836,7 @@ export class DocSequence extends Tag {
                       }
                       break
                   }
+                  // }
                 } else if (!line.startsWith('%% ')) {
                   cachedObjects[''].add(line)
                 }
@@ -886,15 +898,17 @@ export class DocSequence extends Tag {
               writer.write(`${objName}\r\n`)
             })
           }
-          Object.keys(cachedObjects).filter(subgraphName => subgraphName).forEach(subgraphName => {
-            if (cachedObjects[subgraphName].length > 0) {
-              writer.write(`subgraph ${subgraphName}\r\n`)
-              cachedObjects[subgraphName].forEach(objName => {
-                writer.write(`  ${objName}\r\n`)
-              })
-              writer.write(`end\r\n`)
-            }
-          })
+          Object.keys(cachedObjects)
+            .filter(subgraphName => subgraphName)
+            .forEach(subgraphName => {
+              if (cachedObjects[subgraphName].length > 0) {
+                writer.write(`subgraph ${subgraphName}\r\n`)
+                cachedObjects[subgraphName].forEach(objName => {
+                  writer.write(`  ${objName}\r\n`)
+                })
+                writer.write(`end\r\n`)
+              }
+            })
           writer.write(cached.join('\r\n'))
           writer.write('\r\n')
           writer.write(cachedLineStyles.join('\r\n'))
@@ -933,18 +947,14 @@ export class DocSequence extends Tag {
     mkdirp.sync(mmdFolder)
     mkdirp.sync(svgFolder)
     const mdTasks = []
+    let mdFolder: string
     if (this.src?.length && this.totalFiles) {
-      const mdFolder = join(this.saveTo, 'api_sequence_diagram')
+      mdFolder = join(this.saveTo, 'api_sequence_diagram')
       mkdirp.sync(mdFolder)
       await this.printSequence(mdTasks, mdFolder, mmdFolder, svgFolder)
       await this.printClasses(mdTasks, mdFolder, mmdFolder, svgFolder)
       this.result.overview = await this._flowChart.printOverviewDetails(mdTasks, mdFolder, mmdFolder, svgFolder)
       this.result.teleview = await this._flowChart.printOverview(mdTasks, mdFolder, mmdFolder, svgFolder)
-      if (this.template === 'gitlab.wiki') {
-        await this.printGitlabWiki(mdFolder, mmdFolder, svgFolder)
-      } else {
-        await this.printDefaultMarkdown(mdFolder, mmdFolder, svgFolder)
-      }
     }
     if (this.combineOverviews?.length) {
       await this.printAllOfTeleviews(mmdFolder, svgFolder)
@@ -952,6 +962,13 @@ export class DocSequence extends Tag {
     const isGenSvg = await this.genImage()
     if (isGenSvg) this.outputType = 'svg'
     if (mdTasks.length) await Promise.all(mdTasks)
+    if (mdFolder) {
+      if (this.template === 'gitlab.wiki') {
+        await this.printGitlabWiki(mdFolder, mmdFolder, svgFolder)
+      } else {
+        await this.printDefaultMarkdown(mdFolder, mmdFolder, svgFolder)
+      }
+    }
     context.log('')
     context.log(chalk.green.bold(`Output type is ".${this.outputType}"`))
   }

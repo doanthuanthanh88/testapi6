@@ -160,7 +160,7 @@ export class DocMarkdown extends OutputFile {
         details.push(`</details>`, '')
 
         details.push('```yaml')
-        details.push(schemaToMD(merge({}, toJsonSchema(reqQuery), tag.docs.query)))
+        details.push(schemaToMD({}, merge({}, toJsonSchema(reqQuery), tag.docs.query)))
         details.push('```', '')
       }
 
@@ -173,7 +173,7 @@ export class DocMarkdown extends OutputFile {
         details.push(`</details>`, '')
 
         details.push('```yaml')
-        details.push(schemaToMD(merge({}, toJsonSchema(reqHeaders), tag.docs.headers)))
+        details.push(schemaToMD({}, merge({}, toJsonSchema(reqHeaders), tag.docs.headers)))
         details.push('```', '')
       }
 
@@ -189,7 +189,7 @@ export class DocMarkdown extends OutputFile {
           details.push(`</details>`, '')
 
           details.push('```yaml')
-          details.push(schemaToMD(merge({}, toJsonSchema(tag.body), tag.docs.body)))
+          details.push(schemaToMD({}, merge({}, toJsonSchema(tag.body), tag.docs.body)))
           details.push('```', '')
         }
       }
@@ -205,7 +205,7 @@ export class DocMarkdown extends OutputFile {
           details.push(`</details>`, '')
 
           details.push('```yaml')
-          details.push(schemaToMD(merge({}, toJsonSchema(resHeaders), tag.docs.responseHeaders)))
+          details.push(schemaToMD({}, merge({}, toJsonSchema(resHeaders), tag.docs.responseHeaders)))
           details.push('```', '')
         }
 
@@ -221,7 +221,7 @@ export class DocMarkdown extends OutputFile {
 
           if (typeof tag.response.data === 'object') {
             details.push('```yaml')
-            details.push(schemaToMD(merge({}, toJsonSchema(tag.response.data), tag.docs.data)))
+            details.push(schemaToMD({}, merge({}, toJsonSchema(tag.response.data), tag.docs.data)))
             details.push('```', '')
           }
         }

@@ -269,30 +269,34 @@ export class FlowChart {
     }
     const lineStyles = new ArrayUnique()
     const subMsg = new ArrayUnique()
-    this.actors.forEach(({ subject, target, action, des }) => {
-      switch (action) {
-        case '=>':
-        case 'x>':
-          if (subMsg.add(`${subject} ---->|${des}| ${target}`)) {
-            lineStyles.push(`linkStyle ${subMsg.length - 1} ${this.lineStyle.req}`)
-          }
-          break
-        case '->':
-          if (subMsg.add(`${subject} -...->|${des}| ${target}`)) {
-            lineStyles.push(`linkStyle ${subMsg.length - 1} ${this.lineStyle.pub}`)
-          }
-          break
-        case '<-':
-          if (subMsg.add(`${subject} -...->|${des}| ${target}`)) {
-            lineStyles.push(`linkStyle ${subMsg.length - 1} ${this.lineStyle.sub}`)
-          }
-          break
-        case '>':
-        case '<':
-          if (subMsg.add(`${subject} -...- ${target}`)) {
-            lineStyles.push(`linkStyle ${subMsg.length - 1} ${this.lineStyle.call}`)
-          }
-          break
+    this.actors.forEach(({ subject, target, action, des = '' }) => {
+      if (subject !== target) {
+        let m = des.match(/^(.*?)[^A-Za-z0-9_-\s,]/)
+        if (m && m[1]) des = m[1]
+        switch (action) {
+          case '=>':
+          case 'x>':
+            if (subMsg.add(`${subject} ---->|${des}| ${target}`)) {
+              lineStyles.push(`linkStyle ${subMsg.length - 1} ${this.lineStyle.req}`)
+            }
+            break
+          case '->':
+            if (subMsg.add(`${subject} -...->|${des}| ${target}`)) {
+              lineStyles.push(`linkStyle ${subMsg.length - 1} ${this.lineStyle.pub}`)
+            }
+            break
+          case '<-':
+            if (subMsg.add(`${subject} -...->|${des}| ${target}`)) {
+              lineStyles.push(`linkStyle ${subMsg.length - 1} ${this.lineStyle.sub}`)
+            }
+            break
+          case '>':
+          case '<':
+            if (subMsg.add(`${subject} -...- ${target}`)) {
+              lineStyles.push(`linkStyle ${subMsg.length - 1} ${this.lineStyle.call}`)
+            }
+            break
+        }
       }
     })
     return msg.concat(subMsg).concat(lineStyles).join('\r\n')
@@ -397,48 +401,50 @@ export class FlowChart {
     this.actors.forEach(({ subject, target, action, subType, tarType }) => {
       if (subType === 'App') subject = this.getUpperName(this.docSequence.appName)
       if (tarType === 'App') target = this.getUpperName(this.docSequence.appName)
-      let idx: { idx: number, i: number } | undefined
-      switch (action) {
-        case '=>':
-        case 'x>':
-          idx = hasCall(subMsg, target, subject, '-->', '<-->')
-          if (!idx) {
-            if (subMsg.add(`${subject} --> ${target}`)) {
-              lineStyles.push(`linkStyle ${subMsg.length - 1} ${this.lineStyle.req}`)
+      if (subject !== target) {
+        let idx: { idx: number, i: number } | undefined
+        switch (action) {
+          case '=>':
+          case 'x>':
+            idx = hasCall(subMsg, target, subject, '-->', '<-->')
+            if (!idx) {
+              if (subMsg.add(`${subject} --> ${target}`)) {
+                lineStyles.push(`linkStyle ${subMsg.length - 1} ${this.lineStyle.req}`)
+              }
+            } else if (idx.i === 0) {
+              subMsg[idx.idx] = `${subject} <--> ${target}`
+              lineStyles[idx.idx] = `linkStyle ${idx.idx} ${this.lineStyle.req2}`
             }
-          } else if (idx.i === 0) {
-            subMsg[idx.idx] = `${subject} <--> ${target}`
-            lineStyles[idx.idx] = `linkStyle ${idx.idx} ${this.lineStyle.req2}`
-          }
-          break
-        case '->':
-          idx = hasCall(subMsg, target, subject, '-.->', '<-.->')
-          if (!idx) {
-            if (subMsg.add(`${subject} -.-> ${target}`)) {
-              lineStyles.push(`linkStyle ${subMsg.length - 1} ${this.lineStyle.pub}`)
+            break
+          case '->':
+            idx = hasCall(subMsg, target, subject, '-.->', '<-.->')
+            if (!idx) {
+              if (subMsg.add(`${subject} -.-> ${target}`)) {
+                lineStyles.push(`linkStyle ${subMsg.length - 1} ${this.lineStyle.pub}`)
+              }
+            } else if (idx.i === 0) {
+              subMsg[idx.idx] = `${subject} <-.-> ${target}`
+              lineStyles[idx.idx] = `linkStyle ${idx.idx} ${this.lineStyle.pubsub}`
             }
-          } else if (idx.i === 0) {
-            subMsg[idx.idx] = `${subject} <-.-> ${target}`
-            lineStyles[idx.idx] = `linkStyle ${idx.idx} ${this.lineStyle.pubsub}`
-          }
-          break
-        case '<-':
-          idx = hasCall(subMsg, target, subject, '-.->', '<-.->')
-          if (!idx) {
-            if (subMsg.add(`${subject} -.-> ${target}`)) {
-              lineStyles.push(`linkStyle ${subMsg.length - 1} ${this.lineStyle.sub}`)
+            break
+          case '<-':
+            idx = hasCall(subMsg, target, subject, '-.->', '<-.->')
+            if (!idx) {
+              if (subMsg.add(`${subject} -.-> ${target}`)) {
+                lineStyles.push(`linkStyle ${subMsg.length - 1} ${this.lineStyle.sub}`)
+              }
+            } else if (idx.i === 0) {
+              subMsg[idx.idx] = `${subject} <-.-> ${target}`
+              lineStyles[idx.idx] = `linkStyle ${idx.idx} ${this.lineStyle.pubsub}`
             }
-          } else if (idx.i === 0) {
-            subMsg[idx.idx] = `${subject} <-.-> ${target}`
-            lineStyles[idx.idx] = `linkStyle ${idx.idx} ${this.lineStyle.pubsub}`
-          }
-          break
-        case '>':
-        case '<':
-          if (subMsg.add(`${subject} -.- ${target}`)) {
-            lineStyles.push(`linkStyle ${subMsg.length - 1} ${this.lineStyle.call}`)
-          }
-          break
+            break
+          case '>':
+          case '<':
+            if (subMsg.add(`${subject} -.- ${target}`)) {
+              lineStyles.push(`linkStyle ${subMsg.length - 1} ${this.lineStyle.call}`)
+            }
+            break
+        }
       }
     })
     return msg.concat(subMsg).concat(lineStyles).join('\r\n')

@@ -1,16 +1,11 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/doanthuanthanh88/testapi6/main/schema.json
 
-- Require:
-    # Install: `yarn global add testapi6-grpc` or `npm install -g testapi6-grpc`
-    # root: Path to modules
-    modules:
-      - testapi6-grpc
-
+# Install: `yarn global add testapi6-grpc` or `npm install -g testapi6-grpc`
 - Group:
     title: Call to gRPC server
     steps:
       - Pause: 1000
-      - gRPC:
+      - testapi6-grpc.gRPC:
           host: 0.0.0.0
           port: 9000
           title: Test call to a gRPC server
@@ -34,5 +29,5 @@
 - Group:
     title: Document
     steps:
-      - gRPCDoc:
+      - testapi6-grpc.gRPCDoc:
           saveTo: assets/grpc_doc.md

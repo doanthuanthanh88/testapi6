@@ -1,15 +1,10 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/doanthuanthanh88/testapi6/main/schema.json
 
-- Require:
-    # Install: `yarn global add testapi6-grpc` or `npm install -g testapi6-grpc`
-    # root: Path to modules
-    modules:
-      - testapi6-grpc
-
+# Install: `yarn global add testapi6-grpc` or `npm install -g testapi6-grpc`
 - Group:
     title: Build a gRPC server to mock data
     steps:
-      - gRPCServer:
+      - testapi6-grpc.gRPCServer:
           host: 0.0.0.0
           port: 9000
           packages:

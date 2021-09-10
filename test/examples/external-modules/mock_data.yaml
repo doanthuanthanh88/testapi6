@@ -1,11 +1,6 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/doanthuanthanh88/testapi6/main/schema.json
 
-- Require:
-    # Install: `yarn global add testapi6-mockapi` or `npm install -g testapi6-mockapi`
-    # root: Path to modules
-    modules:
-      - testapi6-mockapi
-
+# Install: `yarn global add testapi6-mockapi` or `npm install -g testapi6-mockapi`
 - Group:
     title: Build mock server with HTTP scheme
     steps:
@@ -18,7 +13,7 @@
             - sh
             - -c
             - "echo '127.0.0.1 fakedns.com' >> /etc/hosts"
-      - MockApi:
+      - testapi6-mockapi.MockApi:
           title: Test service
           routers:
             - root: assets

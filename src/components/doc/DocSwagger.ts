@@ -80,28 +80,11 @@ export class DocSwagger extends OutputFile {
     }, this.raw)
     const apis = uniqBy(Testcase.APIs.filter(api => api.docs && api.title), e => `${e.method.toLowerCase()} ${e.url}`)
 
-    let isRefOthers: boolean
-
     for (const api of apis) {
       // Handle refs
-      // const refLink = api.docs.swagger?.ref
-      // if (refLink) {
-      //   isRefOthers = true
-      //   let [yamlFile, meta] = refLink.split('#')
-      //   yamlFile = Testcase.getPathFromRoot(yamlFile)
-      //   const [method, pathName] = meta.split(' ')
-      //   const yaml = load(readFileSync(yamlFile).toString()) as any
-      //   const yamlAPI = omit(yaml.paths[pathName][method], ['tags'])
-      //   RefSchema.scan(yamlFile, yamlAPI, undefined)
-      //   api.docs.swagger = merge({}, yamlAPI, api.docs.swagger)
-      //   delete api.docs.swagger?.ref
-      // } else {
-      //   const yamlAPI = api.docs.swagger
-      //   RefSchema.scan(Testcase.getPathFromRoot(Math.random() + '.yaml'), yamlAPI, undefined)
-      //   api.docs.swagger = merge({}, yamlAPI, api.docs.swagger)
-      // }
+      const isRefOthers = !!api.docs.swagger?.ref
       const yamlAPI = api.docs.swagger
-      isRefOthers = RefSchema.scan('', yamlAPI, undefined)
+      RefSchema.scan('', yamlAPI, undefined, true)
       api.docs.swagger = merge({}, yamlAPI, api.docs.swagger)
 
       // Handle default

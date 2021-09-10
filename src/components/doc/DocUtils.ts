@@ -55,21 +55,112 @@ export function applyPropsJSONSchema(obj: any, schema: any) {
   return schema
 }
 
-export function schemaToMD(schema: any, _parent?: any, level = '', msg = []) {
+export function schemaToTableMD(schemas: any, schema: any, _parent?: any, level = '', msg = []) {
+  if (level === '') {
+    msg.push('| Field | Type | Description |')
+    msg.push('| ---- | ----- | ---- |')
+  }
   const { type, properties, required } = schema
   if (type === 'object') {
     for (const key in properties) {
       const prop = properties[key]
+      let refType: string
+      if (prop.$ref) {
+        const typeNames = prop.$ref.split('/')
+        const typeName = typeNames[typeNames.length - 1]
+        if (schemas[typeName]) {
+          merge(prop, schemas[typeName])
+          refType = typeName
+        }
+      }
+      const isRequired = required?.includes(key)
+      const sign = isRequired ? ` ®` : ' '
+      const types = []
+      if (refType) {
+        types.push(`${prop.type}&lt;<a href="#${refType}">${refType}</a>&gt;`)
+      } else if (prop.type === 'array') {
+        const details = `${(Array.isArray(prop.items) ? prop.items : [prop.items])
+          .filter(e => e?.type || e?.$ref)
+          .map(prop => {
+            let refType: string
+            if (prop.$ref) {
+              const typeNames = prop.$ref.split('/')
+              const typeName = typeNames[typeNames.length - 1]
+              if (schemas[typeName]) {
+                refType = `<a href="#${typeName}">${typeName}</a>`
+              } else {
+                refType = `<a href="">unknown</a>`
+              }
+            } else {
+              refType = `<a href="">${prop.type}</a>`
+            }
+            return refType
+          })
+          .join(',')}`
+        let type = prop.type
+        if (details) {
+          type += '&lt;' + details + '&gt;'
+        }
+        types.push(`${type}`)
+      } else {
+        if (prop.enum) {
+          types.push(`enum&lt;<a href="">${prop.type}</a>&gt;`)
+        } else {
+          types.push(`<a href="">${prop.type}</a>`)
+        }
+        if (prop.enum) {
+          types.push(`<br/>${prop.enum.map(vl => ` <code>${vl}</code>`).join('<br/>')}`)
+        }
+      }
+      const type = types.join('')
+      let des = ''
+      if (prop.description) {
+        des = prop.description.split('\n').filter(e => e).map((e) => `${e.trim()}`).join('<br/>')
+      }
+      msg.push(`| ${level.replace(/ /g, '&nbsp;')} ${sign}${key} | ${type} | ${des} |`)
+      if (prop.type === 'object') {
+        if (schema !== undefined) {
+          schemaToTableMD(schemas, prop, schema, level + '    ', msg)
+        }
+      } else if (prop.type === 'array') {
+        if (prop.items !== undefined) {
+          schemaToTableMD(schemas, prop.items, prop, level + '    ', msg)
+        }
+      }
+    }
+  }
+  return msg.join('\r\n')
+}
+
+export function schemaToMD(schemas: any, schema: any, _parent?: any, level = '', msg = []) {
+  const { type, properties, required } = schema
+  if (type === 'object') {
+    for (const key in properties) {
+      const prop = properties[key]
+      let refType: string
+      if (prop.$ref) {
+        const typeNames = prop.$ref.split('/')
+        const typeName = typeNames[typeNames.length - 1]
+        if (schemas[typeName]) {
+          merge(prop, schemas[typeName])
+          refType = typeName
+        }
+      }
       const isRequired = required?.includes(key)
       const sign = isRequired ? '® ' : '◦ '
-      let type = prop.enum ? `enum(${prop.enum.join(',')})` : prop.type
+      const types = ['!']
+      if (refType) types.push(`${refType}<`)
+      types.push(`${prop.type}`)
+      if (prop.enum) types.push(`(${prop.enum.join(',')})`)
+      if (refType) types.push('>')
+      const type = types.join('')
       if (type === 'array') {
         const details = `${(Array.isArray(prop.items) ? prop.items : [prop.items]).filter(e => e?.type).map(e => e.type).join('|')}`
         if (details) {
-          type += '<' + details + '>'
+          prop.type += '<' + details + '>'
         }
       }
-      const mes = `${level}${sign}${key}: !${type} `
+      const mes = `${level}${sign}${key}: ${type} `
       let des = ''
       if (prop.description) {
         let space = mes.replace(/./g, ' ')
@@ -78,11 +169,11 @@ export function schemaToMD(schema: any, _parent?: any, level = '', msg = []) {
       msg.push(mes + des)
       if (prop.type === 'object') {
         if (schema !== undefined) {
-          schemaToMD(prop, schema, level + '  ', msg)
+          schemaToMD(schemas, prop, schema, level + '  ', msg)
         }
       } else if (prop.type === 'array') {
         if (prop.items !== undefined) {
-          schemaToMD(prop.items, prop, level + '  ', msg)
+          schemaToMD(schemas, prop.items, prop, level + '  ', msg)
         }
       }
     }
@@ -122,6 +213,11 @@ export function toJsonSchema(data = null, isSetExample = true, opts = {
   objects: { additionalProperties: false },
   arrays: { mode: 'first' },
   strings: { detectFormat: false },
+  // postProcessFnc: (type, schema, value, defaultFunc) => {
+  //   if (type === 'object' || type === 'array')
+  //     return defaultFunc(type, schema, value)
+  //   return { ...schema, example: value }
+  // }
   // required: true
 }) {
   const convert = require('to-json-schema')

@@ -1,19 +1,33 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/doanthuanthanh88/testapi6/main/schema.json
 
-- Require:
-    # Install: `yarn global add testapi6-redis` or `npm install -g testapi6-redis`
-    # root: Path to modules
-    modules:
-      - testapi6-redis
+- Group:
+    title: Declare then use later
+    steps:
+      - Require:
+          # Install: `yarn global add testapi6-redis` or `npm install -g testapi6-redis`
+          # root: Path to modules
+          modules:
+            - testapi6-redis
 
-- Redis:
-    title: Redis - local
-    connection: redis://localhost:6379
-    commands:
-      - title: Get users
-        command:
-          - get
-          - users
-        var: rs
-      - get users
-      - set users_count 1
+      - Redis:
+          title: Redis - local
+          connection: redis://localhost:6379
+          commands:
+            - title: Get users
+              command: get users
+              var: rs
+            - get users
+            - set users_count 1
+
+- Group:
+    title: Shortcut
+    steps:
+      - testapi6-redis.Redis:
+          title: Redis - local
+          connection: redis://localhost:6379
+          commands:
+            - title: Get users
+              command: get users
+              var: rs
+            - get users
+            - set users_count 1

@@ -1,6 +1,7 @@
 import { keep, remove } from '@/components/tags/array'
 import { upload } from '@/components/tags/upload'
 import { Schema } from 'js-yaml'
+import { erase } from './tags/common'
 
 /**
  * Parse file to stream
@@ -70,6 +71,7 @@ export const SCHEMA = Schema.create([
   upload,
   remove,
   keep,
+  erase,
 ])
 
 export const Components = {

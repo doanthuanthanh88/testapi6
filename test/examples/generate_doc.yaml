@@ -40,6 +40,13 @@
       tags:
         - TEST
       deprecated: true
+      openapi:
+        $ref: ../another_swagger.yaml#/paths/post/test
+        requestBody:
+          content:
+            application/x-www-form-urlencoded: !erase
+            application/json:
+              $ref: ../docs/another.yaml#/paths/%2Fpost%2Fcreate/test/requestBody/content/application%2Fx-www-form-urlencoded
     response:
       status: 200
       headers:
@@ -50,6 +57,30 @@
     title: Generate document
     description: --------------------------------------
     steps:
+      - DocOpenAPI:
+          saveTo:
+            swagger: test.swagger.yaml # Swagger ouput file
+            markdown: test.md # Markdown ouput file
+          allowHeaders: [] # Only expose these request headers
+          allowResponseHeaders: ["content-type"] # Only expose these response headers
+          openapi: # Overide OpenAPI properties
+            components:
+              securitySchemes:
+                bearerAuth:
+                  type: http
+                  scheme: bearer
+                  bearerFormat: JWT
+                bypassAuth:
+                  type: apiKey
+                  name: keyHere
+                  description: ...
+                  in: header
+                bypassAuthHeader:
+                  type: apiKey
+                  name: valueHere
+                  description: ...
+                  in: header
+      # Depreciated: Should use DocOpenAPI
       - DocSwagger:
           saveTo: test.swagger.yaml # Swagger ouput file
           allowHeaders: [] # Only expose these request headers
@@ -71,7 +102,9 @@
                   name: valueHere
                   description: ...
                   in: header
+      # Depreciated: Should use DocOpenAPI
       - DocMarkdown:
           saveTo: test.md # Markdown ouput file
           allowHeaders: [] # Only expose these request headers
           allowResponseHeaders: ["content-type"] # Only expose these response headers
+

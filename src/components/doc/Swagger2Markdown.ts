@@ -2,7 +2,7 @@ import { OpenAPI, Operation, Response } from '@/components/doc/OpenAPI3';
 import { dump } from 'js-yaml';
 import { isNaN, merge } from 'lodash';
 import { parse, stringify } from 'querystring';
-import { schemaToMD } from './DocUtils';
+import { schemaToTableMD } from './DocUtils';
 
 export class Swagger2Markdown {
   constructor(private swagger: OpenAPI, public saveTo: string) { }
@@ -26,18 +26,25 @@ export class Swagger2Markdown {
     })
   }
 
-  getValueFromSchema(schemaObject: any) {
+  getValueFromSchema(schemaObject: any, schemas: any) {
     try {
+      if (schemaObject.$ref) {
+        const typeNames = schemaObject.$ref.split('/')
+        const typeName = typeNames[typeNames.length - 1]
+        if (schemas[typeName]) {
+          merge(schemaObject, schemas[typeName])
+        }
+      }
       if (schemaObject.type === 'object') {
         const rs = {}
         for (const k in schemaObject.properties) {
-          rs[k] = this.getValueFromSchema(schemaObject.properties[k])
+          rs[k] = this.getValueFromSchema(schemaObject.properties[k], schemas)
         }
         return rs
       } else if (schemaObject.type === 'array') {
         if (schemaObject.items.type === 'object' || schemaObject.items.type === 'array') {
           const rs = []
-          rs.push(this.getValueFromSchema(schemaObject.items))
+          rs.push(this.getValueFromSchema(schemaObject.items, schemas))
           return rs
         }
         const rs = schemaObject.example
@@ -83,7 +90,9 @@ export class Swagger2Markdown {
     const rs = {
       type: 'object',
       properties: Object.keys(obj).reduce((sum, header) => {
+        const des = obj[header].description
         sum[header] = obj[header].schema
+        if (des) sum[header].description = des
         return sum
       }, {})
     }
@@ -92,8 +101,9 @@ export class Swagger2Markdown {
 
   getMarkdown() {
     let menu = []
-    const { info, servers, tags, paths } = this.swagger
+    const { info, servers, tags, paths, components = {} } = this.swagger
     const { title, description, version = '', contact } = info
+    const { schemas } = components
 
     menu.push(`# ${title}`)
     if (description) {
@@ -103,11 +113,11 @@ export class Swagger2Markdown {
     menu.push('')
     menu.push('<br/>')
     menu.push('')
-    menu.push(`Version: \`${version}\`  `)
+    menu.push(`Version \`${version}\`  `)
     if (info?.contact?.name) {
-      menu.push(`Developer: [${contact?.name}](mailto:${contact?.email})  `)
+      menu.push(`Contact [${contact?.name}](mailto:${contact?.email})  `)
     }
-    menu.push(`Last updated: \`${new Date().toString()}\``)
+    menu.push(`Updated At: \`${new Date().toString()}\``)
     menu.push('')
     menu.push('<br/>')
     menu.push('')
@@ -126,9 +136,9 @@ export class Swagger2Markdown {
     let apiIndex = {} as any
 
     const allOfAPIs = [] as { pathName: string, method: string, api: Operation }[]
-    Object.keys(paths).forEach((pathName) => {
-      Object.keys(paths[pathName]).forEach((method) => {
-        allOfAPIs.push({ pathName, method: method.toUpperCase(), api: paths[pathName][method] as Operation })
+    Object.entries(paths).forEach(([pathName, path]) => {
+      Object.entries(path).forEach(([method, api]) => {
+        allOfAPIs.push({ pathName, method: method.toUpperCase(), api: api as Operation })
       })
     })
 
@@ -162,7 +172,7 @@ export class Swagger2Markdown {
       details.push(`## <a name='${apiIndex[apiKey]}'></a>${lockIcon}${tagTitle}`)
 
       let strTag = (api.tags || []).map(tag => `\`🏷 ${tag}\` `).join(' ')
-      if (strTag) strTag = '###### ' + strTag
+      // if (strTag) strTag = '###### ' + strTag
       details.push(strTag)
 
       if (api.description) {
@@ -202,15 +212,16 @@ export class Swagger2Markdown {
         details.push('```json', JSON.stringify(reqParams.data, null, '  '), '```', '')
         details.push(`</details>`, '')
 
-        details.push('```yaml')
-        details.push(schemaToMD(this.convertHalfSchema2Schema(reqParams.schema)))
-        details.push('```', '')
+        // details.push('```yaml')
+        details.push(schemaToTableMD(schemas, this.convertHalfSchema2Schema(reqParams.schema)), '')
+        // details.push('```', '')
 
         if (reqParams.data && Object.keys(reqParams.data).length) {
           testapi6Meta.query = reqParams.data
         }
       }
 
+      // Request query
       const queries = api.parameters?.filter(parameter => parameter.in?.toLowerCase() === 'query') || []
       if (queries?.length) {
         const reqQuery = queries.reduce((sum, q: any) => {
@@ -223,9 +234,9 @@ export class Swagger2Markdown {
         details.push('```json', JSON.stringify(reqQuery.data, null, '  '), '```', '')
         details.push(`</details>`, '')
 
-        details.push('```yaml')
-        details.push(schemaToMD(this.convertHalfSchema2Schema(reqQuery.schema)))
-        details.push('```', '')
+        // details.push('```yaml')
+        details.push(schemaToTableMD(schemas, this.convertHalfSchema2Schema(reqQuery.schema)), '')
+        // details.push('```', '')
 
         if (reqQuery.data && Object.keys(reqQuery.data).length) {
           testapi6Meta.query = reqQuery.data
@@ -245,9 +256,9 @@ export class Swagger2Markdown {
         details.push('```json', JSON.stringify(reqHeaders.data, null, '  '), '```', '')
         details.push(`</details>`, '')
 
-        details.push('```yaml')
-        details.push(schemaToMD(this.convertHalfSchema2Schema(reqHeaders.schema)))
-        details.push('```', '')
+        // details.push('```yaml')
+        details.push(schemaToTableMD(schemas, this.convertHalfSchema2Schema(reqHeaders.schema)), '')
+        // details.push('```', '')
 
         if (reqHeaders.data && Object.keys(reqHeaders.data).length) {
           curlMeta.headers = reqHeaders.data
@@ -265,9 +276,9 @@ export class Swagger2Markdown {
         details.push(`<details><summary>Request Body - ${bodyType} (example)</summary>`, '')
         let requestBodyContent: any
         if (bodyType) {
-          requestBodyContent = api.requestBody.content[bodyType].example
+          requestBodyContent = api.requestBody.content[bodyType]?.example
           if (!requestBodyContent) {
-            requestBodyContent = this.getValueFromSchema(api.requestBody.content[bodyType].schema)
+            requestBodyContent = this.getValueFromSchema(api.requestBody.content[bodyType].schema, schemas || {})
           } else {
             requestBodyContent = api.requestBody.content[bodyType].example
           }
@@ -279,9 +290,9 @@ export class Swagger2Markdown {
           details.push(`</details>`, '')
         }
         if (bodyType) {
-          details.push('```yaml')
-          details.push(schemaToMD(api.requestBody.content[bodyType].schema))
-          details.push('```', '')
+          // details.push('```yaml')
+          details.push(schemaToTableMD(schemas, api.requestBody.content[bodyType].schema), '')
+          // details.push('```', '')
         }
         if (requestBodyContent) {
           curlMeta.body = testapi6Meta.body = requestBodyContent
@@ -304,38 +315,38 @@ export class Swagger2Markdown {
 
           details.push(`<details open><summary>Response Status: ${statusCode} - ${response.description}</summary>`, '')
 
-          if (response.headers && response.headers.length) {
+          if (response.headers && Object.keys(response.headers).length > 0) {
             const resHeaderData = Object.keys(response.headers).reduce((sum, name) => {
               const header = response.headers[name] as any
               sum[name] = header.schema?.example
               return sum
             }, {})
-            details.push(`<details><summary>Response Headers (example)</summary>`, '')
+            details.push(`<details><summary>↳ Response Headers (example)</summary>`, '')
             details.push('```json', JSON.stringify(resHeaderData, null, '  '), '```', '')
             details.push(`</details>`, '')
 
             const resHeaders = this.convertHalfSchema2Schema(response.headers)
-            details.push('```yaml')
-            details.push(schemaToMD(resHeaders))
-            details.push('```', '')
+            // details.push('```yaml')
+            details.push(schemaToTableMD(schemas, resHeaders), '')
+            // details.push('```', '')
           }
 
           if (response.content) {
             for (const contentType in response.content) {
-              let responseBodyContent = response.content[contentType].example as any
+              let responseBodyContent: any
+              responseBodyContent = response.content[contentType].example
               if (!responseBodyContent) {
-                responseBodyContent = this.getValueFromSchema(response.content[contentType].schema)
+                responseBodyContent = this.getValueFromSchema(response.content[contentType].schema, schemas || {})
               } else {
                 responseBodyContent = response.content[contentType].example
               }
-
-              details.push(`<details><summary>Response Data - ${contentType} (example)</summary>`, '')
+              details.push(`<details><summary>↳ Response Data - ${contentType} (example)</summary>`, '')
               details.push('```json', JSON.stringify(responseBodyContent, null, '  '), '```', '')
               details.push(`</details>`, '')
 
-              details.push('```yaml')
-              details.push(schemaToMD(response.content[contentType].schema))
-              details.push('```', '')
+              // details.push('```yaml')
+              details.push(schemaToTableMD(schemas, response.content[contentType].schema), '')
+              // details.push('```', '')
             }
           }
 
@@ -361,9 +372,25 @@ export class Swagger2Markdown {
       // menu.splice(importIndex, 0, `| No.<a name='ANCHOR_-1'></a> | List APIs | [Import](${Api.toImportLink(testItems)}) |`)
     })
 
+    const schemasMsg = ['', '## Schemas', '']
+    Object.entries(schemas || {}).forEach(([typeName, type]) => {
+      schemasMsg.push(`<details><summary><a name="${typeName}"></a>${typeName}</summary>`, '')
+      // schemasMsg.push('```yaml')
+      schemasMsg.push(schemaToTableMD(schemas, {
+        type: "object",
+        properties: {
+          [typeName]: type
+        }
+      }))
+      // schemasMsg.push('```')
+      schemasMsg.push('')
+      schemasMsg.push(`</details>`, '')
+    })
+
     return menu
       .concat(menus)
       .concat(details)
+      .concat(schemasMsg)
       .join('\n')
   }
 }

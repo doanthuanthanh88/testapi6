@@ -1048,6 +1048,13 @@
               ],
               "description": "Document this to swagger file",
               "properties": {
+                "src": {
+                  "type": "string",
+                  "description": "Swagger file (openapi) which contains \"$ref\" to other files will be replace and merge to a new swagger, md file",
+                  "examples": [
+                    "../swagger-example.yaml"
+                  ]
+                },
                 "allowResponseHeaders": {
                   "description": "Only doc these response headers",
                   "type": "array",
@@ -1065,7 +1072,23 @@
                 "openapi": {
                   "description": "Raw data of swagger Open API",
                   "required": [],
-                  "$ref": "https://raw.githubusercontent.com/OAI/OpenAPI-Specification/master/schemas/v3.0/schema.json#"
+                  "anyOf": [
+                    {
+                      "$ref": "https://raw.githubusercontent.com/OAI/OpenAPI-Specification/master/schemas/v3.0/schema.json#"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "$ref": {
+                          "description": "Auto reference this api to another api in openapi yaml file",
+                          "type": "string",
+                          "examples": [
+                            "../user-swagger.yaml#/paths/%2Fcreate%2Fuser-service/user"
+                          ]
+                        }
+                      }
+                    }
+                  ]
                 },
                 "saveTo": {
                   "type": "object",

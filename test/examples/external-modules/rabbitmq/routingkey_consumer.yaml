@@ -1,12 +1,7 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/doanthuanthanh88/testapi6/main/schema.json
 
-- Require:
-    # Install: `yarn global add testapi6-rabbitmq` or `npm install -g testapi6-rabbitmq`
-    # root: Path to modules
-    modules:
-      - testapi6-rabbitmq
-
-- RMQRoutingKeyConsumer:
+# Install: `yarn global add testapi6-rabbitmq` or `npm install -g testapi6-rabbitmq`
+- testapi6-rabbitmq.RMQRoutingKeyConsumer:
     title: Test RoutingKey Consumer
     connection: amqp://user:password@localhost
     exchanges:

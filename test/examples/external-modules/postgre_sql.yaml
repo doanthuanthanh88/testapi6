@@ -1,12 +1,7 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/doanthuanthanh88/testapi6/main/schema.json
 
-- Require:
-    # Install: `yarn global add testapi6-sql` or `npm install -g testapi6-sql`
-    # root: Path to modules
-    modules:
-      - testapi6-sql
-
-- PostgreSql:
+# Install: `yarn global add testapi6-sql` or `npm install -g testapi6-sql`
+- testapi6-sql.PostgreSql:
     title: PostgreSQL - local
     connection: postgres://root:root@localhost/mydb
     queries:

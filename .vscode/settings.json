@@ -9,7 +9,8 @@
     "yaml.customTags": [
         "!upload scalar",
         "!remove scalar",
-        "!keep scalar"
+        "!keep scalar",
+        "!erase scalar"
     ],
     "files.exclude": {
         // "**/.git": true,

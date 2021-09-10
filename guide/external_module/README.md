@@ -18,25 +18,46 @@ Example: _Install mysql external module_
   ```
 - Create a scenario file `mysql_example.yaml`
 
-```yaml
-- Require:
-  root: 
-  modules:
-    - testapi6-sql
+  - We have 2 ways to use a external module
 
-- MySql:
-    title: MySQL - local
-    connection: mysql://user:password@localhost/mydb
-    queries: 
-      - select * from users
-      - title: Get users
-        query: select * from users where name = ?
-        args: 
-          - thanh
-        var: result
+    1. Use `Require` to load external then use `MySql` tag
 
-- Echo: Result is ${result}
-```
+      ```yaml
+      - Require:
+        root: 
+        modules:
+          - testapi6-sql
+
+      - MySql:
+          title: MySQL - local
+          connection: mysql://user:password@localhost/mydb
+          queries: 
+            - select * from users
+            - title: Get users
+              query: select * from users where name = ?
+              args: 
+                - thanh
+              var: result
+
+      - Echo: Result is ${result}
+      ```
+
+    2. Use `$Module.$Tag` without `Require`
+
+      ```yaml
+      - testapi6-mysql.MySql:
+          title: MySQL - local
+          connection: mysql://user:password@localhost/mydb
+          queries: 
+            - select * from users
+            - title: Get users
+              query: select * from users where name = ?
+              args: 
+                - thanh
+              var: result
+
+      - Echo: Result is ${result}
+      ```
 
 # Some external modules
 1. [Redis](https://github.com/doanthuanthanh88/testapi6-redis): _Execute redis commands_
