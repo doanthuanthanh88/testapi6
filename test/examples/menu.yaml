@@ -1,0 +1,13 @@
+- Menu:
+    title: Menu here
+    description: Pick to do something
+    select: many
+    items:
+      - Group:
+          title: Test 01
+          steps:
+            - Echo: ok 1
+      - Group:
+          title: Test 02
+          steps:
+            - Echo: ok 2

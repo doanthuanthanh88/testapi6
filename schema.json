@@ -6,9 +6,6 @@
       "$ref": "#/definitions/Testcase"
     },
     {
-      "$ref": "#/definitions/Group"
-    },
-    {
       "$ref": "#/definitions/allOfSteps"
     }
   ],
@@ -101,6 +98,9 @@
           },
           {
             "$ref": "#/definitions/Delete"
+          },
+          {
+            "$ref": "#/definitions/Menu"
           },
           {
             "$ref": "#/definitions/Group"
@@ -1298,6 +1298,59 @@
         "Templates": {
           "$ref": "#/definitions/allOfSteps",
           "description": "Declare steps which not used to run, just extends"
+        }
+      }
+    },
+    "Menu": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Menu": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/defaultTags"
+            },
+            {
+              "type": "object",
+              "description": "Menu items",
+              "properties": {
+                "title": {
+                  "type": [
+                    "string"
+                  ],
+                  "description": "Menu title"
+                },
+                "description": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Menu description"
+                },
+                "select": {
+                  "type": "string",
+                  "default": "one",
+                  "enum": [
+                    "one",
+                    "many"
+                  ],
+                  "description": "Allow pick 1 or many items"
+                },
+                "loop": {
+                  "type": "string",
+                  "description": "Loop in object or array. (Get in menu: '$.loopKey', '$.loopValue'), Get in each steps ('$$.loopKey', '$$.loopValue')"
+                },
+                "templates": {
+                  "$ref": "#/definitions/allOfSteps",
+                  "description": "Declare steps which not used to run, just extends"
+                },
+                "items": {
+                  "$ref": "#/definitions/allOfSteps",
+                  "description": "Menu items"
+                }
+              }
+            }
+          ]
         }
       }
     },

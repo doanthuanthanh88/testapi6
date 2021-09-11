@@ -2,7 +2,7 @@ const EventEmitter = require("events")
 import { LogService } from './LogService'
 
 /// <User> User model in Database
-class User {
+export class User {
   /// id number
   id: number
   /// name string: user name 
@@ -24,16 +24,16 @@ class User {
 }
 
 /// <Room> Room model
-class Room {
+export class Room {
   /// name string: Room name
   name: string
   /// user_ids User.id[]: List user in room
-  user_ids: User.id[]
+  user_ids: number[]
   /// creator_id User.id: First user create the room
-  creator_id: User.id
+  creator_id: number
 }
 
-class HttpUser {
+export class HttpUser {
 
   /// [HttpUser.getUser]
   async getUser(id, role) {
@@ -79,7 +79,7 @@ class HttpUser {
 
   // Run with context is app
   /// [] Begin write sequence diagram from here
-  userController() {
+  async userController() {
     /// {Client} => {}: Request to run worker
     /// [workerRun]
     this.workerRun()
@@ -89,14 +89,14 @@ class HttpUser {
     /// parallel
     const [user, company] = await Promise.all([
       /// [HttpUser.getUser] Get user
-      this.getUser('case admin'),
+      this.getUser(1, 'admin'),
       /// [HttpUser.getCompany] Get company
       this.getCompany(),
     ])
 
     /// note over {Client}, {RabbitMQ}: Message over here
-    /// {Client} <= {}: Response "OK"
-    return "OK"
+    /// {Client} <= {}: Response {user: User{}, company: Company{}}
+    return { user, company }
 
   }
 

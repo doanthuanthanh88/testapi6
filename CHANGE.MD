@@ -1,4 +1,6 @@
 # Changes
+## 1.2.64
+- Add Menu tag
 ## 1.2.59
 - Support shortcut for external module.  
 Dont need declare `Require` module before use the tag.   

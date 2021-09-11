@@ -6,6 +6,7 @@ import { basename, dirname, join } from 'path';
 export class RefSchema {
   static refs = {} as { [file: string]: RefSchema }
   static ownerRefs = {} as { [key: string]: any }
+  static ownerIgnoreRefs = new Set<string>()
   static ownerRefNames = {} as { [key: string]: string }
   inputFile: string
   data: any
@@ -129,14 +130,21 @@ export class RefSchema {
         if (!RefSchema.refs[inputFile].refData[path]) {
           RefSchema.refs[inputFile].refData[path] = omit(tmp, 'tags')
           const m = path.match(/^components\/schemas\/(.+)/)
-          if (m && /[\/\[]]/.test(m[1]) && typeName) {
-            RefSchema.refs[inputFile].refData[path].title = m[1]
+          if (m && typeName) {
+            // if (/[\/\[\]]/.test(m[1])) {
+            //   debugger
+            // }
             let key = typeName
             while (RefSchema.ownerRefs[key]) {
               key += '0'
             }
             RefSchema.ownerRefs[key] = RefSchema.refs[inputFile].refData[path]
-            RefSchema.ownerRefNames[`${inputFile}:::${path}`] = `#/components/schemas/${key}`
+            if (/^[a-zA-Z0-9_-]+$/.test(m[1])) {
+              RefSchema.refs[inputFile].refData[path].title = m[1]
+              RefSchema.ownerRefNames[`${inputFile}:::${path}`] = `#/components/schemas/${key}`
+            } else {
+              RefSchema.ownerIgnoreRefs.add(key)
+            }
           }
           // RefSchema.refs[inputFile].paths.add(path)
         }

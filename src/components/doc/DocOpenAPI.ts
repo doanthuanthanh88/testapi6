@@ -350,7 +350,7 @@ export class DocOpenAPI extends Tag {
     cnt.tags = tags
 
     Object.entries(RefSchema.ownerRefs).forEach(([typeName, schemaData]) => {
-      if (!cnt.components.schemas[typeName]) {
+      if (!cnt.components.schemas[typeName] && !RefSchema.ownerIgnoreRefs.has(typeName)) {
         cnt.components.schemas[typeName] = schemaData
       }
     })

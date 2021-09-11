@@ -138,6 +138,10 @@ export const Components = {
   get Import() {
     return getComponent('Import', './Import')
   },
+  // Menu
+  get Menu() {
+    return getComponent('Menu', './menu/Menu')
+  },
   // Input
   get Input() {
     return getComponent('Input', './input/Input')

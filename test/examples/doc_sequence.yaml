@@ -21,8 +21,6 @@
     ext: [".js", ".py"] # Files extension which contains comments
     excludes: ["node_modules"] # Ignore scan files in these folders
     # space: 4
-    # theme: forest
-    # backgroundColor: red
     fileTypes:
       js:
         excludes: ["node_modules", "dist"]
@@ -32,7 +30,13 @@
         commentTag: "# /"
     # runOnNodeJS: true
     slient: true # Disabled log
-    showEventDetails: true # Show all of events in overview diagram
-    showRequestDetails: true # Show all of requests in overview diagram
+    # showEventDetails: true # Show all of events in overview diagram
+    # showRequestDetails: true # Show all of requests in overview diagram
     src: assets/doc_sequence.js # Source folder (or file) which includes the files
     saveTo: assets/seq_doc_comment # Output folder. After done, we get the README.md file in this
+    outputType: svg # Save diagram to image file or mermaid file. "svg" or "mmd"
+    theme: neutral # Theme
+    template: gitlab.wiki # Output for "github" or "gitlab.wiki"
+    externalLinks: # Add links on right menu in gitlab wiki
+      - name: Api
+        url: api_document/doc.swagger.yaml
