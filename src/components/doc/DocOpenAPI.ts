@@ -119,7 +119,11 @@ export class DocOpenAPI extends Tag {
         })
       })
     }
-
+    apis.sort((a, b) => {
+      if (a.title < b.title) { return -1 }
+      if (a.title > b.title) { return 1 }
+      return 0
+    })
     for (const api of apis) {
       const yamlAPI = api.docs.openapi
       const isRefApi = yamlAPI.$ref

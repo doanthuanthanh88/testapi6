@@ -271,7 +271,7 @@ export class FlowChart {
     const subMsg = new ArrayUnique()
     this.actors.forEach(({ subject, target, action, des = '' }) => {
       if (subject !== target) {
-        let m = des.match(/^(.*?)[^A-Za-z0-9_-\s,]/)
+        let m = des.match(/^(.*?)[^A-Za-z0-9_-\s\.,]/)
         if (m && m[1]) des = m[1]
         switch (action) {
           case '=>':

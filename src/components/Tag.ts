@@ -1,6 +1,6 @@
 import { Testcase } from "@/components/Testcase";
 import { Replacement } from "@/Replacement";
-import { cloneDeep, merge, mergeWith, omit } from "lodash";
+import { cloneDeep, isPlainObject, merge, mergeWith, omit } from "lodash";
 import { context } from "../Context";
 import { Components } from "./index";
 
@@ -17,14 +17,17 @@ export async function Import(arrs: any[], tc: Testcase) {
         throw new Error(
           `Format tag is not valid "${Object.keys(t).join(",")}"`
         );
-      let tagName = Object.keys(t)[0];
-      if (tagName.includes(".")) {
-        const idx = tagName.indexOf(".");
-        const moduleName = tagName.substr(0, idx);
-        tagName = tagName.substr(idx + 1);
-        if (moduleName) {
-          const { Require } = await import("@/components/Require");
-          await Require.loadExternalLib(undefined, moduleName);
+      let tagKey = Object.keys(t)[0];
+      let tagName = tagKey
+      if (tagKey.includes(".")) {
+        const idx = tagKey.indexOf(".");
+        tagName = tagKey.substr(idx + 1);
+        if (!context.ExternalLibraries[tagName]) {
+          const moduleName = tagKey.substr(0, idx);
+          if (moduleName) {
+            const { Require } = await import("@/components/Require");
+            await Require.loadExternalLib(undefined, moduleName);
+          }
         }
       }
       try {
@@ -32,12 +35,12 @@ export async function Import(arrs: any[], tc: Testcase) {
         if (!TagClass) {
           TagClass = context.ExternalLibraries[tagName];
           if (!TagClass) {
-            throw new Error(`Could not found the tag "${tagName}"`);
+            throw new Error(`Could not found the tag "${tagKey}"`);
           }
         }
         let tag = new TagClass() as Tag;
-        tag.init(t[tagName]);
-        let _tag = await tag.setup(tc, t[tagName]);
+        tag.init(t[tagKey]);
+        let _tag = await tag.setup(tc, t[tagKey]);
         if (_tag) tag = _tag;
         if (tag.preload) {
           await tag.prepare(tc);
@@ -56,7 +59,7 @@ export async function Import(arrs: any[], tc: Testcase) {
           tags.push(...ts.filter((e) => e));
         }
       } catch (err) {
-        err.tagName = tagName;
+        err.tagName = tagKey;
         throw err;
       }
     }
@@ -223,7 +226,10 @@ export abstract class Tag {
       this.vars = this.replaceVars(this.vars, varContext, []);
       merge(context.Vars, this.vars);
     }
-    this.replaceVars(this, varContext, ["var", "vars", "context", ...ignore]);
+    ignore.push("var", "vars", "context")
+    Object.keys(this).filter(e => /^[a-zA-Z0-9]/.test(e) && !ignore.includes(e)).forEach(key => {
+      this[key] = this.replaceVars(this[key], varContext, []);
+    })
   }
 
   beforeExec() {
@@ -241,6 +247,11 @@ export abstract class Tag {
 }
 
 export function replaceVars(obj: any, ctx = context.Vars, ignores = []) {
+  if (Array.isArray(obj)) {
+    return obj = obj.map(o => replaceVars(o, ctx, ignores))
+  } else if (typeof obj === 'object' && !isPlainObject(obj)) {
+    return obj
+  }
   ignores.push("tc", "group", "attrs", "$$", "context", "steps", "templates");
   return _replaceVars(obj, ctx, ignores);
 }
@@ -265,7 +276,7 @@ function _replaceVars(obj: any, context = {}, ignores = []) {
         delete obj[_k];
         _replaceVars(obj);
         break;
-      } else if (ignores.includes(_k) || /^[^a-zA-Z]/.test(_k)) {
+      } else if (ignores.includes(_k) || /^[^a-zA-Z0-9_]/.test(_k)) {
         continue;
       } else {
         const k = _replaceVars(_k, context, []);

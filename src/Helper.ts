@@ -1,21 +1,26 @@
+import chalk from "chalk";
 import { Command, program } from "commander";
 import { existsSync } from "fs";
 import { join } from "path";
+import { context } from "./Context";
 
 export class Helper {
   cmd: Command;
   env: any;
 
   constructor() {
+
+  }
+
+  async exec() {
     const packageJson = [
       join(__dirname, "../package.json"),
       join(__dirname, "./package.json"),
     ].find((src) => existsSync(src));
     const { version, description, name, repository } = require(packageJson);
-
-    this.cmd = program
+    this.cmd = await program
       .name(name)
-      .version(version, "", description)
+      .version(version, "-v, --version", description)
       .argument("<file>", "Scenario path or file", undefined, "index.yaml")
       .argument("[password]", "Password to decrypt scenario file")
       .option(
@@ -24,8 +29,43 @@ export class Helper {
                         + csv: key1=value1;key2=value2
                         + json: {"key1": "value1", "key2": "value2"}`
       )
-      .addHelpText("after", `More:\n  ${repository.url}`)
-      .parse(process.argv);
+      .enablePositionalOptions(true)
+      .passThroughOptions(true)
+      .showHelpAfterError(true)
+      .addHelpCommand('help [cmd]', 'Help to use external module [cmd]')
+      .addCommand(program
+        .createCommand('help')
+        .action(async (_, { args }) => {
+          const [moduleName] = args
+          const { Require } = await import("@/components/Require");
+          await Require.loadExternalLib(undefined, moduleName);
+          const { Input } = await import("@/components/input/Input");
+          const input = new Input()
+          await input.init({
+            title: `Show help`,
+            type: 'select',
+            choices: Object.keys(context.ExternalLibraries).map(key => {
+              return {
+                title: `- ${chalk.bold(key)}: ${chalk.italic(context.ExternalLibraries[key].des || '')}`,
+                value: key
+              }
+            })
+          })
+          await input.prepare()
+          await input.beforeExec()
+          const clazz = await input.exec()
+          if (context.ExternalLibraries[clazz]) {
+            if (context.ExternalLibraries[clazz].example) {
+              console.log(chalk.magenta(context.ExternalLibraries[clazz].example))
+            } else {
+              console.log(chalk.yellow('No example'))
+            }
+          }
+          process.exit(0)
+        })
+      )
+      .addHelpText("after", `More: \n  ${repository.url} `)
+      .parseAsync(process.argv)
 
     this.env = this.cmd.opts();
     if (this.env && typeof this.env === "string") {

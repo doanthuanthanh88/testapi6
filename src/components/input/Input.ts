@@ -33,7 +33,7 @@ export class Input extends Tag {
   }
 
   stop() {
-    if (this._prmpt) {
+    if (this._prmpt && this._prmpt.close) {
       this._prmpt.aborted = true
       this._prmpt.close()
     }

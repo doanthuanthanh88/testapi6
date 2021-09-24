@@ -213,12 +213,15 @@ export function toJsonSchema(data = null, isSetExample = true, opts = {
   objects: { additionalProperties: false },
   arrays: { mode: 'first' },
   strings: { detectFormat: false },
-  // postProcessFnc: (type, schema, value, defaultFunc) => {
-  //   if (type === 'object' || type === 'array')
-  //     return defaultFunc(type, schema, value)
-  //   return { ...schema, example: value }
-  // }
-  // required: true
+  postProcessFnc: (type, schema, value, defaultFunc) => {
+    if (type === 'array') {
+      if (!schema.items) {
+        schema.items = { type: 'unknown' }
+      }
+      return defaultFunc(type, schema, value)
+    }
+    return { ...schema, example: value }
+  }
 }) {
   const convert = require('to-json-schema')
   const obj = convert(mergeData(data), opts)

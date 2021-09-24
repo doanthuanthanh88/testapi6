@@ -2,6 +2,7 @@
     title: Menu here
     description: Pick to do something
     select: many
+    loop: ${!!$.value} # Index is 1, 2 ... which is picked. Start is true
     items:
       - Group:
           title: Test 01

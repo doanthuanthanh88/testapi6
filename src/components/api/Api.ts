@@ -1,5 +1,6 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, CancelTokenSource } from 'axios'
 import chalk from 'chalk'
+import { createWriteStream } from 'fs'
 import { merge, mergeWith } from 'lodash'
 import { parse, stringify } from 'querystring'
 import { URLSearchParams } from "url"
@@ -417,11 +418,12 @@ export class Api extends Tag {
   private async download(req: any) {
     this.saveTo = Testcase.getPathFromRoot(this.saveTo)
     const res = await this._axios.request({ ...req, responseType: 'stream' })
-    const { createWriteStream } = require('fs')
+    if (res?.status >= 400) throw res
     const writer = createWriteStream(this.saveTo);
     res.data.pipe(writer);
     return new Promise<AxiosResponse>((resolve, reject) => {
       writer.on('finish', () => {
+        res.data = null
         resolve(res)
       })
       writer.on('error', reject)
@@ -491,7 +493,13 @@ export class Api extends Tag {
     } finally {
       this.time = Date.now() - begin
       context.emit('log:api:done', this)
-      if (this.var) this.setVar(this.var, this.response?.data)
+      if (this.var) {
+        try {
+          this.setVar(this.var, this.response?.data)
+        } catch (err) {
+          this.error.more = err.message
+        }
+      }
       if (!this.error) {
         if (this.validate) {
           await this.validates()

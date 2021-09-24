@@ -1,7 +1,7 @@
 import { Tag } from "@/components/Tag";
 import { Testcase } from "@/components/Testcase";
 import chalk from "chalk";
-import { existsSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { join } from "path";
 import { context } from "../Context";
 import { Exec } from "./external/Exec";
@@ -140,6 +140,10 @@ export class Require extends Tag {
       try {
         modulePath = await Require.getPathGlobalModule(p, root);
         obj = require(modulePath);
+
+        const packageJson = JSON.parse(readFileSync(join(modulePath, 'package.json')).toString())
+        console.log(chalk.bold.gray(`${packageJson.name} (v${packageJson.version})`), chalk.gray.underline(packageJson.repository?.url || ''), chalk.italic.gray(`${packageJson.description || ''}`))
+        console.group()
         for (let k in obj) {
           if (context.ExternalLibraries[k]) {
             context.log(
@@ -149,12 +153,15 @@ export class Require extends Tag {
             );
           }
           context.ExternalLibraries[k] = obj[k];
-          context.log("- %s (%s)", k, modulePath);
+          context.log(chalk.gray.bold('- ' + k), chalk.italic.gray(`(${modulePath})`));
         }
+
+        console.groupEnd()
       } catch (err) {
         context.error(chalk.red(err.message));
         throw err;
       }
+
     }
   }
 

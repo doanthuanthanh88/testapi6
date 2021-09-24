@@ -1,7 +1,6 @@
 import { context } from "@/Context";
 import chalk from "chalk";
 import { Group } from "../Group";
-import { Input } from "../input/Input";
 
 /**
  * Print to screen
@@ -17,50 +16,51 @@ import { Input } from "../input/Input";
 export class Menu extends Group {
 
   private varName: string
-  private input: Input
   select: 'one' | 'many'
 
   constructor() {
     super()
     this.varName = `menu${Date.now()}`
-    this.input = new Input()
+    context.Vars[this.varName] = true
   }
 
   init(attrs: any) {
-    this.input.init({
-      title: attrs.description,
-      type: attrs.select === 'many' ? 'multiselect' : 'select',
-      choices: attrs.items.map((item, i) => {
-        const [tagName,] = Object.keys(item)
-        return {
-          title: item[tagName].title,
-          value: +i
-        }
-      }),
-      var: this.varName
-    })
     attrs.title = `⑆ ${attrs.title}`
-    attrs.steps = attrs.items
-    attrs.steps.forEach((item, i) => {
-      const [tagName,] = Object.keys(item)
-      if (attrs.select === 'many') {
-        item[tagName].disabled = `\${!${this.varName}.includes(${i})}`
-      } else {
-        item[tagName].disabled = `\${${this.varName} !== ${i}}`
-      }
-    })
+    attrs.steps = [
+      {
+        Input: {
+          title: attrs.description,
+          type: attrs.select === 'many' ? 'multiselect' : 'select',
+          choices: attrs.items.map((item, i) => {
+            const [tagName,] = Object.keys(item)
+            return {
+              title: item[tagName].title,
+              value: +i + 1
+            }
+          }),
+          var: this.varName
+        }
+      },
+      ...attrs.items.map((item, i) => {
+        const [tagName,] = Object.keys(item)
+        if (attrs.select === 'many') {
+          item[tagName].disabled = `\${!${this.varName}.includes(${+i + 1})}`
+        } else {
+          item[tagName].disabled = `\${${this.varName} !== ${+i + 1}}`
+        }
+        return item
+      })
+    ]
     delete attrs.items
     super.init(attrs)
   }
 
-  async prepare(scope?: any) {
-    context.log(chalk.cyan.bold(`${this.title}`))
-    await this.input.prepare(scope)
-    await super.prepare(scope)
+  get value() {
+    return context.Vars[this.varName]
   }
 
   async exec() {
-    await this.input.exec()
+    context.log(chalk.cyan.bold(`${this.title}`))
     context.log('', '')
     await super.exec()
   }

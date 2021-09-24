@@ -452,6 +452,11 @@ export class DocSequence extends Tag {
 
   private async printSequence(mdTasks: Promise<any>[], mdFolder: string, mmdFolder: string, svgFolder: string) {
     if (!this.roots.length) return
+    this.roots.sort((a, b) => {
+      if (a.title < b.title) { return -1 }
+      if (a.title > b.title) { return 1 }
+      return 0
+    })
     for (const root of this.roots) {
       const fileSave = join(mdFolder, root.outputName + '.md')
       const fileMMDSave = join(mmdFolder, root.outputName + '.mmd')
