@@ -1,12 +1,13 @@
 import chalk from "chalk";
-import { Command, program } from "commander";
+import { program } from "commander";
 import { existsSync } from "fs";
 import { join } from "path";
 import { context } from "./Context";
 
 export class Helper {
-  cmd: Command;
-  env: any;
+  yamlFile: string
+  password: string
+  env: any
 
   constructor() {
 
@@ -18,25 +19,30 @@ export class Helper {
       join(__dirname, "./package.json"),
     ].find((src) => existsSync(src));
     const { version, description, name, repository } = require(packageJson);
-    this.cmd = await program
+    const self = this
+    const cmd = await program
       .name(name)
-      .version(version, "-v, --version", description)
+      .description(description)
+      .version(version, "-v, --version")
       .argument("<file>", "Scenario path or file", undefined, "index.yaml")
       .argument("[password]", "Password to decrypt scenario file")
+      .enablePositionalOptions(true)
+      .passThroughOptions(true)
       .option(
         "-e, --env <csv|json>",
         `Environment variables.    
                         + csv: key1=value1;key2=value2
                         + json: {"key1": "value1", "key2": "value2"}`
       )
-      .enablePositionalOptions(true)
-      .passThroughOptions(true)
       // .showHelpAfterError(true)
       .addCommand(
         program
           .createCommand('run')
-          .description('Execute scenario file (Default)'),
-        { isDefault: true }
+          .description('Execute scenario file (Default)')
+          .action((_, cmd) => {
+            [this.yamlFile, this.password] = cmd.args
+          }),
+        { isDefault: true, hidden: true }
       )
       .addCommand(program
         .createCommand('help')
@@ -73,12 +79,12 @@ export class Helper {
       .addHelpText("after", `More: \n  ${repository.url} `)
       .parseAsync(process.argv)
 
-    this.env = this.cmd.opts();
-    if (this.env && typeof this.env === "string") {
+    self.env = cmd.opts();
+    if (self.env && typeof self.env === "string") {
       try {
-        this.env = JSON.parse(this.env);
+        self.env = JSON.parse(self.env);
       } catch {
-        this.env = this.env
+        self.env = self.env
           .trim()
           .split(";")
           .reduce((sum, e) => {

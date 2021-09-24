@@ -66,7 +66,7 @@ export class Require extends Tag {
     if (root) {
       libPaths.push(Testcase.getPathFromRoot(root));
     }
-    libPaths.push("");
+    // libPaths.push("");
     if (!root) {
       await Promise.all([
         (async () => {
