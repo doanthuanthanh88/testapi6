@@ -31,10 +31,16 @@ export class Helper {
       )
       .enablePositionalOptions(true)
       .passThroughOptions(true)
-      .showHelpAfterError(true)
-      .addHelpCommand('help [cmd]', 'Help to use external module [cmd]')
+      // .showHelpAfterError(true)
+      .addCommand(
+        program
+          .createCommand('run')
+          .description('Execute scenario file (Default)'),
+        { isDefault: true }
+      )
       .addCommand(program
         .createCommand('help')
+        .description('Show module helper')
         .action(async (_, { args }) => {
           const [moduleName] = args
           const { Require } = await import("@/components/Require");
