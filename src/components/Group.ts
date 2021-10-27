@@ -84,7 +84,7 @@ export class Group extends Tag {
 
   async prepare(scope?: any) {
     if (!this.loop) {
-      await super.prepare(scope, Group.ignores)
+      await super.prepare(scope, [...Group.ignores])
     }
   }
 
@@ -166,10 +166,18 @@ export class Group extends Tag {
           }
           throw step.error
         }
+        await this.sleep()
       } finally {
         await step.dispose()
       }
     }
+  }
+
+  async sleep() {
+    if (!this.tc.delay) return
+    return new Promise((resolve) => {
+      setTimeout(resolve, this.tc.delay)
+    })
   }
 
   async each() {

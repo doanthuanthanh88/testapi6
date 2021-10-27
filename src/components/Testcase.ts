@@ -89,6 +89,7 @@ export class Testcase {
   vars: object
   /** Keep playing when got somethings error */
   ignoreError: boolean
+  delay: number
   isTestSome: boolean
   group: Group
   error: any
@@ -113,9 +114,21 @@ export class Testcase {
     Api.Index = 0
 
     this.ram.begin = Math.round(process.memoryUsage().heapUsed / 1024 / 1024 * 100) / 100
-    const { title = '', version = '', servers = {}, endpoints = {}, developer, debug, description = '', vars, encryptPassword, ...g } = root
-    Object.assign(this, { title, version, servers, developer, debug, description, encryptPassword })
+    const { title = '', version = '', servers = {}, endpoints = {}, developer, debug, description = '', vars, encryptPassword, setups, delay, ...g } = root
+    Object.assign(this, { title, version, servers, developer, debug, description, encryptPassword, delay })
     merge(context.Vars, replaceVars(vars))
+
+    if (setups) {
+      if (!g.steps) g.steps = []
+      g.steps.splice(0, 0, {
+        Group: {
+          title: 'Setting up',
+          description: 'Setting necessary components before running...',
+          steps: setups
+        }
+      })
+    }
+
     this.group = new Group()
     this.group.init(g)
     this.group.tagName = 'Root'

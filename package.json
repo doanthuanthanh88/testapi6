@@ -1,6 +1,6 @@
 {
   "name": "testapi6",
-  "version": "1.2.72",
+  "version": "1.2.86",
   "description": "Test and auto export document to .md or .swagger file. Support many others tasks",
   "keywords": [
     "tool",
@@ -24,7 +24,7 @@
     "test": "npx nodemon --watch src --watch modules --ext .ts --exec 'node -r ts-node/register -r ./bin/tsconfig-paths-bootstrap.js --expose-gc --harmony --inspect src/test.ts'",
     "start": "npx nodemon --watch src --watch modules --ext .ts --exec 'node -r ts-node/register -r ./bin/tsconfig-paths-bootstrap.js --expose-gc --harmony src/index.ts test/examples/crawler.yaml'",
     "gen:doc": "node dist ",
-    "dev": "npx nodemon --watch src --watch modules --ext .ts --exec 'node -r ts-node/register -r ./bin/tsconfig-paths-bootstrap.js --expose-gc --harmony --inspect src/index.ts test/examples/menu.yaml'",
+    "dev": "npx nodemon --watch src --watch modules --ext .ts --exec 'node -r ts-node/register -r ./bin/tsconfig-paths-bootstrap.js --expose-gc --harmony --inspect src/index.ts test/index.yaml'",
     "preview": "npx nodemon --watch src --watch modules --ext .ts --exec 'node -r ts-node/register -r ./bin/tsconfig-paths-bootstrap.js --expose-gc --harmony --inspect src/preview.ts test'",
     "serve": "npx nodemon --watch src --watch modules --ext .ts --exec 'node -r ts-node/register -r ./bin/tsconfig-paths-bootstrap.js --expose-gc --harmony --inspect src/index.ts test/examples/mock_data.yaml'",
     "watch": "npx nodemon --watch src --watch modules --ext .ts --exec 'yarn build:only && yarn doc'",

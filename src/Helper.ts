@@ -8,6 +8,14 @@ export class Helper {
   yamlFile: string
   password: string
   env: any
+  externalModules = [
+    'testapi6-sql',
+    'testapi6-mongo',
+    'testapi6-redis',
+    'testapi6-mockapi',
+    'testapi6-grpc',
+    'testapi6-rabbitmq',
+  ]
 
   constructor() {
 
@@ -46,31 +54,51 @@ export class Helper {
       )
       .addCommand(program
         .createCommand('help')
-        .description('Show module helper')
-        .action(async (_, { args }) => {
-          const [moduleName] = args
-          const { Require } = await import("@/components/Require");
-          await Require.loadExternalLib(undefined, moduleName);
-          const { Input } = await import("@/components/input/Input");
-          const input = new Input()
-          await input.init({
-            title: `Show help`,
-            type: 'select',
-            choices: Object.keys(context.ExternalLibraries).map(key => {
-              return {
-                title: `- ${chalk.bold(key)}: ${chalk.italic(context.ExternalLibraries[key].des || '')}`,
-                value: key
-              }
+        .argument("[module_name]", "External module name")
+        .description('Show external module helper')
+        .action(async (moduleName) => {
+          // const [moduleName] = cmd.args
+          if (!moduleName) {
+            const { Input } = await import("@/components/input/Input");
+            const input = new Input()
+            await input.init({
+              title: `Standard external modules`,
+              type: 'select',
+              choices: this.externalModules.map(key => {
+                return {
+                  title: `- ${chalk.bold(key)}`,
+                  value: key
+                }
+              })
             })
-          })
-          await input.prepare()
-          await input.beforeExec()
-          const clazz = await input.exec()
-          if (context.ExternalLibraries[clazz]) {
-            if (context.ExternalLibraries[clazz].example) {
-              console.log(chalk.magenta(context.ExternalLibraries[clazz].example))
-            } else {
-              console.log(chalk.yellow('No example'))
+            await input.prepare()
+            await input.beforeExec()
+            moduleName = await input.exec()
+          }
+          if (moduleName) {
+            const { Require } = await import("@/components/Require");
+            await Require.loadExternalLib(undefined, moduleName);
+            const { Input } = await import("@/components/input/Input");
+            const input = new Input()
+            await input.init({
+              title: `Show help`,
+              type: 'select',
+              choices: Object.keys(context.ExternalLibraries).map(key => {
+                return {
+                  title: `- ${chalk.bold(key)}: ${chalk.italic(context.ExternalLibraries[key].des || '')}`,
+                  value: key
+                }
+              })
+            })
+            await input.prepare()
+            await input.beforeExec()
+            const clazz = await input.exec()
+            if (context.ExternalLibraries[clazz]) {
+              if (context.ExternalLibraries[clazz].example) {
+                console.log(chalk.magenta(context.ExternalLibraries[clazz].example))
+              } else {
+                console.log(chalk.yellow('No example'))
+              }
             }
           }
           process.exit(0)

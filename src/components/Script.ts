@@ -46,6 +46,8 @@ export class Script extends Tag {
     const { Vars, Validate, Utils } = context
     // @ts-ignore
     const Context = context
+    // @ts-ignore
+    const _ = Utils.lodash
     await eval(this.content)
   }
 }

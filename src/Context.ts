@@ -17,10 +17,9 @@ export class Context {
   Vars = {} as any
   /** Global utilities */
   Utils = {
-    /** Encrypt/Decrupt AES data */
-    crypto: {
-      /** Encrypt AES data */
-      encryptAES(text: string, salt: string) {
+    /** Encrypt AES data */
+    AES: {
+      encrypt(text: string, salt: string) {
         const crypto = require('crypto')
         const hash = crypto.createHash("sha1")
         hash.update(salt);
@@ -31,7 +30,7 @@ export class Context {
         return iv.toString('hex') + ':' + encrypted.toString('hex')
       },
       /** Decrypt AES data */
-      decryptAES(text: string, salt: string) {
+      decrypt(text: string, salt: string) {
         const crypto = require('crypto')
         const hash = crypto.createHash("sha1")
         hash.update(salt);
@@ -42,7 +41,35 @@ export class Context {
         const decipher = crypto.createDecipheriv('aes-128-cbc', key, iv)
         const decrypted = Buffer.concat([decipher.update(encryptedText), decipher.final()])
         return decrypted.toString()
+      },
+    },
+    base64: {
+      encode(txt: string) {
+        return txt && Buffer.from(txt).toString('base64')
+      },
+      decode(txt: string) {
+        return txt && Buffer.from(txt, 'base64').toString()
+      },
+    },
+    jwt(token: string) {
+      const m = token.match(/^(bearer )?(.+)/i)
+      if (m && m[2]) {
+        token = m[2].trim()
+        var base64Url = token.split('.')[1];
+        var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        var jsonPayload = decodeURIComponent(Buffer.from(base64, 'base64').toString().split('').map(function (c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        return JSON.parse(jsonPayload)
       }
+    },
+    /** Get md5 string */
+    md5(txt: string) {
+      if (txt) {
+        const crypto = require('crypto')
+        txt = crypto.createHash('md5').update(txt).digest('hex')
+      }
+      return txt
     },
     /** Format data to json */
     json(obj: any) {
@@ -54,8 +81,8 @@ export class Context {
     /** Format data to yaml */
     yaml(obj: any) {
       if (typeof obj !== null && typeof obj === 'object') {
-        const { safeDump } = require('js-yaml')
-        return safeDump(obj)
+        const { dump } = require('js-yaml')
+        return dump(obj)
       }
       return obj
     },
@@ -63,18 +90,6 @@ export class Context {
     schema(obj: any, opts: any) {
       const { toJsonSchema } = require('./components/doc/DocUtils')
       return toJsonSchema(obj, opts)
-    },
-    /** Get base64 string */
-    base64(txt: string) {
-      return txt && Buffer.from(txt).toString('base64')
-    },
-    /** Get md5 string */
-    md5(txt: string) {
-      if (txt) {
-        const crypto = require('crypto')
-        txt = crypto.createHash('md5').update(txt).digest('hex')
-      }
-      return txt
     },
     /** Show sign number */
     sign(vl: string | number) {

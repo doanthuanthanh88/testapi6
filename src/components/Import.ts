@@ -8,7 +8,7 @@ import { Testcase } from "./Testcase";
 
 export function includeComment(cnt: string) {
   return cnt.split('\n').reduce((sum, e) => {
-    const m = e.match(/^([\t|\s]*)#\s*Includes\s*:\s*(.+)/)
+    const m = e.match(/^([\t|\s]*)#\s*includes\s*:\s*(.+)/i)
     if (m) {
       const file = m[2].trim()
       const { readFileSync } = require('fs')
@@ -31,7 +31,7 @@ export function loadContent(file, encryptPassword: string, decryptPassword: stri
   const { readFileSync } = require('fs')
   let cnt = readFileSync(file, 'utf8').toString()
   if (decryptPassword) {
-    cnt = context.Utils.crypto.decryptAES(cnt, decryptPassword)
+    cnt = context.Utils.AES.decrypt(cnt, decryptPassword)
   }
   cnt = includeComment(cnt)
   const type = extname(file)
@@ -65,7 +65,7 @@ export function loadContent(file, encryptPassword: string, decryptPassword: stri
     if (encryptPassword) {
       // Generate encrypt file
       const { writeFileSync } = require('fs')
-      writeFileSync(file + (!file.endsWith('.encrypt') ? '.encrypt' : ''), context.Utils.crypto.encryptAES(cnt.replace(/^(password\s*\:.+)$/m, `# Decrypted!`), encryptPassword.toString()))
+      writeFileSync(file + (!file.endsWith('.encrypt') ? '.encrypt' : ''), context.Utils.AES.encrypt(cnt.replace(/^(password\s*\:.+)$/m, `# Decrypted!`), encryptPassword.toString()))
     }
   }
 }

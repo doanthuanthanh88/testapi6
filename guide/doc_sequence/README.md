@@ -87,6 +87,7 @@ _Auto generate diagrams from any file which base on comment line_
 1. Function
   - Default function
   - Startup function
+  - Reference sequence diagram (which relate to each others)
 2. Conditional
 3. Loop
 4. Parallel
@@ -164,6 +165,33 @@ __Client__:
 > `Context_Name`: which replaces `{}`. Default is `App` __(optional)__
 
 > `Client_Name`: which replaces `{Client}`. Default is `Client` __(optional)__
+
+3. `Reference sequence diagram` Reference sequence diagram to each others
+- Syntax:
+    ```typescript
+      /// REF Function_Name
+    ```
+  - Example:
+    ```typescript
+      /// [sayHello] This is hello function
+      function sayHello(name: string) {
+        /// REF Handle say hello in worker
+        console.log('Hello ' + name)
+      }
+
+      /// []{Worker} Handle say hello in worker
+      function handleSayHello(name: string) {
+        /// REF This is hello function
+        console.log('Hello ' + name)
+      }
+
+      @router('/get-somethings')
+      /// []{Public, Internal} Public and internal APIs
+      function clientRequestToGetSomething() {
+        /// [sayHello]
+        sayHello('thanh')
+      }
+    ```
 
 ### Actions
   - `Call a function`

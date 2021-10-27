@@ -196,8 +196,9 @@ export class DocSequence extends Tag {
         m[1] += (m[2] || '')
         const startC = m[1].length
         const cnt = m[3].trim()
-        const Clazz = Comment.getType(cnt) as typeof Comment
-        let newOne = new Clazz(cnt, startC, first?.umlType)
+        const Clazz = Comment.getSeqType(cnt) as typeof Comment
+        let newOne = new Clazz(cnt, startC, first?.umlType, cur)
+        if (newOne.ignore) continue
         newOne.docSequence = this
         if (!first || first.startC === newOne.startC || first.umlType !== newOne.umlType) {
           if (!cnt) {
@@ -226,7 +227,7 @@ export class DocSequence extends Tag {
               let empty: EMPTY = cur
               const childLevel = (newOne.startC - cur.startC) / space.length
               new Array(childLevel - 1).fill(null).forEach((_, i) => {
-                const newEmpty = new EMPTY('', cur.startC + (space.length * (i + 1)), empty.umlType)
+                const newEmpty = new EMPTY('', cur.startC + (space.length * (i + 1)), empty.umlType, empty)
                 newEmpty.parent = empty
                 newEmpty.docSequence = empty.docSequence
                 empty.childs.push(newEmpty)
@@ -543,6 +544,84 @@ export class DocSequence extends Tag {
             writer.write('\r\n')
             writer.write('```')
           }
+          // Ref document
+          if (root.mdLinks?.length) {
+            writer.write('## Reference sequence diagram\r\n')
+            let cnt = ''
+            Array.from(new Set(root.mdLinks)).forEach(link => {
+              cnt += `- [${link}](${relative(dirname(mdFolder), join(mdFolder, Testcase.toFileName(link)))})\r\n`
+            })
+            if (this.template !== 'gitlab.wiki') {
+              writer.write(cnt)
+            } else {
+              writer.write(this.removeMDInLink(cnt))
+            }
+            writer.write('\r\n')
+          }
+          // Print error code
+          let msg = []
+          let msgProps = {
+            responses: {}
+          }
+          Object.keys(root.errors)
+            .sort()
+            .forEach(status => {
+              let space = ''
+              msg.push(`- \`${status}\`: ${root.errors[status]?.message || ''}`)
+              space = '  '
+              msgProps.responses[status] = {
+                description: root.errors[status]?.message || '',
+                content: {
+                  'application/json': {
+                    schema: {
+                      oneOf: []
+                    }
+                  }
+                }
+              }
+              const schemas = msgProps.responses[status].content['application/json']
+              Object.keys(root.errors[status].details).forEach(code => {
+                root.errors[status].details[code].forEach(e => {
+                  const _msg = `${space}- \`${e.code}\` ${e.message}`
+                  if (!msg.includes(_msg)) {
+                    msg.push(_msg)
+                    const exsited = schemas.schema.oneOf.find(o => o.title === e.code)
+                    if (!exsited) {
+                      schemas.schema.oneOf.push({
+                        type: 'object',
+                        title: e.code,
+                        properties: Object.keys(e).reduce((sum, key) => {
+                          sum[key] = {
+                            description: `- ${e[key]}  `
+                          }
+                          return sum
+                        }, {})
+                      })
+                    } else {
+                      Object.keys(e).forEach((key) => {
+                        if (key !== 'code') {
+                          exsited.properties[key].description += `\r\n- ${e[key]}  `
+                        }
+                      }, {})
+                    }
+                  }
+                })
+              })
+              if (!schemas.schema.oneOf.length) {
+                schemas.schema.oneOf.sort((a, b) => a.code - b.code)
+                delete schemas.schema
+              }
+            })
+          msg = msg.flat()
+          if (msg.length) {
+            writer.write('## Error code\r\n')
+            writer.write(msg.join('\n'))
+            writer.write('\r\n')
+
+            writer.write(`\r\n<details><summary>Open API (example)</summary>\r\n`)
+            writer.write('\r\n```yaml\r\n' + context.Utils.yaml(msgProps) + '\r\n```')
+            writer.write(`\r\n</details>\r\n`)
+          }
           writer.end()
           root.src = fileSave
           context.groupEnd()
@@ -560,7 +639,7 @@ export class DocSequence extends Tag {
       writer.write(`## Sequence diagram\r\n`)
       writer.write(`_Describe business logic flows in each of APIs, workers... in the service_\r\n\r\n`)
       this.roots.forEach((root, i) => {
-        writer.write(`${i + 1}. [${root.title}](${relative(this.saveTo, root.src)})\r\n`)
+        writer.write(`${i + 1}.[${root.title}](${relative(this.saveTo, root.src)})  \r\n`)
       })
       writer.write('\r\n')
       this.result.sequence = fileSave
@@ -574,7 +653,7 @@ export class DocSequence extends Tag {
     const fileSave = join(this.saveTo, 'data_model.md')
     const fileMMDSave = join(mmdFolder, 'data_model.mmd')
     const fileImageSave = join(svgFolder, 'data_model.svg')
-    context.group(`${chalk.green('%s %s')}`, 'Data model:', fileSave)
+    context.group(`${chalk.green('%s %s')}  `, 'Data model:', fileSave)
     // Write mmd
     await new Promise((resolve, reject) => {
       const writer = createWriteStream(fileMMDSave)
@@ -596,7 +675,7 @@ export class DocSequence extends Tag {
         writer.write(`_Data structure and relations between them in the service_\r\n`)
         if (this.outputType === 'svg') {
           // svg
-          writer.write(`![Data model](${relative(this.saveTo, fileImageSave)})\r\n`)
+          writer.write(`![Data model](${relative(this.saveTo, fileImageSave)})  \r\n`)
         } else {
           // mmd
           writer.write('```mermaid\r\n')
@@ -648,7 +727,7 @@ export class DocSequence extends Tag {
   private removeMDInLink(cnt: string, startAt = 0) {
     return cnt.split('\r\n')
       .filter((_, i) => i >= startAt)
-      .map(e => e.replace(/\.md\)(\r|\n)*$/m, ')'))
+      .map(e => e.replace(/\.md\)(\r|\n|\s|\))*$/m, ')  '))
       .join('\r\n')
   }
 

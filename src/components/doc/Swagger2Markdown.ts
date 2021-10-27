@@ -333,6 +333,7 @@ export class Swagger2Markdown {
 
           if (response.content) {
             for (const contentType in response.content) {
+              if (!response.content[contentType]) continue
               let responseBodyContent: any
               responseBodyContent = response.content[contentType].example
               if (!responseBodyContent) {

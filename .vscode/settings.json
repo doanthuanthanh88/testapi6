@@ -10,7 +10,8 @@
         "!upload scalar",
         "!remove scalar",
         "!keep scalar",
-        "!erase scalar"
+        "!erase scalar",
+        "!jwt scalar",
     ],
     "files.exclude": {
         // "**/.git": true,

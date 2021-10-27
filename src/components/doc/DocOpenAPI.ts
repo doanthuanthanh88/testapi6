@@ -1,5 +1,5 @@
 import { Api } from '@/components/api/Api'
-import { isGotData, toJsonSchema } from '@/components/doc/DocUtils'
+import { applyMessage, isGotData, mergeSchema, toJsonSchema } from '@/components/doc/DocUtils'
 import { OpenAPI } from '@/components/doc/OpenAPI3'
 import { OutputFile } from '@/components/output/OutputFile'
 import { Testcase } from '@/components/Testcase'
@@ -54,6 +54,8 @@ export class DocOpenAPI extends Tag {
   allowResponseHeaders: string[]
   /** Overide OpenAPI properties which system generated */
   openapi: OpenAPI
+  /** Contains message for each fields */
+  messages: { [modelName: string]: object }
 
   init(attr, ...args) {
     if (attr.saveTo?.markdown) {
@@ -164,10 +166,11 @@ export class DocOpenAPI extends Tag {
       }
       // Request params
       let keys = Object.keys(api.params || {})
-      // if (keys.length) {
-      if (api.docs?.params) {
-        RefSchema.scan(Testcase.getPathFromRoot(this.src), api.docs?.params, undefined, false)
+      if (keys.length) {
+        if (!api.docs?.params) api.docs = { params: {} }
+        api.docs.params = mergeSchema(api.params ? toJsonSchema(api.params, true, jsonSchemaOptions) : {}, api.docs.params || {})
       }
+      // if (keys.length) {
       keys = Array.from(new Set([...keys, ...Object.keys(api.docs?.params?.properties || {})]))
       for (const name of keys) {
         let old = rs.parameters?.find(e => e.name === name && e.in === 'path')
@@ -178,7 +181,7 @@ export class DocOpenAPI extends Tag {
             required: true,
             // style: 'form',
             // explode: true,
-            schema: toJsonSchema(api.params[name], true, jsonSchemaOptions)
+            schema: api.docs.params.properties[name]
           }
           rs.parameters.push(old)
         }
@@ -192,15 +195,20 @@ export class DocOpenAPI extends Tag {
             merge(old, { schema: props })
           }
         }
+        RefSchema.scan(Testcase.getPathFromRoot(this.src), old.schema, undefined, false)
+      }
+      if (api.docs?.params) {
+        applyMessage(api.docs?.params, this.messages, this.messages)
       }
       // }
 
       // Request query
       keys = Object.keys(api.query || {}).filter(e => api.query[e])
-      // if (keys.length) {
-      if (api.docs?.query) {
-        RefSchema.scan(Testcase.getPathFromRoot(this.src), api.docs?.query, undefined, false)
+      if (keys.length) {
+        if (!api.docs?.query) api.docs = { query: {} }
+        api.docs.query = mergeSchema(api.query ? toJsonSchema(api.query, true, jsonSchemaOptions) : {}, api.docs.query || {})
       }
+      // if (keys.length) {
       keys = Array.from(new Set([...keys, ...Object.keys(api.docs?.query?.properties || {})]))
       for (const name of keys) {
         let old = rs.parameters?.find(e => e.name === name && e.in === 'query')
@@ -210,7 +218,7 @@ export class DocOpenAPI extends Tag {
             name: name,
             // style: 'form',
             // explode: true,
-            schema: toJsonSchema(api.query[name], true, jsonSchemaOptions)
+            schema: api.docs.query.properties[name]
           }
           rs.parameters.push(old)
         }
@@ -224,6 +232,10 @@ export class DocOpenAPI extends Tag {
             merge(old, { schema: props })
           }
         }
+        RefSchema.scan(Testcase.getPathFromRoot(this.src), old.schema, undefined, false)
+      }
+      if (api.docs?.query) {
+        applyMessage(api.docs?.query, this.messages, this.messages)
       }
       // }
 
@@ -232,9 +244,20 @@ export class DocOpenAPI extends Tag {
       if (this.allowHeaders) {
         keys = keys.filter(e => this.allowHeaders.includes(e) && api.headers[e] !== undefined)
       }
+      if (keys.length) {
+        if (!api.docs?.headers) api.docs = { headers: {} }
+        api.docs.headers = mergeSchema(api.headers ? toJsonSchema(api.headers, true, jsonSchemaOptions) : {}, api.docs.headers || {})
+      }
       // if (keys.length) {
-      if (api.docs?.headers) {
-        RefSchema.scan(Testcase.getPathFromRoot(this.src), api.docs?.headers, undefined, false)
+      if (this.allowHeaders) {
+        const props = api.docs?.headers?.properties
+        if (props) {
+          Object.keys(props).forEach(k => {
+            if (!this.allowHeaders.includes(k)) {
+              delete props[k]
+            }
+          })
+        }
       }
       keys = Array.from(new Set([...keys, ...Object.keys(api.docs?.headers?.properties || {})]))
       for (const name of keys) {
@@ -245,7 +268,7 @@ export class DocOpenAPI extends Tag {
             name: name,
             // style: 'form',
             // explode: true,
-            schema: toJsonSchema(api.headers[name], true, jsonSchemaOptions)
+            schema: api.docs.headers.properties[name]
           }
           rs.parameters.push(old)
         }
@@ -259,16 +282,21 @@ export class DocOpenAPI extends Tag {
             merge(old, { schema: props })
           }
         }
+        RefSchema.scan(Testcase.getPathFromRoot(this.src), old.schema, undefined, false)
+      }
+      if (api.docs?.headers) {
+        applyMessage(api.docs?.headers, this.messages, this.messages)
       }
       // }
       // Request body
       if (isGotData(api.body) || api.docs.body) {
-        if (api.docs.body) {
-          RefSchema.scan(Testcase.getPathFromRoot(this.src), api.docs.body, undefined, false)
-        }
         const schema = {
-          schema: merge(api.body ? toJsonSchema(api.body, false, jsonSchemaOptions) : {}, api.docs.body || {})
+          schema: mergeSchema(api.body ? toJsonSchema(api.body, false, jsonSchemaOptions) : {}, api.docs.body || {})
         } as any
+        applyMessage(schema.schema, this.messages, this.messages)
+
+        RefSchema.scan(Testcase.getPathFromRoot(this.src), schema.schema, undefined, false)
+
         if (api.body !== undefined) {
           schema.example = api.body
         }
@@ -291,15 +319,16 @@ export class DocOpenAPI extends Tag {
 
         // Response data
         if (isGotData(api.response.data, false) || api.docs.data) {
-          let [contentType = ''] = api.response.headers['content-type']?.split(';')
+          let [contentType = ''] = (api.response.headers['content-type'] || '').split(';')
           contentType = contentType.trim()
-          if (api.docs?.data) {
-            RefSchema.scan(Testcase.getPathFromRoot(this.src), api.docs?.data, undefined, false)
-          }
           const schema = {
-            schema: merge(api.response.data ? toJsonSchema(api.response.data, true, jsonSchemaOptions) : {}, api.docs.data || {})
+            schema: mergeSchema(api.response.data ? toJsonSchema(api.response.data, true, jsonSchemaOptions) : {}, api.docs.data || {})
           } as any
           if (api.response.data !== undefined) schema.example = api.response.data
+          applyMessage(schema.schema, this.messages, this.messages)
+
+          RefSchema.scan(Testcase.getPathFromRoot(this.src), schema.schema, undefined, false)
+
           rs.responses = merge({
             [api.response.status]: {
               content: {
@@ -316,10 +345,15 @@ export class DocOpenAPI extends Tag {
         }
         keys = Array.from(new Set([...keys, ...Object.keys(api.docs?.responseHeaders?.properties || {})]))
         if (!rs.responses[api.response.status].headers) rs.responses[api.response.status].headers = {}
+        if (keys.length) {
+          if (!api.docs?.responseHeaders) api.docs = { responseHeaders: {} }
+          api.docs.responseHeaders = mergeSchema(api.docs.responseHeaders || {}, toJsonSchema(rs.responses[api.response.status].headers, true, jsonSchemaOptions))
+        }
         for (const name of keys) {
           if (!rs.responses[api.response.status].headers[name]) rs.responses[api.response.status].headers[name] = {}
           let old = rs.responses[api.response.status].headers[name]
           old.schema = toJsonSchema(api.response.headers[name], true, jsonSchemaOptions)
+          applyMessage(old.schema, this.messages, this.messages)
           if (api.docs?.responseHeaders) {
             if (api.docs.responseHeaders.required) old.required = api.docs.responseHeaders.required.includes(name)
             if (api.docs.responseHeaders.properties && api.docs.responseHeaders.properties[name]) {
@@ -381,8 +415,9 @@ export class DocOpenAPI extends Tag {
             delete method.example
             Object.entries<any>(method.responses || {}).forEach(([, code = {}]) => {
               Object.entries<any>(code.content || {}).forEach(([, contentType = {}]) => {
-                delete contentType.example
-                delete contentType.schema?.example
+                contentType
+                // delete contentType.example
+                // delete contentType.schema?.example
               })
             })
           })

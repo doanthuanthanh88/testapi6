@@ -1,8 +1,4 @@
 import { Testcase } from "@/components/Testcase";
-import { Replacement } from "@/Replacement";
-import { cloneDeep, isPlainObject, merge, mergeWith, omit } from "lodash";
-import { context } from "../Context";
-import { Components } from "./index";
 
 export const REMOVE_CHARACTER = null;
 
@@ -11,14 +7,19 @@ export const ERASE = Symbol("ERASE");
 export async function Import(arrs: any[], tc: Testcase) {
   if (arrs && arrs.length > 0) {
     const tags = [];
-    for (const t of arrs.flat().filter((e) => e)) {
+    const allTags = arrs.flat().filter((e) => e)
+    let i = 0
+    let t: any
+    while ((t = allTags[i++])) {
       //  { [tag: string]: any }
-      if (Object.keys(t).length !== 1)
+      if (Object.keys(t).length !== 1) {
         throw new Error(
           `Format tag is not valid "${Object.keys(t).join(",")}"`
-        );
+        )
+      }
       let tagKey = Object.keys(t)[0];
       let tagName = tagKey
+
       if (tagKey.includes(".")) {
         const idx = tagKey.indexOf(".");
         tagName = tagKey.substr(idx + 1);
@@ -69,7 +70,8 @@ export async function Import(arrs: any[], tc: Testcase) {
 
 export abstract class Tag {
   static Cached = new Map<string, Tag>();
-  static ignores = ["error", "tagName", "preload", "icon"];
+  static ignores = ["error", "tagName", "preload", "icon", "_"];
+  _ = {}
   $$: Tag;
   id: string;
   tc: Testcase;
@@ -225,11 +227,14 @@ export abstract class Tag {
     if (this.vars && !ignore.includes("vars")) {
       this.vars = this.replaceVars(this.vars, varContext, []);
       merge(context.Vars, this.vars);
+      merge(varContext, this.vars);
     }
     ignore.push("var", "vars", "context")
-    Object.keys(this).filter(e => /^[a-zA-Z0-9]/.test(e) && !ignore.includes(e)).forEach(key => {
-      this[key] = this.replaceVars(this[key], varContext, []);
-    })
+    Object.keys(this)
+      .filter(e => /^[a-zA-Z0-9]/.test(e) && !ignore.includes(e))
+      .forEach(key => {
+        this[key] = this.replaceVars(this[key], varContext, []);
+      })
   }
 
   beforeExec() {
@@ -245,6 +250,11 @@ export abstract class Tag {
     return replaceVars(obj, ctx, ignores);
   }
 }
+
+import { Replacement } from "@/Replacement";
+import _, { cloneDeep, isPlainObject, merge, mergeWith, omit } from "lodash";
+import { context } from "@/Context";
+import { Components } from "./index";
 
 export function replaceVars(obj: any, ctx = context.Vars, ignores = []) {
   if (Array.isArray(obj)) {
@@ -276,7 +286,7 @@ function _replaceVars(obj: any, context = {}, ignores = []) {
         delete obj[_k];
         _replaceVars(obj);
         break;
-      } else if (ignores.includes(_k) || /^[^a-zA-Z0-9_]/.test(_k)) {
+      } else if ((ignores.includes(_k) || /^[^a-zA-Z0-9_]/.test(_k)) && !_k.includes('${')) {
         continue;
       } else {
         const k = _replaceVars(_k, context, []);

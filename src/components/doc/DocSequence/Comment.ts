@@ -8,9 +8,12 @@ import { Testcase } from '@/components/Testcase'
 export class Comment {
   static Comments = new Map<string, Comment>()
   static Classes = new Array<Comment>()
+  ignore: boolean
+  id: string
   docSequence: DocSequence
   src: string
   key: string
+  mdLinks = []
   childs: Array<Comment | any>
   outputName: string
   title: string
@@ -23,6 +26,7 @@ export class Comment {
   relations: string[]
   umlType: 'sequence' | 'class'
   participants: ArrayUnique
+  errors = {}
 
   private _client: string
   private _ctx: string
@@ -79,7 +83,7 @@ export class Comment {
     return newEmpty
   }
 
-  static getType(name: string) {
+  static getSeqType(name: string) {
     const m = name.match(/^(if|else|loop|parallel|box|group)(\s+(.+))?/i)
     if (m) {
       const clazz = (m[1] || '').trim().toUpperCase()
@@ -102,15 +106,18 @@ export class Comment {
     return Comment
   }
 
-  constructor(public name: string, startC: number, firstUmlType: string) {
+  constructor(public name: string, startC: number, firstUmlType: string, parent: any) {
     this.relations = []
     this.startC = startC
     this.childs = []
     this.participants = new ArrayUnique()
     let m = this.name.match(/^\[(.*?)\]\s*(\{([^\}]+)\})?(\{([^\}]+)\})?(.*)/)
+    // [functionName?]{context1, context2} title
     if (m) {
       // template and root sequence diagram
-      this.key = m[1].trim()
+      const id = m[1].trim()
+      this.key = id
+      this.id = id
       this.umlType = 'sequence'
       const ctx = m[3]?.trim()
       if (ctx) {
@@ -136,10 +143,24 @@ export class Comment {
         }
         if (this.umlType === 'sequence') {
           // sequence diagram
-          m = this.name.match(/^(if|else|loop|parallel|box|group)(\s+(.+))?/i)
+          m = this.name.match(/^(ref)(\s+(.+))?/i)
           if (m) {
-            this.cmd = (m[1] || '').trim().toUpperCase()
-            this.name = (m[3] || '').trim()
+            const link = (m[3] || '').trim()
+            if (link) {
+              if (parent) {
+                if (!parent.mdLinks) parent.mdLinks = []
+                if (!parent.mdLinks.find(e => e === link)) {
+                  parent.mdLinks.push(link)
+                }
+              }
+            }
+            this.ignore = true
+          } else {
+            m = this.name.match(/^(if|else|loop|parallel|box|group)(\s+(.+))?/i)
+            if (m) {
+              this.cmd = (m[1] || '').trim().toUpperCase()
+              this.name = (m[3] || '').trim()
+            }
           }
         } else {
           m = this.name.match(/^\s*([^\s\:]+)([^\:]+)?(\:(.*))?/)
@@ -161,12 +182,14 @@ export class Comment {
   }
 
   init(isRoot: boolean) {
+    if (!isRoot) this.id = undefined
     if (this.umlType === 'sequence') {
       if (isRoot) {
         if (this.key) {
           const { GROUP } = require('./SeqTag')
           const gr = new GROUP(this.name, this.startC, this.umlType)
           gr.docSequence = this.docSequence
+          gr.mdLinks = this.mdLinks
           gr.init(isRoot)
           Comment.Comments.set(this.key, gr)
         } else {
@@ -278,6 +301,30 @@ export class Comment {
           txt = `${m[1]} -x ${m[3]}: ${m[4]}`
         } else if (m[2] === '<x') {
           txt = `${m[1]} x-- ${m[3]}: ${m[4]}`
+          const mthrow = m[4].match(/^\s*throws? ([^\-]+)-(.*)/i)
+          if (mthrow) {
+            let [code = '', status = ''] = (mthrow[1] || '').split('/')
+            status = status.trim()
+            code = code.trim()
+            if (!status) {
+              status = code
+              code = undefined
+            }
+            const message = (mthrow[2] || '').trim()
+            if (!this.root.errors[status]) {
+              this.root.errors[status] = {
+                details: {}
+              }
+            }
+            if (code) {
+              if (!this.root.errors[status].details[code]) {
+                this.root.errors[status].details[code] = []
+              }
+              this.root.errors[status].details[code].push({ code, message })
+            } else {
+              this.root.errors[status].message = message
+            }
+          }
         }
       } else {
         txt = `${uctx} ->> ${uctx}: ${txt}`
@@ -343,6 +390,7 @@ export class Comment {
         newOne._ctx = child._ctx
         newOne.umlType = this.umlType
         newOne.startC = child.startC
+        this.root.mdLinks.push(...child.mdLinks.concat(newOne.mdLinks))
         if (child.name) newOne.name = child.name
         newOne.prepare()
         sum.push(newOne)

@@ -16,14 +16,20 @@ import { CURLParser } from './CUrlParser'
 
 context
   .on('log:api:begin', (api: Api) => {
-    if (!api.slient && !api.depends) {
-      context.log(`${chalk.green('%s')} ${chalk.green('%s')}\t${chalk.yellow('%s')}${chalk.gray.underline('%s %s')}`, api.icon, api.title, api.docs ? '★ ' : '', api.method.toString(), api._axiosData.fullUrlQuery(false))
+    if (!api.slient) {
+      if (!api.depends) {
+        context.log(`${chalk.green('%s')} ${chalk.green('%s')}\t${chalk.yellow('%s')}${chalk.gray.underline('%s %s')}`, api.icon, api.title, api.docs ? '★ ' : '', api.method.toString(), api._axiosData.fullUrlQuery(false))
+      }
     }
   })
   .on('log:api:validate:done', (_api: Api) => {
     // Validate done
   })
   .on('log:api:done', (api: Api) => {
+    if (api.error) {
+      api.debug = 'details'
+      api.slient = false
+    }
     if (!api.slient) {
       if (!api.depends) {
         context.log(`  ${chalk.gray(api.iconResponse)} ${chalk[api.response?.ok ? 'green' : 'red']('%s')} ${chalk.gray('%s')} ${chalk.gray.italic('%s')}`, api.response?.status.toString(), api.response?.statusText, ` (${api.time.toString()}ms)`)
@@ -42,14 +48,18 @@ context
     }
   })
   .on('log:api:end', (api: Api) => {
-    if (api.debug === true || api.error) {
-      context.group('')
-      context.log(`${chalk.red('⬤')} ${chalk.underline.gray('%s')}`, api.toTestLink())
-      context.groupEnd()
-    }
+    // if (!api.debug && api.error) {
+    //   api.slient = false
+    //   api.debug = 'details'
+    //   if (api.depends) {
+    //     api.depends = false
+    //     context.emit('log:api:begin', api)
+    //   }
+    //   context.emit('log:api:done', api)
+    // }
     if (api.error) {
       api.tc.result.failed++
-      context.log(chalk.red(api.error.message))
+      // context.log(chalk.red(api.error.message))
     }
   })
 
@@ -242,6 +252,8 @@ export class Api extends Tag {
     const [url, queries = ''] = this.url.split('?')
     this._axiosData.url = url
 
+    super.prepare(undefined, [...Api.ignores])
+
     this.query = Object.assign(parse(queries), this.query)
     if (this.query) {
       const docs = getDocType(this.query)
@@ -306,7 +318,6 @@ export class Api extends Tag {
       }
     }
 
-    super.prepare(undefined, Api.ignores)
     const self = this
 
     // this.$url = new URL(this, this.url, cloneDeep(this.params), cloneDeep(this.query))
@@ -490,9 +501,9 @@ export class Api extends Tag {
       this.error.config = { url, method, headers, params, baseURL, timeout, withCredentials, fullUrl, contentType, data }
       this.error.response = { headers: response.headers, data: response.data }
       this.error.message = this.error.response?.data || error?.message
+      throw error
     } finally {
       this.time = Date.now() - begin
-      context.emit('log:api:done', this)
       if (this.var) {
         try {
           this.setVar(this.var, this.response?.data)
@@ -506,6 +517,7 @@ export class Api extends Tag {
           context.emit('log:api:validate:done', this)
         }
       }
+      context.emit('log:api:done', this)
       context.emit('log:api:end', this)
       Testcase.APIs.push(this)
     }
@@ -589,6 +601,9 @@ export class Api extends Tag {
   logDetails() {
     const obj = this._axiosData
     const space = '--------------------------------------'
+    if (['details'].includes(this.debug as string) && this.title) {
+      context.log(`${chalk.cyan('%s')}`, this.title)
+    }
     if (['details', 'request'].includes(this.debug as string)) {
       context.log(`${chalk.red('%s')}`, obj.method + ' ' + obj.fullUrlQuery(false))
       // Request header

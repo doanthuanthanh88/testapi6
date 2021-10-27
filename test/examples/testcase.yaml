@@ -12,6 +12,7 @@ vars:
   # url: https://api.production.com   # production
   # url: https://api.staging.com      # staging
   url: http://0.0.0.0:8514
+delay: 0
 templates:
   - Api: # Create an api request
       ->: base # Expose template to extends later

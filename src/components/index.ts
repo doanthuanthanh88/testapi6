@@ -1,7 +1,9 @@
 import { keep, remove } from '@/components/tags/array'
 import { upload } from '@/components/tags/upload'
 import { Schema } from 'js-yaml'
+import { api, apiDelete, apiGet, apiHead, apiPatch, apiPost, apiPut } from './tags/api'
 import { erase } from './tags/common'
+import { jwt } from './tags/jwt'
 
 /**
  * Parse file to stream
@@ -72,6 +74,14 @@ export const SCHEMA = Schema.create([
   remove,
   keep,
   erase,
+  api,
+  apiGet,
+  apiDelete,
+  apiPost,
+  apiPut,
+  apiHead,
+  apiPatch,
+  jwt,
 ])
 
 export const Components = {
