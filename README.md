@@ -1,3 +1,8 @@
+> This package is NOT supported to fix bugs or upgrade any more.  
+> Please move to [yaml-scene](https://github.com/doanthuanthanh88/yaml-scene) which is a replacement for testapi6.
+
+--- 
+
 # testapi6
 Utility tools for dev which run base on scenario yaml files
 
